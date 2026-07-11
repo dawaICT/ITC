@@ -1,0 +1,89 @@
+/* Short Courses Specific Styles */
+.dur-badge {
+    font-family: 'Inter', monospace;
+    font-weight: 700;
+}
+
+.sc-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.sc-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+}
+
+.mode-tag {
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 50px;
+    background: #eff6ff;
+    color: #3b82f6;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.fee-amount {
+    font-weight: 700;
+    color: #059669;
+    font-size: 1rem;
+}
+
+.duration-display {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: #6f42c1;
+    line-height: 1;
+}
+
+.duration-unit {
+    font-size: 0.7rem;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+.quick-preset {
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.quick-preset:hover {
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.quick-preset.selected {
+    border-color: #6f42c1 !important;
+    background: rgba(111, 66, 193, 0.05);
+}
+
+.enroll-badge {
+    background: linear-gradient(135deg, #6f42c1, #9333ea);
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.8rem;
+    padding: 3px 10px;
+    border-radius: 50px;
+}
+
+.enrolled-table .badge {
+    font-size: 0.72rem;
+}
+
+.credential-card {
+    background: linear-gradient(135deg, #f0fdf4, #d1fae5);
+    border: 1px solid #86efac;
+    border-radius: 10px;
+    padding: 14px 18px;
+}
+
+.credential-card code {
+    background: #065f46;
+    color: #ecfdf5;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 700;
+    font-size: 0.95rem;
+}

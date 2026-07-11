@@ -1,0 +1,8 @@
+# Public API hardening
+# Block direct access to the bootstrap / any underscore-prefixed include.
+<FilesMatch "^_">
+    Require all denied
+</FilesMatch>
+
+# No directory listing.
+Options -Indexes

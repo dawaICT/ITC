@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "wucportal-php",
+      "runtimeExecutable": "C:\\xampp\\php\\php.exe",
+      "runtimeArgs": ["-S", "localhost:8765", "-t", "C:\\xampp\\htdocs"],
+      "port": 8765
+    },
+    {
+      "name": "wucportal-php-alt",
+      "runtimeExecutable": "C:\\xampp\\php\\php.exe",
+      "runtimeArgs": ["-S", "localhost:8766", "-t", "C:\\xampp\\htdocs"],
+      "port": 8766
+    }
+  ]
+}

@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ITC</title>
+<link rel="icon" href="/wucportal/images/itc_logo.png" type="image/png" sizes="32x32">
+
+<!-- CSRF Token -->
+<meta name="csrf-token" content="9e585c15d4ea9cc840d1f13d08845de745b87655c793a7d7d63d269c42dba69f">
+<meta name="csrf-param" content="csrf_token">
+<meta name="csrf-header" content="X-CSRF-Token">
+
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<!-- Bootstrap 5 -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<!-- Icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<!-- DataTables -->
+<link href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+<link href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css" rel="stylesheet">
+
+<!-- SweetAlert2 -->
+<link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+
+<!-- Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+
+<!-- Shared admin styles - unified across all modules -->
+<link rel="stylesheet" href="/wucportal/css/unified-sidebar.css?v=1781641241">
+<link rel="stylesheet" href="/wucportal/css/ui-portal.css?v=1781641241">
+<link rel="stylesheet" href="/wucportal/css/admin-style.css?v=1781641241">
+<link rel="stylesheet" href="/wucportal/css/portal-dashboard.css?v=1781641241">
+<link rel="stylesheet" href="/wucportal/css/project-reusable.css?v=1781641241">
+<link rel="stylesheet" href="/wucportal/admin/css/admin-sidebar.css?v=1781641241">
+<link rel="stylesheet" href="/wucportal/admin/css/sidebar-typography.css?v=1781641241">
+
+<!-- Consolidated Portal Design System -->
+<link rel="stylesheet" href="/wucportal/assets/css/main.css?v=1781641241">
+<link rel="stylesheet" href="/wucportal/assets/css/dashboard.css?v=1781641241">
+<link rel="stylesheet" href="/wucportal/assets/css/forms.css?v=1781641241">
+<link rel="stylesheet" href="/wucportal/assets/css/tables.css?v=1781641241">
+<!-- Accounts module styling for full consistency (only for accounts module) -->
+<link rel="stylesheet" href="/wucportal/admin/css/admin-dashboard.css?v=1781641241">
+<link rel="stylesheet" href="/wucportal/admin/css/admin-sidebar.css?v=1781641241">
+
+<!-- Typography override to ensure compact base & sidebar sizing -->
+<link rel="stylesheet" href="/wucportal/css/typography-override.css?v=1781641241">
+
+<!-- Premium theme layer: design tokens, elevation, motion, responsive hardening.
+     Loaded last so it refines every stylesheet above; paired interaction layer
+     (scroll reveal, count-up stats, submit guard, safe links) is deferred. -->
+<link rel="stylesheet" href="/wucportal/css/wuc-premium.css?v=1781641241">
+<script src="/wucportal/js/wuc-premium.js?v=1781641241" defer></script>
+
+<!-- Global print layer: A4 paper, hides chrome, shows logo letterhead.
+     media="print" so it has zero screen impact and overrides earlier print rules. -->
+<link rel="stylesheet" media="print" href="/wucportal/css/wuc-print.css?v=1781641241">
+
+<!-- Brand variables and admissions light-mode override (applies to modules using unified nav) -->
+<style>
+	:root {
+		--logo-primary: #1B2A4A; /* dynamic primary */
+		--logo-secondary: #0B1530; /* dynamic secondary */
+		--logo-accent: #C8102E; /* dynamic accent (brand red) */
+		--primary-color: var(--logo-primary);
+		--secondary-color: var(--logo-secondary);
+		--accent-color: var(--logo-accent);
+		--background-color: #ffffff;
+		--card-bg: #ffffff;
+		--card-border: #e2e8f0;
+		--card-header-gradient: linear-gradient(135deg, var(--logo-primary) 0%, var(--logo-secondary) 100%);
+		--transition-speed: 0.3s;
+		--sidebar-gap: 16px;
+		--sidebar-width: 280px;
+	}
+
+	/* Global layout - unified font and sizing */
+	body {
+		font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+		font-size: 14px;
+		line-height: 1.5;
+		background: linear-gradient(135deg, rgba(27,42,74,0.03) 0%, rgba(11,21,48,0.03) 100%);
+		min-height: 100vh;
+	}
+
+	/* Main content wrapper positioning */
+	.main-wrapper {
+		margin-left: var(--sidebar-width);
+		width: calc(100% - var(--sidebar-width));
+		max-width: calc(100vw - var(--sidebar-width));
+		min-width: 0;
+		min-height: 100vh;
+		box-sizing: border-box;
+		transition: margin-left 0.3s ease, width 0.3s ease;
+	}
+	.main-content {
+		padding: 1.5rem;
+		margin-left: 0 !important; /* Prevent double offset from css_main/admin.css */
+		min-width: 0;
+		min-height: 100vh;
+		overflow-x: hidden;
+	}
+
+	/* Reset margins on nested containers to prevent double offset */
+	.main-wrapper .container-fluid,
+	.main-wrapper .admin-dashboard,
+	.main-wrapper .w3-container {
+		margin-left: 0 !important;
+		width: 100%;
+	}
+
+	/* Watermark background */
+	.container-fluid.admin-dashboard { position: relative; max-width: 100vw; }
+	.container-fluid.admin-dashboard::before {
+		content: '';
+		position: absolute;
+		top: 50%; left: 50%;
+		transform: translate(-50%, -50%);
+		width: 60%; max-width: 820px; aspect-ratio: 1/1;
+		background: url('/wucportal/images/itc_logo.png') center/contain no-repeat;
+		opacity: 0.035; pointer-events: none; z-index: 0;
+	}
+
+	/* Mobile responsive - hide sidebar offset */
+	@media (max-width: 991.98px) {
+		.main-wrapper {
+			margin-left: 0;
+			width: 100%;
+			max-width: 100vw;
+		}
+		.main-content {
+			padding: 1rem;
+			padding-top: 4rem; /* Room for mobile toggle */
+		}
+	}
+
+	/* Light theme surfaces — white cards on light bg, navy/red brand accents to match sidebar */
+	.admin-card, .card { background-color: var(--card-bg); border: 1px solid var(--card-border); color: #0f1724; box-shadow: 0 6px 18px rgba(31,41,55,0.06); }
+	.card .card-header { background: var(--card-header-gradient); color: #ffffff; border-bottom: 2px solid var(--accent-color); }
+	.dashboard-title { color: var(--logo-primary); }
+
+	/* Table header gradient matching brand */
+	.table thead.table-dark { background: linear-gradient(90deg, var(--logo-primary) 0%, var(--logo-secondary) 100%); color: #fff; }
+
+	/* Force light mode override for modules that should remain light-themed */
+	body.has-unified-sidebar { background-color: transparent !important; color: inherit !important; border-color: transparent !important; }
+	.card, .admin-card { background-color: var(--card-bg) !important; border-color: var(--card-border) !important; color: #0f1724 !important; box-shadow: 0 6px 18px rgba(31,41,55,0.06) !important; }
+	.table, .table td, .table th { background-color: transparent !important; color: inherit !important; }
+
+	@page {
+		size: A4 portrait;
+		margin: 12mm;
+	}
+
+	@media print {
+		html,
+		body {
+			background: #fff !important;
+			margin: 0 !important;
+			padding: 0 !important;
+			width: auto !important;
+			min-width: 0 !important;
+			overflow: visible !important;
+			color: #000 !important;
+			-webkit-print-color-adjust: exact;
+			print-color-adjust: exact;
+		}
+		.sidebar,
+		.sidebar-toggle,
+		.sidebar-backdrop,
+		.header-actions,
+		.d-print-none,
+		.no-print,
+		button,
+		.btn {
+			display: none !important;
+		}
+		body.has-unified-sidebar,
+		.main-wrapper,
+		.main-content,
+		.container,
+		.container-fluid,
+		.portal-dashboard,
+		.admin-dashboard,
+		.accounts-page,
+		.hod-page,
+		.students-page,
+		.lecturer-page {
+			margin: 0 !important;
+			padding: 0 !important;
+			width: 100% !important;
+			max-width: 100% !important;
+			min-width: 0 !important;
+			position: static !important;
+			transform: none !important;
+		}
+		.table-responsive,
+		.table-container,
+		.dataTables_wrapper {
+			overflow: visible !important;
+			width: 100% !important;
+			max-width: 100% !important;
+		}
+		table {
+			width: 100% !important;
+			max-width: 100% !important;
+			border-collapse: collapse !important;
+		}
+		table th,
+		table td {
+			white-space: normal !important;
+			overflow-wrap: anywhere !important;
+			vertical-align: top !important;
+		}
+		thead { display: table-header-group; }
+		tfoot { display: table-footer-group; }
+		tr { break-inside: avoid; page-break-inside: avoid; }
+	}
+</style>
+
+<!-- jQuery and JS libs -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<!-- CSRF auto-attach: adds the X-CSRF-Token header to same-origin mutating
+     AJAX requests (jQuery + fetch + XHR) so server-side CSRF checks pass without
+     each caller having to wire the token in manually. Header-only, so request
+     bodies (FormData/JSON) are never modified. -->
+<script>
+(function () {
+    var meta = document.querySelector('meta[name="csrf-token"]');
+    var token = meta ? meta.getAttribute('content') : '';
+    var headerName = (document.querySelector('meta[name="csrf-header"]') || {}).getAttribute
+        ? document.querySelector('meta[name="csrf-header"]').getAttribute('content') : 'X-CSRF-Token';
+    if (!token) { return; }
+
+    function isSameOrigin(url) {
+        try {
+            var u = new URL(url, window.location.href);
+            return u.origin === window.location.origin;
+        } catch (e) { return true; } // relative URLs are same-origin
+    }
+    function isMutating(method) {
+        method = (method || 'GET').toUpperCase();
+        return method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE';
+    }
+
+    // jQuery
+    if (window.jQuery) {
+        jQuery.ajaxSetup({
+            beforeSend: function (xhr, settings) {
+                if (isMutating(settings.type) && isSameOrigin(settings.url || '')) {
+                    xhr.setRequestHeader(headerName, token);
+                }
+            }
+        });
+    }
+
+    // fetch
+    if (window.fetch) {
+        var origFetch = window.fetch;
+        window.fetch = function (input, init) {
+            init = init || {};
+            var url = (typeof input === 'string') ? input : (input && input.url) || '';
+            var method = init.method || (typeof input === 'object' && input.method) || 'GET';
+            if (isMutating(method) && isSameOrigin(url)) {
+                var headers = new Headers(init.headers || (typeof input === 'object' ? input.headers : undefined) || {});
+                if (!headers.has(headerName)) { headers.set(headerName, token); }
+                init.headers = headers;
+            }
+            return origFetch(input, init);
+        };
+    }
+
+    // Raw XMLHttpRequest
+    if (window.XMLHttpRequest) {
+        var origOpen = XMLHttpRequest.prototype.open;
+        var origSend = XMLHttpRequest.prototype.send;
+        XMLHttpRequest.prototype.open = function (method, url) {
+            this.__csrfApply = isMutating(method) && isSameOrigin(url || '');
+            return origOpen.apply(this, arguments);
+        };
+        XMLHttpRequest.prototype.send = function () {
+            if (this.__csrfApply) {
+                try { this.setRequestHeader(headerName, token); } catch (e) {}
+            }
+            return origSend.apply(this, arguments);
+        };
+    }
+})();
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.bootstrap5.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+</head>
+
+<body class="has-unified-sidebar">
+<!-- Mobile Toggle Button -->
+<button id="sidebarToggle" class="sidebar-toggle d-lg-none" type="button" aria-label="Open navigation menu" aria-controls="sidebar" aria-expanded="false">
+	<i class="fas fa-bars" aria-hidden="true"></i>
+</button>
+
+<!-- Sidebar -->
+<nav class="sidebar" id="sidebar">
+	<div class="sidebar-header">
+		<div class="logo-container">
+			<img src="/wucportal/images/itc_logo.png" alt="ITC Logo" class="logo">
+			<span class="logo-text">ITC</span>
+		</div>
+	</div>
+	<div class="sidebar-content">
+				<div class="nav-section">
+			<div class="nav-section-title">Main</div>											<a href="/wucportal/admin/index.php" class="nav-item ">
+					<i class="fas fa-home"></i><span>Dashboard</span>
+				</a>
+								<a href="/wucportal/admin/departments.php" class="nav-item ">
+					<i class="fas fa-building"></i><span>Departments</span>
+				</a>
+									</div>
+				<div class="nav-section">
+			<div class="nav-section-title">Admissions</div>											<a href="/wucportal/admin/applicants.php" class="nav-item ">
+					<i class="fas fa-user-plus"></i><span>Applicants</span>
+				</a>
+								<a href="/wucportal/admin/manage_admitted_students.php" class="nav-item ">
+					<i class="fas fa-user-check"></i><span>Admitted Students</span>
+				</a>
+								<a href="/wucportal/admin/processedApp.php" class="nav-item ">
+					<i class="fas fa-tasks"></i><span>Processed Applications</span>
+				</a>
+									</div>
+				<div class="nav-section">
+			<div class="nav-section-title">Users</div>											<a href="/wucportal/admin/students_by_admin.php" class="nav-item ">
+					<i class="fas fa-user-graduate"></i><span>Students</span>
+				</a>
+								<a href="/wucportal/admin/staff.php" class="nav-item ">
+					<i class="fas fa-user-tie"></i><span>Staff</span>
+				</a>
+								<a href="/wucportal/admin/lecturers.php" class="nav-item ">
+					<i class="fas fa-chalkboard-teacher"></i><span>Lecturers</span>
+				</a>
+									</div>
+				<div class="nav-section">
+			<div class="nav-section-title">Academics</div>											<a href="/wucportal/admin/course_program_mgmt.php" class="nav-item ">
+					<i class="fas fa-sitemap"></i><span>Academic Structure</span>
+				</a>
+								<a href="/wucportal/admin/programs.php" class="nav-item ">
+					<i class="fas fa-graduation-cap"></i><span>Programs</span>
+				</a>
+								<a href="/wucportal/admin/course_catalogue.php" class="nav-item ">
+					<i class="fas fa-book"></i><span>Course Catalogue</span>
+				</a>
+								<a href="/wucportal/admin/courses.php" class="nav-item ">
+					<i class="fas fa-book-open"></i><span>Program Courses</span>
+				</a>
+								<a href="/wucportal/admin/assign_course.php" class="nav-item ">
+					<i class="fas fa-chalkboard-teacher"></i><span>Assign Lecturers</span>
+				</a>
+								<a href="/wucportal/admin/timetable_settings.php" class="nav-item ">
+					<i class="fas fa-calendar-alt"></i><span>Timetable Settings</span>
+				</a>
+								<a href="/wucportal/admin/semester_registration.php" class="nav-item ">
+					<i class="fas fa-user-edit"></i><span>Student Registration</span>
+				</a>
+								<a href="/wucportal/admin/short_courses.php" class="nav-item ">
+					<i class="fas fa-certificate"></i><span>Short Courses</span>
+				</a>
+								<a href="/wucportal/admin/short_course_registration.php" class="nav-item ">
+					<i class="fas fa-user-check"></i><span>Short Course Registration</span>
+				</a>
+								<a href="/wucportal/admin/setup_semester_registration.php" class="nav-item ">
+					<i class="fas fa-tools"></i><span>Registration Setup</span>
+				</a>
+									</div>
+				<div class="nav-section">
+			<div class="nav-section-title">Assessments</div>											<a href="/wucportal/admin/assessments.php" class="nav-item ">
+					<i class="fas fa-tasks"></i><span>Assessments</span>
+				</a>
+								<a href="/wucportal/admin/upload_ca.php" class="nav-item ">
+					<i class="fas fa-upload"></i><span>Upload CA</span>
+				</a>
+									</div>
+				<div class="nav-section">
+			<div class="nav-section-title">Student Management</div>											<a href="/wucportal/admin/add_student.php" class="nav-item ">
+					<i class="fas fa-user-plus"></i><span>Add Student</span>
+				</a>
+								<a href="/wucportal/admin/courseReg.php" class="nav-item ">
+					<i class="fas fa-clipboard-list"></i><span>Course Registration</span>
+				</a>
+								<a href="/wucportal/admin/hostels.php" class="nav-item ">
+					<i class="fas fa-bed"></i><span>Hostels</span>
+				</a>
+									</div>
+				<div class="nav-section">
+			<div class="nav-section-title">City &amp; Guilds</div>											<a href="/wucportal/admin/city_guilds.php" class="nav-item ">
+					<i class="fas fa-chart-pie"></i><span>Overview</span>
+				</a>
+								<a href="/wucportal/admin/city_guilds_exports.php" class="nav-item ">
+					<i class="fas fa-file-export"></i><span>Exports</span>
+				</a>
+								<a href="/wucportal/admin/city_guilds_enrolment.php" class="nav-item active">
+					<i class="fas fa-user-plus"></i><span>Enrolment &amp; Units</span>
+				</a>
+								<a href="/wucportal/admin/city_guilds_assessment.php" class="nav-item ">
+					<i class="fas fa-clipboard-list"></i><span>Assessment &amp; Support</span>
+				</a>
+								<a href="/wucportal/admin/city_guilds_verification.php" class="nav-item ">
+					<i class="fas fa-check-double"></i><span>Verification &amp; QA</span>
+				</a>
+								<a href="/wucportal/admin/city_guilds_learners.php" class="nav-item ">
+					<i class="fas fa-chart-line"></i><span>Learners</span>
+				</a>
+									</div>
+				<div class="nav-section">
+			<div class="nav-section-title">E-Learning</div>											<a href="/wucportal/admin/elearning/index.php" class="nav-item ">
+					<i class="fas fa-chalkboard"></i><span>Dashboard</span>
+				</a>
+								<a href="/wucportal/admin/elearning/manage.php" class="nav-item ">
+					<i class="fas fa-cogs"></i><span>Course Management</span>
+				</a>
+								<a href="/wucportal/admin/elearning/assessments.php" class="nav-item ">
+					<i class="fas fa-clipboard-check"></i><span>Assessments</span>
+				</a>
+								<a href="/wucportal/admin/elearning/sessions.php" class="nav-item ">
+					<i class="fas fa-video"></i><span>Live Sessions</span>
+				</a>
+								<a href="/wucportal/admin/elearning/session_analytics.php" class="nav-item ">
+					<i class="fas fa-clipboard-list"></i><span>Class Reports</span>
+				</a>
+								<a href="/wucportal/admin/elearning/forum.php" class="nav-item ">
+					<i class="fas fa-comments"></i><span>Discussion Forum</span>
+				</a>
+								<a href="/wucportal/admin/elearning/analytics.php" class="nav-item ">
+					<i class="fas fa-chart-bar"></i><span>Analytics</span>
+				</a>
+									</div>
+				<div class="nav-section">
+			<div class="nav-section-title">Library</div>											<a href="/wucportal/admin/library.php" class="nav-item ">
+					<i class="fas fa-book"></i><span>Library</span>
+				</a>
+								<a href="/wucportal/admin/library_catalog.php" class="nav-item ">
+					<i class="fas fa-th-list"></i><span>Catalog</span>
+				</a>
+								<a href="/wucportal/admin/library_circulation.php" class="nav-item ">
+					<i class="fas fa-exchange-alt"></i><span>Circulation</span>
+				</a>
+								<a href="/wucportal/admin/library_fines.php" class="nav-item ">
+					<i class="fas fa-coins"></i><span>Fines</span>
+				</a>
+								<a href="/wucportal/admin/library_digital.php" class="nav-item ">
+					<i class="fas fa-cloud"></i><span>Digital Library</span>
+				</a>
+									</div>
+				<div class="nav-section">
+			<div class="nav-section-title">Transport</div>											<a href="/wucportal/transport/transport_management.php" class="nav-item ">
+					<i class="fas fa-bus"></i><span>Transport Operations</span>
+				</a>
+									</div>
+				<div class="nav-section">
+			<div class="nav-section-title">Finance</div>											<a href="/wucportal/admin/finance.php" class="nav-item ">
+					<i class="fas fa-money-bill-wave"></i><span>Finance Dashboard</span>
+				</a>
+								<a href="/wucportal/admin/financial_overview.php" class="nav-item ">
+					<i class="fas fa-chart-line"></i><span>Financial Overview</span>
+				</a>
+								<a href="/wucportal/admin/fee_structure.php" class="nav-item ">
+					<i class="fas fa-file-invoice-dollar"></i><span>Fee Structure</span>
+				</a>
+								<a href="/wucportal/admin/payments.php" class="nav-item ">
+					<i class="fas fa-cash-register"></i><span>Payments</span>
+				</a>
+									</div>
+				<div class="nav-section">
+			<div class="nav-section-title">Exams</div>											<a href="/wucportal/admin/exams.php" class="nav-item ">
+					<i class="fas fa-file-alt"></i><span>Exams</span>
+				</a>
+								<a href="/wucportal/admin/upload_exam_results.php" class="nav-item ">
+					<i class="fas fa-upload"></i><span>Upload Results</span>
+				</a>
+								<a href="/wucportal/admin/process_exam_results.php" class="nav-item ">
+					<i class="fas fa-cogs"></i><span>Process Results</span>
+				</a>
+								<a href="/wucportal/admin/publishResults.php" class="nav-item ">
+					<i class="fas fa-bullhorn"></i><span>Publish Results</span>
+				</a>
+									</div>
+				<div class="nav-section">
+			<div class="nav-section-title">Reports</div>											<a href="/wucportal/admin/admittedStud_report.php" class="nav-item ">
+					<i class="fas fa-user-graduate"></i><span>Admitted Students</span>
+				</a>
+								<a href="/wucportal/admin/semesterReg_stud.php" class="nav-item ">
+					<i class="fas fa-clipboard-list"></i><span>Registration Reports</span>
+				</a>
+								<a href="/wucportal/admin/student_progression_report.php" class="nav-item ">
+					<i class="fas fa-triangle-exclamation"></i><span>Progression Alerts</span>
+				</a>
+								<a href="/wucportal/admin/report_year_intake.php" class="nav-item ">
+					<i class="fas fa-hand-holding-usd"></i><span>Sponsorship</span>
+				</a>
+								<a href="/wucportal/admin/reportStudy_mode.php" class="nav-item ">
+					<i class="fas fa-book-reader"></i><span>Study Mode</span>
+				</a>
+								<a href="/wucportal/admin/print_registers.php" class="nav-item ">
+					<i class="fas fa-print"></i><span>Print Registers</span>
+				</a>
+								<a href="/wucportal/admin/login_activity.php" class="nav-item ">
+					<i class="fas fa-chart-bar"></i><span>Login Activity</span>
+				</a>
+									</div>
+				<div class="nav-section">
+			<div class="nav-section-title">Settings</div>											<a href="/wucportal/admin/defineAccess.php" class="nav-item ">
+					<i class="fas fa-user-shield"></i><span>Access Control</span>
+				</a>
+								<a href="/wucportal/admin/ca_settings.php" class="nav-item ">
+					<i class="fas fa-sliders-h"></i><span>CA Settings</span>
+				</a>
+								<a href="/wucportal/admin/user_role_mgmt.php" class="nav-item ">
+					<i class="fas fa-users-cog"></i><span>Roles &amp; Permissions</span>
+				</a>
+								<a href="/wucportal/admin/resetPassword.php" class="nav-item ">
+					<i class="fas fa-key"></i><span>Reset Password</span>
+				</a>
+									</div>
+			</div>
+
+	<div class="sidebar-footer">
+		<div class="user-info">
+			<div class="user-avatar">M</div>
+			<div class="user-details">
+				<div class="user-name">Mr. Test AllRoles</div>
+				<div class="user-role">Systems Administrator</div>
+			</div>
+		</div>
+		<div class="quick-actions">
+			<a href="profile.php" class="quick-action-btn">
+				<i class="fas fa-user"></i>
+				Profile
+			</a>
+            <!-- Secure Logout Form -->
+                        <form method="POST" action="/wucportal/logout.php" class="quick-action-inline-form">
+                <input type="hidden" name="target" value="staff">
+                <input type="hidden" name="csrf_token" value="9e585c15d4ea9cc840d1f13d08845de745b87655c793a7d7d63d269c42dba69f">
+                <button type="submit" class="quick-action-btn quick-action-submit-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Logout
+                </button>
+            </form>
+		</div>
+	</div>
+</nav>
+
+<script>
+// Single sidebar controller for unified admin/module layouts.
+window.WUC_UNIFIED_SIDEBAR_CONTROLLER = true;
+document.addEventListener('DOMContentLoaded', function() {
+	var sidebar = document.getElementById('sidebar') || document.querySelector('.sidebar');
+	var toggle = document.getElementById('sidebarToggle') || document.querySelector('.sidebar-toggle');
+	var backdrop = document.querySelector('.sidebar-backdrop');
+	var mobileQuery = window.matchMedia('(max-width: 991.98px)');
+
+	function setSidebarOpen(open) {
+		if (!sidebar) { return; }
+		sidebar.classList.toggle('show', open);
+		sidebar.classList.toggle('active', open);
+		document.body.classList.toggle('sidebar-open', open);
+		document.body.style.overflow = open && mobileQuery.matches ? 'hidden' : '';
+		if (toggle) {
+			toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+		}
+		if (backdrop) {
+			backdrop.classList.toggle('show', open);
+		}
+	}
+
+	function isSidebarOpen() {
+		return !!(sidebar && (sidebar.classList.contains('show') || sidebar.classList.contains('active')));
+	}
+
+	if (toggle && sidebar && toggle.dataset.sidebarControllerBound !== 'true') {
+		toggle.dataset.sidebarControllerBound = 'true';
+		toggle.addEventListener('click', function(event) {
+			event.preventDefault();
+			event.stopPropagation();
+			setSidebarOpen(!isSidebarOpen());
+		});
+	}
+
+	if (backdrop && backdrop.dataset.sidebarControllerBound !== 'true') {
+		backdrop.dataset.sidebarControllerBound = 'true';
+		backdrop.addEventListener('click', function() {
+			setSidebarOpen(false);
+		});
+	}
+
+	document.addEventListener('click', function(event) {
+		if (!mobileQuery.matches || !isSidebarOpen()) { return; }
+		var modal = document.querySelector('.modal.show');
+		if (modal) { return; }
+		if (sidebar.contains(event.target) || (toggle && toggle.contains(event.target))) { return; }
+		setSidebarOpen(false);
+	});
+
+	document.addEventListener('keydown', function(event) {
+		if (event.key === 'Escape' && isSidebarOpen()) {
+			setSidebarOpen(false);
+		}
+	});
+
+	sidebar && sidebar.querySelectorAll('a.nav-item').forEach(function(link) {
+		link.addEventListener('click', function() {
+			if (mobileQuery.matches) {
+				setSidebarOpen(false);
+			}
+		});
+	});
+
+	mobileQuery.addEventListener('change', function(event) {
+		if (!event.matches) {
+			setSidebarOpen(false);
+		}
+	});
+
+	if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
+		document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function(element) {
+			new bootstrap.Tooltip(element);
+		});
+	}
+});
+</script>
+
+<!-- Main Content Wrapper - opened here, closed by footer include -->
+<div class="main-wrapper">
+	<div class="main-content">
+<!-- Page content continues in including files; body and html closed by footer include -->
+
+
+
+
+
+<div class="container-fluid px-4 portal-dashboard">
+  <link rel="stylesheet" href="../css/admin-dashboard.css">
+
+<style>
+  /* Word-wrapping safeguards: long values (emails, unit titles, qualification
+     codes, candidate numbers) must wrap and fit rather than overflow or clip. */
+  .portal-dashboard .table th,
+  .portal-dashboard .table td {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    white-space: normal;
+    vertical-align: top;
+  }
+  .portal-dashboard small { overflow-wrap: anywhere; word-break: break-word; }
+  .portal-dashboard .dashboard-title { overflow-wrap: anywhere; }
+
+  /* Stat cards: in the tight 6-across grid the icon must not squash and the
+     number/label must wrap and fit rather than overflow the card. */
+  .portal-dashboard .stat-card { min-width: 0; padding: 1.1rem; }
+  .portal-dashboard .stat-card .d-flex { min-width: 0; width: 100%; }
+  .portal-dashboard .stat-card .d-flex > div { min-width: 0; }
+  .portal-dashboard .stat-icon { flex: 0 0 auto; }
+  .portal-dashboard .stat-card h3 {
+    font-size: 1.15rem;
+    line-height: 1.1;
+    margin-bottom: 0.15rem;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+  .portal-dashboard .stat-card p {
+    font-size: 0.8rem;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  /* Card headers with an action button: wrap on narrow widths so the title and
+     the "view all" button never overflow the header bar. */
+  .portal-dashboard .card-header.d-flex { flex-wrap: wrap; gap: .5rem; }
+  .portal-dashboard .card-header h5 { overflow-wrap: anywhere; min-width: 0; }
+</style>
+
+<div class="dashboard-header admin-section mb-4">
+  <div class="row align-items-center">
+    <div class="col">
+      <h1 class="dashboard-title"><i class="fas fa-certificate me-2"></i>City &amp; Guilds — Enrolment &amp; Units</h1>
+              <p class="text-muted mb-0">Register candidates, maintain City &amp; Guilds units, and schedule unit delivery.</p>
+          </div>
+  </div>
+</div>
+
+
+  <div class="row g-4">
+    <div class="col-xl-4">
+      <div class="data-table-card h-100">
+        <div class="card-header"><h5 class="mb-0"><i class="fas fa-user-plus me-2"></i>Register Candidate</h5></div>
+        <div class="card-body">
+          <form method="post" class="row g-3">
+            <input type="hidden" name="action" value="enroll">
+            <div class="col-12">
+              <label class="form-label">Existing student</label>
+              <select name="SID" class="form-select" required>
+                <option value="">Select student</option>
+                                  <option value="ITC26T16755">
+                    Aaron Banda - ITC26T16755                  </option>
+                                  <option value="ITC26T10976">
+                    Abdul Phiri - ITC26T10976                  </option>
+                                  <option value="ITC26T10730">
+                    Abraham Tembo - ITC26T10730                  </option>
+                                  <option value="ITC26T18069">
+                    Ackim Mbewe - ITC26T18069                  </option>
+                                  <option value="ITC26T15760">
+                    Ackim Simwanza - ITC26T15760                  </option>
+                                  <option value="ITC26T11166">
+                    Albert Phiri - ITC26T11166                  </option>
+                                  <option value="ITC26T10338">
+                    Alvaria Nyamba - ITC26T10338                  </option>
+                                  <option value="ITC26T11261">
+                    Andrew Daka - ITC26T11261                  </option>
+                                  <option value="ITC26T14623">
+                    Andrew Siame - ITC26T14623                  </option>
+                                  <option value="ITC26T10419">
+                    Angela Kolala - ITC26T10419                  </option>
+                                  <option value="ITC26T12886">
+                    Astridah Ngwewa - ITC26T12886                  </option>
+                                  <option value="ITC26T17482">
+                    Aswell Banda - ITC26T17482                  </option>
+                                  <option value="ITC26T15275">
+                    Aswell Chola - ITC26T15275                  </option>
+                                  <option value="ITC26T17070">
+                    Bathromeo Mutemwa - ITC26T17070                  </option>
+                                  <option value="ITC26T19441">
+                    Beatrice Mwila - ITC26T19441                  </option>
+                                  <option value="ITC26T11933">
+                    Beatrice Mwitwa - ITC26T11933                  </option>
+                                  <option value="ITC26T14289">
+                    Ben Chanda - ITC26T14289                  </option>
+                                  <option value="ITC26T13864">
+                    Benjamin Bwalya - ITC26T13864                  </option>
+                                  <option value="ITC26T16080">
+                    Bernard Mwelwa - ITC26T16080                  </option>
+                                  <option value="ITC26T15393">
+                    Biemba Kennedy - ITC26T15393                  </option>
+                                  <option value="ITC26T15358">
+                    Blessing Mulenga - ITC26T15358                  </option>
+                                  <option value="ITC26T16854">
+                    Bornface Mwanza - ITC26T16854                  </option>
+                                  <option value="ITC26T14839">
+                    Bright Chibwe - ITC26T14839                  </option>
+                                  <option value="ITC26T10074">
+                    Bwalya Besa - ITC26T10074                  </option>
+                                  <option value="ITC26T19514">
+                    Cephas Mwale - ITC26T19514                  </option>
+                                  <option value="ITC26T13786">
+                    Chanda Mulenga - ITC26T13786                  </option>
+                                  <option value="ITC26T14706">
+                    Charity Chola - ITC26T14706                  </option>
+                                  <option value="ITC26T17438">
+                    Charity Mulubwa - ITC26T17438                  </option>
+                                  <option value="ITC26T19583">
+                    Charles Lungu - ITC26T19583                  </option>
+                                  <option value="ITC26T10667">
+                    Charles Mweemba - ITC26T10667                  </option>
+                                  <option value="ITC26T10223">
+                    Chibombwe Deborah - ITC26T10223                  </option>
+                                  <option value="ITC26T16582">
+                    Chilombo Makai - ITC26T16582                  </option>
+                                  <option value="ITC26T17632">
+                    Chilombo Nalwamba - ITC26T17632                  </option>
+                                  <option value="ITC26T10080">
+                    Chisomo Ndhlovu - ITC26T10080                  </option>
+                                  <option value="ITC26T12183">
+                    Christopher Kayobeka - ITC26T12183                  </option>
+                                  <option value="ITC26T19268">
+                    Cleopas Mafuso - ITC26T19268                  </option>
+                                  <option value="ITC26T18165">
+                    Convent Phiri - ITC26T18165                  </option>
+                                  <option value="ITC26T13916">
+                    Cosby Walubita - ITC26T13916                  </option>
+                                  <option value="ITC26T11393">
+                    Coyford Simeja - ITC26T11393                  </option>
+                                  <option value="ITC26T11548">
+                    Curtis Namakondo - ITC26T11548                  </option>
+                                  <option value="ITC26T13355">
+                    Cyrus Mateyo - ITC26T13355                  </option>
+                                  <option value="ITC26T13953">
+                    Daniel Jere - ITC26T13953                  </option>
+                                  <option value="ITC26T15817">
+                    Daniel Kabwe - ITC26T15817                  </option>
+                                  <option value="ITC26T16419">
+                    David Milambo - ITC26T16419                  </option>
+                                  <option value="ITC26T11591">
+                    David Mushanga - ITC26T11591                  </option>
+                                  <option value="ITC26T19394">
+                    David Ngwenya - ITC26T19394                  </option>
+                                  <option value="ITC26T18702">
+                    David Phiri - ITC26T18702                  </option>
+                                  <option value="ITC26T19482">
+                    David Samutumwa - ITC26T19482                  </option>
+                                  <option value="ITC26T19215">
+                    David Sichinga - ITC26T19215                  </option>
+                                  <option value="ITC26T14608">
+                    Davison Nyangu - ITC26T14608                  </option>
+                                  <option value="ITC26T13395">
+                    Dennis Daka - ITC26T13395                  </option>
+                                  <option value="ITC26T14931">
+                    Dennis Musenga - ITC26T14931                  </option>
+                                  <option value="ITC26T10504">
+                    Effort Kaila - ITC26T10504                  </option>
+                                  <option value="ITC26T19545">
+                    Elijah Banda - ITC26T19545                  </option>
+                                  <option value="ITC26T11804">
+                    Elijah Misheck - ITC26T11804                  </option>
+                                  <option value="ITC26T18436">
+                    Elijah Ndhlovu - ITC26T18436                  </option>
+                                  <option value="ITC26T11316">
+                    Eliss Banda - ITC26T11316                  </option>
+                                  <option value="ITC26T19640">
+                    Emmanuel Katongo - ITC26T19640                  </option>
+                                  <option value="ITC26T19118">
+                    Emmanuel Mushokabanji - ITC26T19118                  </option>
+                                  <option value="ITC26T18486">
+                    Emmanuel Mwanza - ITC26T18486                  </option>
+                                  <option value="ITC26T10744">
+                    Eneless Daka - ITC26T10744                  </option>
+                                  <option value="ITC26T16024">
+                    Enerst Mayanga - ITC26T16024                  </option>
+                                  <option value="ITC26T17260">
+                    Ennice Banda - ITC26T17260                  </option>
+                                  <option value="ITC26T15165">
+                    Evans Chiti - ITC26T15165                  </option>
+                                  <option value="ITC26T18405">
+                    Ezekiel Banda - ITC26T18405                  </option>
+                                  <option value="ITC26T16295">
+                    Farai Kangusa - ITC26T16295                  </option>
+                                  <option value="ITC26T14493">
+                    Felistus Phiri - ITC26T14493                  </option>
+                                  <option value="ITC26T14133">
+                    Floliano Banda - ITC26T14133                  </option>
+                                  <option value="ITC26T15274">
+                    Francis Phiri - ITC26T15274                  </option>
+                                  <option value="ITC26T19879">
+                    Francis Tembo - ITC26T19879                  </option>
+                                  <option value="ITC26T14818">
+                    Frank Hachimvwa - ITC26T14818                  </option>
+                                  <option value="ITC26T18220">
+                    Frank Mwila - ITC26T18220                  </option>
+                                  <option value="ITC26T19565">
+                    Fred Halwiindi - ITC26T19565                  </option>
+                                  <option value="ITC26T11855">
+                    Friday Chansa - ITC26T11855                  </option>
+                                  <option value="ITC26T14103">
+                    Funnuel Makombe - ITC26T14103                  </option>
+                                  <option value="ITC26T16064">
+                    George Kaswayo - ITC26T16064                  </option>
+                                  <option value="ITC26T16078">
+                    George Maipambe - ITC26T16078                  </option>
+                                  <option value="ITC26T14932">
+                    Gertrude Moono - ITC26T14932                  </option>
+                                  <option value="ITC26T17888">
+                    Getrude Banda - ITC26T17888                  </option>
+                                  <option value="ITC26T18790">
+                    Gift Khondowe - ITC26T18790                  </option>
+                                  <option value="ITC26T13569">
+                    Given Zulu - ITC26T13569                  </option>
+                                  <option value="ITC26T16021">
+                    Gladys Banda - ITC26T16021                  </option>
+                                  <option value="ITC26T18303">
+                    Gloria Nansanti - ITC26T18303                  </option>
+                                  <option value="ITC26T11566">
+                    Godfrey Chisanga - ITC26T11566                  </option>
+                                  <option value="ITC26T11513">
+                    Gracious Chola - ITC26T11513                  </option>
+                                  <option value="ITC26T19095">
+                    Grant Mbangweta - ITC26T19095                  </option>
+                                  <option value="ITC26T17440">
+                    Gritel Chilando - ITC26T17440                  </option>
+                                  <option value="ITC26T13691">
+                    Happy Tembo - ITC26T13691                  </option>
+                                  <option value="ITC26T13698">
+                    Harrison Mbewe - ITC26T13698                  </option>
+                                  <option value="ITC26T19709">
+                    Henry Makombe - ITC26T19709                  </option>
+                                  <option value="ITC26T13408">
+                    Henry Mvula - ITC26T13408                  </option>
+                                  <option value="ITC26T1340802">
+                    Humphrey Siame - ITC26T1340802                  </option>
+                                  <option value="ITC26T10848">
+                    Ian Kabwe - ITC26T10848                  </option>
+                                  <option value="ITC26T19357">
+                    Ibrahim Ngurumo - ITC26T19357                  </option>
+                                  <option value="ITC26T11347">
+                    Innocent Longwani - ITC26T11347                  </option>
+                                  <option value="ITC26T11817">
+                    Innocent Silwimba - ITC26T11817                  </option>
+                                  <option value="ITC26T19550">
+                    Ireen Chiyuka - ITC26T19550                  </option>
+                                  <option value="ITC26T15765">
+                    Isaac Banda - ITC26T15765                  </option>
+                                  <option value="ITC26T18252">
+                    Isaac Lungu - ITC26T18252                  </option>
+                                  <option value="ITC26T18389">
+                    Isaac Phiri - ITC26T18389                  </option>
+                                  <option value="ITC26T13396">
+                    Ivena Mangenda - ITC26T13396                  </option>
+                                  <option value="ITC26T18197">
+                    Jacob Chanda Bantubonse - ITC26T18197                  </option>
+                                  <option value="ITC26T17742">
+                    James Phiri - ITC26T17742                  </option>
+                                  <option value="ITC26T11035">
+                    James Tutwa - ITC26T11035                  </option>
+                                  <option value="ITC26T11260">
+                    Jane Nyirongo - ITC26T11260                  </option>
+                                  <option value="ITC26T14032">
+                    Jennipher Sakala - ITC26T14032                  </option>
+                                  <option value="ITC26T12379">
+                    Jenny Mweemba - ITC26T12379                  </option>
+                                  <option value="ITC26T18504">
+                    Joeph Chiwala - ITC26T18504                  </option>
+                                  <option value="ITC26T15490">
+                    John Mwansa - ITC26T15490                  </option>
+                                  <option value="ITC26T10928">
+                    John Ng’onga - ITC26T10928                  </option>
+                                  <option value="ITC26T17738">
+                    John Ntambu - ITC26T17738                  </option>
+                                  <option value="ITC26T15104">
+                    Jonathan Kunda - ITC26T15104                  </option>
+                                  <option value="ITC26T15924">
+                    Jones Banda - ITC26T15924                  </option>
+                                  <option value="ITC26T16006">
+                    Joseph Chinyama - ITC26T16006                  </option>
+                                  <option value="ITC26T15764">
+                    Joseph Chooka - ITC26T15764                  </option>
+                                  <option value="ITC26T10657">
+                    Joseph Lungu - ITC26T10657                  </option>
+                                  <option value="ITC26T13350">
+                    Joseph Mumba - ITC26T13350                  </option>
+                                  <option value="ITC26T13291">
+                    Joseph Mwewa - ITC26T13291                  </option>
+                                  <option value="ITC26T14060">
+                    Joseph Phiri - ITC26T14060                  </option>
+                                  <option value="ITC26T11597">
+                    Joseph Tembo - ITC26T11597                  </option>
+                                  <option value="ITC26T13955">
+                    Justina Makungu - ITC26T13955                  </option>
+                                  <option value="ITC26T18955">
+                    Justina Makungu - ITC26T18955                  </option>
+                                  <option value="ITC26T12684">
+                    Justine Kabolwe - ITC26T12684                  </option>
+                                  <option value="ITC26T15424">
+                    Kafuna Mutale - ITC26T15424                  </option>
+                                  <option value="ITC26T16616">
+                    Kakeya Kakeya - ITC26T16616                  </option>
+                                  <option value="ITC26T16606">
+                    Kakoma Raphael Lambi - ITC26T16606                  </option>
+                                  <option value="ITC26T17324">
+                    Kaunda Chiti - ITC26T17324                  </option>
+                                  <option value="ITC26T16519">
+                    Keith Muungo - ITC26T16519                  </option>
+                                  <option value="ITC26T14401">
+                    Lael Nsensele - ITC26T14401                  </option>
+                                  <option value="ITC26T13022">
+                    Lawrence Chali - ITC26T13022                  </option>
+                                  <option value="ITC26T10325">
+                    Lawrence Zimba - ITC26T10325                  </option>
+                                  <option value="ITC26T11133">
+                    Leman Chinyundo - ITC26T11133                  </option>
+                                  <option value="ITC26T11234">
+                    Leman Chinyundo - ITC26T11234                  </option>
+                                  <option value="ITC26T13456">
+                    Leman Chinyundo - ITC26T13456                  </option>
+                                  <option value="ITC26T12304">
+                    Lenox Tambale - ITC26T12304                  </option>
+                                  <option value="ITC26T1895502">
+                    Leonard Phiri - ITC26T1895502                  </option>
+                                  <option value="ITC26T16193">
+                    Leonard Tsuro - ITC26T16193                  </option>
+                                  <option value="ITC26T18729">
+                    Linda Banda - ITC26T18729                  </option>
+                                  <option value="ITC26T18531">
+                    Linda Zango - ITC26T18531                  </option>
+                                  <option value="ITC26T13019">
+                    Liswaniso Liswaniso - ITC26T13019                  </option>
+                                  <option value="ITC26T14521">
+                    Lovemore Tembo - ITC26T14521                  </option>
+                                  <option value="ITC26T1339502">
+                    Lucky Simwanda - ITC26T1339502                  </option>
+                                  <option value="ITC26T15096">
+                    Lufeyo Mulenga - ITC26T15096                  </option>
+                                  <option value="ITC26T17406">
+                    Lukas Sakala - ITC26T17406                  </option>
+                                  <option value="ITC26T14557">
+                    Luke Mulenga - ITC26T14557                  </option>
+                                  <option value="ITC26T17679">
+                    Luke Nguni - ITC26T17679                  </option>
+                                  <option value="ITC26T16041">
+                    Luwis Chomba - ITC26T16041                  </option>
+                                  <option value="ITC26T16665">
+                    Lyson Nyirenda - ITC26T16665                  </option>
+                                  <option value="ITC26T19523">
+                    Maambo Lewis - ITC26T19523                  </option>
+                                  <option value="ITC26T19748">
+                    Mark Mwila - ITC26T19748                  </option>
+                                  <option value="ITC26T19788">
+                    Mark Mwila - ITC26T19788                  </option>
+                                  <option value="ITC26T17962">
+                    Martifel Nyasulu - ITC26T17962                  </option>
+                                  <option value="ITC26T13088">
+                    Mary Mutale - ITC26T13088                  </option>
+                                  <option value="ITC26T15923">
+                    Mathews Chisala - ITC26T15923                  </option>
+                                  <option value="ITC26T11891">
+                    Maxwell Banda - ITC26T11891                  </option>
+                                  <option value="ITC26T16571">
+                    Meggie Mayanga - ITC26T16571                  </option>
+                                  <option value="ITC26T13908">
+                    Melvin Kandula - ITC26T13908                  </option>
+                                  <option value="ITC26T13769">
+                    Melvin Khondowe - ITC26T13769                  </option>
+                                  <option value="ITC26T11800">
+                    Micheal Mumba - ITC26T11800                  </option>
+                                  <option value="ITC26T14107">
+                    Micheal Zulu - ITC26T14107                  </option>
+                                  <option value="ITC26T12749">
+                    Mockey Phiri - ITC26T12749                  </option>
+                                  <option value="ITC26T19352">
+                    Modester Chola - ITC26T19352                  </option>
+                                  <option value="ITC26T17652">
+                    Monde Tumusiye - ITC26T17652                  </option>
+                                  <option value="ITC26T17884">
+                    Moses Banda - ITC26T17884                  </option>
+                                  <option value="ITC26T17531">
+                    Moses Chapepa - ITC26T17531                  </option>
+                                  <option value="ITC26T10308">
+                    Moses Chipoya - ITC26T10308                  </option>
+                                  <option value="ITC26T12534">
+                    Moses Malama - ITC26T12534                  </option>
+                                  <option value="ITC26T11708">
+                    Moses Mbasela - ITC26T11708                  </option>
+                                  <option value="ITC26T15986">
+                    Mubanga Chisanga - ITC26T15986                  </option>
+                                  <option value="ITC26T12292">
+                    Mubanga Musonda - ITC26T12292                  </option>
+                                  <option value="ITC26T18286">
+                    Mutinta Mumba - ITC26T18286                  </option>
+                                  <option value="ITC26T19264">
+                    Mwala Paul - ITC26T19264                  </option>
+                                  <option value="ITC26T12198">
+                    Mwasha Mwansa - ITC26T12198                  </option>
+                                  <option value="ITC26T17116">
+                    Nathan Lyumbika - ITC26T17116                  </option>
+                                  <option value="ITC26T14145">
+                    Nathan Nyendwa - ITC26T14145                  </option>
+                                  <option value="ITC26T12854">
+                    Nelson Nkhoma - ITC26T12854                  </option>
+                                  <option value="ITC26T15796">
+                    Niza Simfukwe - ITC26T15796                  </option>
+                                  <option value="ITC26T19966">
+                    Noah Museta - ITC26T19966                  </option>
+                                  <option value="ITC26T19883">
+                    Nyambe Malambo - ITC26T19883                  </option>
+                                  <option value="ITC26T13434">
+                    Obed Kapolyo - ITC26T13434                  </option>
+                                  <option value="ITC26T17718">
+                    Olement Lubinda - ITC26T17718                  </option>
+                                  <option value="ITC26T10287">
+                    Patience Siachakanza - ITC26T10287                  </option>
+                                  <option value="ITC26T16276">
+                    Patrick Banda - ITC26T16276                  </option>
+                                  <option value="ITC26T14427">
+                    Patrick Ngwewa - ITC26T14427                  </option>
+                                  <option value="ITC26T17239">
+                    Paul Luchendo - ITC26T17239                  </option>
+                                  <option value="ITC26T17837">
+                    Peter Bwalya - ITC26T17837                  </option>
+                                  <option value="ITC26T12492">
+                    Peter Kanukamwe - ITC26T12492                  </option>
+                                  <option value="ITC26T11048">
+                    Peter Kapambwe - ITC26T11048                  </option>
+                                  <option value="ITC26T17450">
+                    Peter Phiri - ITC26T17450                  </option>
+                                  <option value="ITC26T15788">
+                    Peter Sakala - ITC26T15788                  </option>
+                                  <option value="ITC26T18824">
+                    Peter Mwansa Masuwa - ITC26T18824                  </option>
+                                  <option value="ITC26T18515">
+                    Pethias Hichaaba - ITC26T18515                  </option>
+                                  <option value="ITC26T16330">
+                    Philimon Phiri - ITC26T16330                  </option>
+                                  <option value="ITC26T15132">
+                    Phinias Mukankawa - ITC26T15132                  </option>
+                                  <option value="ITC26T17899">
+                    Precious Choolwe - ITC26T17899                  </option>
+                                  <option value="ITC26T11175">
+                    Precious Hamahoko - ITC26T11175                  </option>
+                                  <option value="ITC26T13123">
+                    Precious Ngoma - ITC26T13123                  </option>
+                                  <option value="ITC26T12888">
+                    Prince Ngwewa - ITC26T12888                  </option>
+                                  <option value="ITC26T12487">
+                    Rahim Malosa - ITC26T12487                  </option>
+                                  <option value="ITC26T13692">
+                    Ramsey Chisanga - ITC26T13692                  </option>
+                                  <option value="ITC26T15325">
+                    Raphael Siame - ITC26T15325                  </option>
+                                  <option value="ITC26T10581">
+                    Reuben Simukonda - ITC26T10581                  </option>
+                                  <option value="ITC26T13110">
+                    Rodrick Chali - ITC26T13110                  </option>
+                                  <option value="ITC26T11230">
+                    Ronald Matongo - ITC26T11230                  </option>
+                                  <option value="ITC26T17053">
+                    Ronald Sinamaani - ITC26T17053                  </option>
+                                  <option value="ITC26T18551">
+                    Ruth Tembo - ITC26T18551                  </option>
+                                  <option value="ITC26T19008">
+                    Ryan Mbunda - ITC26T19008                  </option>
+                                  <option value="ITC26T16110">
+                    Safira Ziwa - ITC26T16110                  </option>
+                                  <option value="ITC26T16062">
+                    Salim Kasembe - ITC26T16062                  </option>
+                                  <option value="ITC26T13029">
+                    Samuel Chiyuka - ITC26T13029                  </option>
+                                  <option value="ITC26T12213">
+                    Samuel Ng&#039;uni - ITC26T12213                  </option>
+                                  <option value="ITC26T19539">
+                    Samva Daka - ITC26T19539                  </option>
+                                  <option value="ITC26T12542">
+                    Shadreck Kalale - ITC26T12542                  </option>
+                                  <option value="ITC26T16570">
+                    Shekainah Kabengele - ITC26T16570                  </option>
+                                  <option value="ITC26T13903">
+                    Simbeya Joackim - ITC26T13903                  </option>
+                                  <option value="ITC26T10103">
+                    Simon Mumba - ITC26T10103                  </option>
+                                  <option value="ITC26T11386">
+                    Simon Somba - ITC26T11386                  </option>
+                                  <option value="ITC26T16292">
+                    Stacey Selyer - ITC26T16292                  </option>
+                                  <option value="ITC26T18962">
+                    Stanley Mumba - ITC26T18962                  </option>
+                                  <option value="ITC26T17388">
+                    Stany Zulu - ITC26T17388                  </option>
+                                  <option value="ITC26T13402">
+                    Stephen Phiri - ITC26T13402                  </option>
+                                  <option value="ITC26T11358">
+                    Stephen Simwinga - ITC26T11358                  </option>
+                                  <option value="ITC26T16297">
+                    Steven Chiluba - ITC26T16297                  </option>
+                                  <option value="ITC26T16151">
+                    Steven Mulenga - ITC26T16151                  </option>
+                                  <option value="ITC26T19421">
+                    Steven Phiri - ITC26T19421                  </option>
+                                  <option value="ITC26T13504">
+                    Steward Kombai - ITC26T13504                  </option>
+                                  <option value="2023001">
+                    Student 2023001 - 2023001                  </option>
+                                  <option value="ITC26T14906">
+                    Sungananji Siame - ITC26T14906                  </option>
+                                  <option value="ITC26T17174">
+                    Sydney Banda - ITC26T17174                  </option>
+                                  <option value="ITC26T13281">
+                    Sydney Bwalya - ITC26T13281                  </option>
+                                  <option value="ITC26T11244">
+                    Sydney Mwamba - ITC26T11244                  </option>
+                                  <option value="ITC26T12966">
+                    Tambulo Jackson - ITC26T12966                  </option>
+                                  <option value="ITC26T19289">
+                    Tande Chongo - ITC26T19289                  </option>
+                                  <option value="ITC26T11480">
+                    Tasheni Mwamba - ITC26T11480                  </option>
+                                  <option value="ITC26T19780">
+                    Temwanji Siame - ITC26T19780                  </option>
+                                  <option value="STU901">
+                    Test ShortCourse - STU901                  </option>
+                                  <option value="STU900">
+                    Test Student - STU900                  </option>
+                                  <option value="ITC26T10653">
+                    Thomas Kazembe - ITC26T10653                  </option>
+                                  <option value="ITC26T14865">
+                    Timothy Phiri - ITC26T14865                  </option>
+                                  <option value="ITC26T16931">
+                    Veronica Mawino - ITC26T16931                  </option>
+                                  <option value="ITC26T15979">
+                    Vincent Mwiche - ITC26T15979                  </option>
+                                  <option value="ITC26T17792">
+                    Vincent Ngoma - ITC26T17792                  </option>
+                                  <option value="ITC26T14768">
+                    Walubita Maikabo - ITC26T14768                  </option>
+                                  <option value="ITC26T12794">
+                    Walusungu Kayira - ITC26T12794                  </option>
+                                  <option value="ITC26T12021">
+                    Wapa Mkochi - ITC26T12021                  </option>
+                                  <option value="ITC26T14942">
+                    Wina Muyunda - ITC26T14942                  </option>
+                              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Qualification code</label>
+              <input type="text" name="qualification_code" class="form-control" maxlength="80" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Cohort</label>
+              <input type="text" name="cohort" class="form-control" maxlength="80" placeholder="2026-JUN" required>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Candidate number</label>
+              <input type="text" name="candidate_number" class="form-control" maxlength="80" required>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Notes</label>
+              <textarea name="notes" class="form-control" rows="2"></textarea>
+            </div>
+            <div class="col-12">
+              <button class="btn btn-primary w-100" type="submit"><i class="fas fa-save me-2"></i>Enroll Learner</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-4">
+      <div class="data-table-card h-100">
+        <div class="card-header"><h5 class="mb-0"><i class="fas fa-book-open me-2"></i>City &amp; Guilds Unit</h5></div>
+        <div class="card-body">
+          <form method="post" class="row g-3">
+            <input type="hidden" name="action" value="save_unit">
+            <div class="col-md-6">
+              <label class="form-label">Qualification code</label>
+              <input type="text" name="unit_qualification_code" class="form-control" maxlength="80" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Unit code</label>
+              <input type="text" name="unit_code" class="form-control" maxlength="80" required>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Unit title</label>
+              <input type="text" name="unit_title" class="form-control" maxlength="190" required>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Syllabus reference</label>
+              <input type="text" name="syllabus_reference" class="form-control" maxlength="190">
+            </div>
+            <div class="col-12">
+              <button class="btn btn-outline-primary w-100" type="submit"><i class="fas fa-book me-2"></i>Save Unit</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-4">
+      <div class="data-table-card h-100">
+        <div class="card-header"><h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Assign &amp; Schedule</h5></div>
+        <div class="card-body">
+          <form method="post" class="row g-3">
+            <input type="hidden" name="action" value="assign_unit">
+            <div class="col-12">
+              <label class="form-label">Learner</label>
+              <select name="assignment_learner_id" class="form-select" required>
+                <option value="">Select learner</option>
+                              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Unit</label>
+              <select name="assignment_unit_id" class="form-select" required>
+                <option value="">Select unit</option>
+                                  <option value="5">
+                    ITC-TEST / U1 - Split Test Unit                  </option>
+                              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Instructor / tutor</label>
+              <select name="instructor_id" class="form-select" required>
+                <option value="">Select staff</option>
+                                  <option value="SUPERADMIN">
+                    Mr Super Admin - SUPERADMIN                  </option>
+                                  <option value="WUC901">
+                    Mr. Test Admin - WUC901                  </option>
+                                  <option value="WUC902">
+                    Mr. Test Admissions - WUC902                  </option>
+                                  <option value="WUC900">
+                    Mr. Test AllRoles - WUC900                  </option>
+                                  <option value="WUC906">
+                    Mr. Test Dean - WUC906                  </option>
+                                  <option value="WUC904">
+                    Mr. Test EngICT-HOS - WUC904                  </option>
+                                  <option value="WUC903">
+                    Mr. Test Finance - WUC903                  </option>
+                                  <option value="TESTLECTURER">
+                    Mr Test Lecturer - TESTLECTURER                  </option>
+                                  <option value="WUC907">
+                    Mr. Test Lecturer - WUC907                  </option>
+                                  <option value="WUC908">
+                    Mr. Test Library - WUC908                  </option>
+                                  <option value="WUC905">
+                    Mr. Test Registrar - WUC905                  </option>
+                                  <option value="TESTSUPER">
+                    Dr Test Super Admin - TESTSUPER                  </option>
+                                  <option value="WUC909">
+                    Mr. Test Transport - WUC909                  </option>
+                                  <option value="WUC910">
+                    Mr. Test Transport-HOS - WUC910                  </option>
+                              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Start</label>
+              <input type="datetime-local" name="schedule_start" class="form-control">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">End</label>
+              <input type="datetime-local" name="schedule_end" class="form-control">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Location</label>
+              <input type="text" name="location" class="form-control" maxlength="150">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Notes</label>
+              <textarea name="assignment_notes" class="form-control" rows="2"></textarea>
+            </div>
+            <div class="col-12">
+              <button class="btn btn-outline-primary w-100" type="submit"><i class="fas fa-calendar-plus me-2"></i>Schedule Unit</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+	</div><!-- End main-content -->
+</div><!-- End main-wrapper -->
+
+<!-- Sidebar Backdrop -->
+<div class="sidebar-backdrop"></div>
+<script>
+/*
+ * Modal stacking fix (admin-wide).
+ * The unified layout wraps page content in .main-content, which has
+ * `position: relative; z-index: 1` (css/unified-sidebar.css) and therefore
+ * creates a stacking context. A Bootstrap modal authored inside that wrapper
+ * gets trapped BELOW the body-level .modal-backdrop, so the dialog looks dimmed
+ * by its own overlay. Reparenting each modal to <body> on show moves it out of
+ * the trapping context (Bootstrap's own guidance), so the dialog (z-index 1055)
+ * renders above the backdrop (z-index 1050).
+ */
+document.addEventListener('show.bs.modal', function (event) {
+    var modal = event.target;
+    if (modal && modal.classList && modal.classList.contains('modal') && modal.parentNode !== document.body) {
+        document.body.appendChild(modal);
+    }
+}, true);
+</script>
+</body>
+</html>

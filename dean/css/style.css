@@ -1,0 +1,27 @@
+/* Dean Module Legacy Styles - Minimal overrides */
+/* Note: Main styling is now handled by dean-dashboard.css */
+
+/* Remove conflicting background color */
+body {
+    background-color: transparent;
+}
+
+/* Ensure proper font inheritance */
+body {
+    font-family: inherit;
+}
+
+/* Remove conflicting link styles */
+body a {
+    color: inherit;
+}
+
+/* Remove conflicting paragraph styles */
+body p {
+    font-size: inherit;
+}
+
+/* Remove conflicting heading styles */
+body h4 {
+    text-align: inherit;
+}

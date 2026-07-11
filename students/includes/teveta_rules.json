@@ -1,0 +1,69 @@
+{
+  "enrolment_rules": {
+    "allow_concurrent_enrollment": "warn",
+    "default_pre_reg_days_certificate": 21,
+    "default_late_reg_days_certificate": 28,
+    "default_pre_reg_days_diploma": 28,
+    "default_late_reg_days_diploma": 28,
+    "default_pre_reg_days_short_course": 7,
+    "default_late_reg_days_short_course": 14,
+    "default_pre_reg_days_trade_test": 14,
+    "default_late_reg_days_trade_test": 21
+  },
+  "programme_duration_rules": {
+    "AUTO-001": {
+      "min_weeks": 30,
+      "max_weeks": 52,
+      "expected_weeks": 40,
+      "allow_custom_duration": 0
+    },
+    "AUTO-003": {
+      "min_weeks": 80,
+      "max_weeks": 110,
+      "expected_weeks": 104,
+      "allow_custom_duration": 0
+    },
+    "CSE": {
+      "min_weeks": 80,
+      "max_weeks": 110,
+      "expected_weeks": 104,
+      "allow_custom_duration": 0
+    },
+    "DTL": {
+      "min_weeks": 120,
+      "max_weeks": 170,
+      "expected_weeks": 156,
+      "allow_custom_duration": 0
+    }
+  },
+  "registration_windows": [
+    {
+      "programme_type": "Certificate",
+      "official_open_date": "2025-08-01",
+      "official_close_date": "2025-09-15",
+      "pre_registration_days": 21,
+      "late_registration_days": 28
+    },
+    {
+      "programme_type": "Diploma",
+      "official_open_date": "2025-08-01",
+      "official_close_date": "2025-09-15",
+      "pre_registration_days": 28,
+      "late_registration_days": 28
+    },
+    {
+      "programme_type": "Short Course",
+      "official_open_date": "2025-08-01",
+      "official_close_date": "2025-09-15",
+      "pre_registration_days": 7,
+      "late_registration_days": 14
+    },
+    {
+      "programme_type": "Trade Test",
+      "official_open_date": "2025-08-01",
+      "official_close_date": "2025-09-15",
+      "pre_registration_days": 14,
+      "late_registration_days": 21
+    }
+  ]
+}

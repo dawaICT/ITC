@@ -1,0 +1,24 @@
+/* Sidebar font-size normalization for Accounts (load this file last) */
+:root { --sidebar-font-size: 16px; }
+
+html body .sidebar,
+html body #sidebar-container {
+	font-size: var(--sidebar-font-size);
+	line-height: 1.5;
+}
+
+/* Common textual elements inside the sidebar */
+html body .sidebar .nav-item,
+html body .sidebar .nav-section-title,
+html body #sidebar-container .nav-item { font-size: 1rem; }
+
+/* Neutralize old media-query overrides at common breakpoints */
+@media (max-width: 1400px), (max-width: 1200px), (max-width: 992px), (max-width: 768px), (max-width: 576px) {
+	html body .sidebar,
+	html body #sidebar-container,
+	html body .sidebar .nav-item,
+	html body .sidebar .nav-section-title { font-size: 1rem; }
+}
+
+/* Optional: keep icons size aligned */
+html body .sidebar .nav-item i { font-size: 1rem; }

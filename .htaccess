@@ -1,0 +1,121 @@
+Options +FollowSymLinks -MultiViews
+RewriteEngine On
+
+# Production boundary: operational data and executable maintenance tooling must
+# never be served from the application document root.
+RewriteRule ^(?:backups|logs|migrations|scripts|tmp(?:_|/)|\.git|\.github)(?:/|$) - [F,L,NC]
+RewriteRule ^(?:debug|check|apply|cleanup|seed|fix|create|describe|dump|cli_|database_health)[^/]*\.php$ - [F,L,NC]
+RewriteRule (?:^|/)(?:debug|test|setup|migrate|fix|insert_demo|simple_db|update_tables)[^/]*\.php$ - [F,L,NC]
+# 2026-07-06 audit: the same class of diagnostic/maintenance scripts also lives
+# inside module subdirectories (admin/, students/, …). Block them there too —
+# these dump schemas, drop tables, or repair data with no auth guard.
+# NB: check_eligibility.php and check_registration_status.php are LIVE AJAX
+# endpoints in the student registration flow — they are deliberately excluded.
+RewriteCond %{REQUEST_URI} !/(?:check_eligibility|check_registration_status)\.php$ [NC]
+RewriteRule (?:^|/)(?:check_|dump_|drop_|db_repair|db_check|inspect_|describe_|verify_table|verify_tables|schema_temp)[^/]*\.php$ - [F,L,NC]
+RewriteRule (?:^|/)[^/]*_(?:raw|temp|quick|debug)\.php$ - [F,L,NC]
+# db/ is an include-only utility folder (schema/setup/backup scripts) with no
+# legitimate HTTP entry points; every reference to it in the app is a PHP
+# require/include, never a link or fetch() target.
+RewriteRule (?:^|/)db(?:/|$) - [F,L,NC]
+# Confirmed-unreferenced, unauthenticated maintenance scripts found during the
+# 2026-07-01 security audit that were not caught by the patterns above.
+# grant_access.php and execute_updates.php in particular are critical:
+# grant_access.php has a hardcoded auth-bypass query param that can reset any
+# password or change any role, and execute_updates.php drops and rebuilds the
+# live students/programs tables. See audit report for details.
+RewriteRule ^(?:grant_access|execute_updates|session_debug|delete_orphaned_invoices|reset_registration|temp_check_credentials|optimize_database|data_cleanup_tool|layout)\.php$ - [F,L,NC]
+# scratch_* dumps login_activity rows (user ids, IPs, user agents) and
+# _inspect_schema.php dumps live table schemas — CLI diagnostics only.
+RewriteRule ^(?:scratch_|_inspect)[^/]*\.php$ - [F,L,NC]
+# 2026-07-06 audit: remaining unauthenticated root maintenance/diagnostic
+# scripts (schema dumps, data fixers, smoke/vulnerability harnesses). These
+# connect to the live DB with no auth guard and must not be HTTP-reachable.
+# Leading-underscore smoke/audit scripts (_access_smoke, _student_audit, …):
+RewriteRule ^_[^/]*\.php$ - [F,L,NC]
+# Maintenance/diagnostic prefixes not already covered above:
+RewriteRule ^(?:add_|assign_|comprehensive_|convert_|corrected_|db_check|final_test|find_|full_structure|inspect_|list_|program_missing|rebuild_|run_|set_year1|simple_|sql_injection_test|password_security_test|temp_|update_db_schema|update_php_config|update_programs|update_term_programs|validate_|vulnerability_|view_lecturer_assignments)[^/]*\.php$ - [F,L,NC]
+# Diagnostic verify_* harnesses, but keep the public verify_certificate.php page.
+RewriteRule ^verify_(?!certificate\.php$)[^/]*\.php$ - [F,L,NC]
+RewriteRule \.(?:sql|log|bak|backup|dump|env|ini|yml|yaml)$ - [F,L,NC]
+# Uploaded business documents are served only through authorization-aware PHP
+# controllers. Profile thumbnails are the sole legacy direct-file exception.
+RewriteRule ^online_services/uploads/((?:results|nrc|nrc_file|deposit|deposit_slip)_[0-9]+_[0-9]+\.(?:pdf|jpe?g|png))$ online_services/view_upload.php?file=$1 [L,QSA,NC]
+RewriteCond %{REQUEST_URI} !/uploads/(?:profile|profile_images)/[^/]+\.(?:jpe?g|png|gif|webp)$ [NC]
+RewriteRule (?:^|/)uploads(?:/|$) - [F,L,NC]
+
+# Handle PHP files
+<FilesMatch "\.php$">
+    SetHandler application/x-httpd-php
+</FilesMatch>
+
+# Ensure index.php is the default file
+DirectoryIndex index.php
+
+# Prevent directory listing
+Options -Indexes
+
+# Keep project metadata and build/dependency files out of the public web root.
+<FilesMatch "(^\.|^composer\.(json|lock|phar)$|^package(-lock)?\.json$|^webpack\.config\.js$|^\.babelrc$|^(?:README|CHANGELOG|LICENSE)(?:\..*)?$)">
+    Require all denied
+</FilesMatch>
+
+# Handle errors
+ErrorDocument 404 /error/404.php
+ErrorDocument 500 /error/500.php
+
+# Security headers
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+    Header set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+    Header always set Cross-Origin-Resource-Policy "same-origin"
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains" env=HTTPS
+</IfModule>
+
+# PHP settings
+<IfModule mod_php.c>
+    php_value display_errors Off
+    php_value log_errors On
+    php_value max_execution_time 60
+    php_value max_input_time 60
+    php_value memory_limit 256M
+    php_value post_max_size 64M
+    php_value upload_max_filesize 64M
+</IfModule> 
+
+# Compress text responses when mod_deflate is available.
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/css
+    AddOutputFilterByType DEFLATE application/javascript
+    AddOutputFilterByType DEFLATE text/javascript
+    AddOutputFilterByType DEFLATE application/x-javascript
+    AddOutputFilterByType DEFLATE text/html
+    AddOutputFilterByType DEFLATE application/json
+    AddOutputFilterByType DEFLATE application/xml
+    AddOutputFilterByType DEFLATE image/svg+xml
+    AddOutputFilterByType DEFLATE application/vnd.ms-fontobject
+    AddOutputFilterByType DEFLATE font/ttf font/otf
+</IfModule>
+
+# Cache static assets only; PHP responses remain uncached.
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css "access plus 30 days"
+    ExpiresByType application/javascript "access plus 30 days"
+    ExpiresByType text/javascript "access plus 30 days"
+    ExpiresByType image/jpeg "access plus 30 days"
+    ExpiresByType image/png "access plus 30 days"
+    ExpiresByType image/gif "access plus 30 days"
+    ExpiresByType image/webp "access plus 30 days"
+    ExpiresByType image/svg+xml "access plus 30 days"
+    ExpiresByType image/x-icon "access plus 30 days"
+    ExpiresByType font/woff "access plus 1 year"
+    ExpiresByType font/woff2 "access plus 1 year"
+    ExpiresByType application/font-woff "access plus 1 year"
+    ExpiresByType application/font-woff2 "access plus 1 year"
+    ExpiresByType application/vnd.ms-fontobject "access plus 1 year"
+    ExpiresByType font/ttf "access plus 1 year"
+    ExpiresByType font/otf "access plus 1 year"
+</IfModule>

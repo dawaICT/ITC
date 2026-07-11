@@ -1,0 +1,202 @@
+/* ============================================================
+   WUC Portal — Buttons
+   Consistent button styles across all portal pages.
+   ============================================================ */
+
+/* ── Base ─────────────────────────────────────────────────── */
+.btn {
+    font-family: var(--font-base);
+    font-weight: 600;
+    border-radius: var(--radius-md);
+    padding: 0.55rem 1.15rem;
+    font-size: var(--font-size-base);
+    transition: all var(--transition-fast);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    cursor: pointer;
+    border: 1px solid transparent;
+    line-height: 1.5;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.btn:hover   { transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+.btn:active  { transform: translateY(0); box-shadow: none; }
+.btn:focus   { outline: 3px solid rgba(27, 42, 74, 0.2); outline-offset: 2px; }
+.btn:disabled,
+.btn[disabled] { opacity: 0.6; cursor: not-allowed; pointer-events: none; transform: none; }
+
+/* ── Sizes ────────────────────────────────────────────────── */
+.btn-sm  { padding: 0.35rem 0.75rem; font-size: var(--font-size-sm); border-radius: var(--radius-sm); }
+.btn-lg  { padding: 0.75rem 1.5rem;  font-size: var(--font-size-md); border-radius: var(--radius-lg); }
+.btn-xl  { padding: 0.9rem 2rem;     font-size: var(--font-size-lg);  border-radius: var(--radius-lg); }
+
+/* ── Variants ─────────────────────────────────────────────── */
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    border-color: var(--primary);
+    color: var(--white);
+}
+.btn-primary:hover {
+    background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
+    color: var(--white);
+}
+
+.btn-secondary {
+    background: var(--gray-600);
+    border-color: var(--gray-600);
+    color: var(--white);
+}
+.btn-secondary:hover { background: var(--gray-700); border-color: var(--gray-700); color: var(--white); }
+
+.btn-success {
+    background: var(--success);
+    border-color: var(--success);
+    color: var(--white);
+}
+.btn-success:hover { background: var(--success-dark); border-color: var(--success-dark); color: var(--white); }
+
+.btn-danger {
+    background: var(--danger);
+    border-color: var(--danger);
+    color: var(--white);
+}
+.btn-danger:hover { background: var(--danger-dark); border-color: var(--danger-dark); color: var(--white); }
+
+.btn-warning {
+    background: var(--warning);
+    border-color: var(--warning);
+    color: var(--white);
+}
+.btn-warning:hover { background: var(--warning-dark); border-color: var(--warning-dark); color: var(--white); }
+
+.btn-info {
+    background: var(--info);
+    border-color: var(--info);
+    color: var(--white);
+}
+.btn-info:hover { background: var(--info-dark); border-color: var(--info-dark); color: var(--white); }
+
+/* ── Purple (admin / staff theme) ─────────────────────────── */
+.btn-purple {
+    background: linear-gradient(135deg, var(--purple) 0%, var(--purple-dark) 100%);
+    border-color: var(--purple);
+    color: var(--white);
+}
+.btn-purple:hover { background: linear-gradient(135deg, var(--purple-dark), var(--purple)); color: var(--white); }
+
+/* ── Outline variants ─────────────────────────────────────── */
+.btn-outline-primary {
+    background: transparent;
+    border-color: var(--primary);
+    color: var(--primary);
+}
+.btn-outline-primary:hover { background: var(--primary); color: var(--white); }
+
+.btn-outline-secondary {
+    background: transparent;
+    border-color: var(--gray-400);
+    color: var(--gray-600);
+}
+.btn-outline-secondary:hover { background: var(--gray-100); border-color: var(--gray-500); color: var(--gray-800); }
+
+.btn-outline-success {
+    background: transparent;
+    border-color: var(--success);
+    color: var(--success);
+}
+.btn-outline-success:hover { background: var(--success); color: var(--white); }
+
+.btn-outline-danger {
+    background: transparent;
+    border-color: var(--danger);
+    color: var(--danger);
+}
+.btn-outline-danger:hover { background: var(--danger); color: var(--white); }
+
+.btn-outline-warning {
+    background: transparent;
+    border-color: var(--warning);
+    color: var(--warning);
+}
+.btn-outline-warning:hover { background: var(--warning); color: var(--white); }
+
+.btn-outline-info {
+    background: transparent;
+    border-color: var(--info);
+    color: var(--info);
+}
+.btn-outline-info:hover { background: var(--info); color: var(--white); }
+
+.btn-outline-light {
+    background: transparent;
+    border-color: rgba(255, 255, 255, 0.55);
+    color: var(--white);
+}
+.btn-outline-light:hover { background: var(--white); color: var(--gray-800); }
+
+.btn-outline-dark {
+    background: transparent;
+    border-color: var(--gray-700);
+    color: var(--gray-700);
+}
+.btn-outline-dark:hover { background: var(--gray-700); color: var(--white); }
+
+/* ── Ghost / light ───────────────────────────────────────── */
+.btn-light {
+    background: var(--gray-100);
+    border-color: var(--gray-200);
+    color: var(--gray-700);
+}
+.btn-light:hover { background: var(--gray-200); color: var(--gray-900); }
+
+.btn-dark {
+    background: var(--gray-800);
+    border-color: var(--gray-800);
+    color: var(--white);
+}
+.btn-dark:hover { background: var(--gray-900); color: var(--white); }
+
+/* ── Icon-only round button ──────────────────────────────── */
+.btn-rounded-icon,
+.btn.rounded-circle {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+}
+
+.btn.rounded-circle.btn-sm { width: 28px; height: 28px; font-size: 0.72rem; }
+.btn.rounded-circle.btn-lg { width: 44px; height: 44px; font-size: 1rem; }
+
+/* ── Print button ────────────────────────────────────────── */
+.btn-print {
+    background: transparent;
+    border: 1px solid var(--gray-300);
+    color: var(--gray-600);
+    border-radius: var(--radius-md);
+    padding: 0.45rem 0.9rem;
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    transition: all var(--transition-fast);
+}
+.btn-print:hover { background: var(--gray-100); border-color: var(--gray-400); }
+
+/* ── Block button ────────────────────────────────────────── */
+.btn-block,
+.d-grid > .btn { width: 100%; justify-content: center; }
+
+/* ── Button group spacing ────────────────────────────────── */
+.btn-group-gap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}

@@ -1,0 +1,45 @@
+/* Sidebar font-size normalization for Admin (load this file late) */
+:root { --sidebar-font-size: 16px; }
+
+html body .sidebar,
+html body #sidebar-container {
+	font-size: 1rem;
+	line-height: 1.5;
+}
+
+/* Common textual elements inside the sidebar */
+html body .sidebar .nav-item,
+html body .sidebar .nav-section-title,
+html body #sidebar-container .nav-item { font-size: 1rem; }
+
+/* Neutralize old media-query overrides at common breakpoints */
+@media (max-width: 1400px), (max-width: 1200px), (max-width: 992px), (max-width: 768px), (max-width: 576px) {
+	html body .sidebar,
+	html body #sidebar-container,
+	html body .sidebar .nav-item,
+	html body .sidebar .nav-section-title { font-size: 1rem; }
+}
+
+/* Optional: keep icons size aligned */
+html body .sidebar .nav-item i { font-size: 1rem; }
+
+/* Ensure longer menu labels (e.g. "Assessment & Support", "Enrolment & Units")
+   wrap to fit the sidebar width instead of being clipped by .nav-item's
+   overflow:hidden. min-width:0 lets the flex label shrink; the fixed-width icon
+   stays put while the text wraps to a second line. */
+html body .sidebar .nav-item {
+	align-items: flex-start;
+}
+html body .sidebar .nav-item i {
+	margin-top: 0.1rem;
+	flex: 0 0 auto;
+}
+html body .sidebar .nav-item span {
+	min-width: 0;
+	white-space: normal;
+	overflow-wrap: anywhere;
+	word-break: break-word;
+	line-height: 1.25;
+}
+
+

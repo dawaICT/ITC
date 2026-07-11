@@ -1,0 +1,362 @@
+:root{
+  --primary-color: #6f42c1;
+  --muted-foreground: #6b7280;
+  --border-light: #eef2f7;
+  --bg-light: #fafafa;
+  --bg-gray: #f3f4f6;
+  --shadow-sm: 0 2px 8px rgba(24,24,24,0.06);
+  --shadow-md: 0 6px 18px rgba(15,23,42,0.04);
+  --shadow-lg: 0 8px 30px rgba(24,24,24,0.08);
+  --radius: 12px;
+  --radius-sm: 10px;
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.search-modal-wrap { 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  padding: 40px 16px; 
+  min-height: 100vh;
+}
+
+.wuc-modal-card { 
+  max-width: 980px; 
+  width: 100%; 
+  border-radius: var(--radius); 
+  box-shadow: var(--shadow-lg); 
+  overflow: hidden; 
+  position: relative; 
+  background: #ffffff; 
+  transition: var(--transition);
+}
+
+.wuc-modal-card:hover {
+  box-shadow: 0 12px 40px rgba(24,24,24,0.12);
+}
+
+.wuc-modal-header { 
+  background: transparent; 
+  padding: 24px; 
+  border-bottom: 1px solid var(--border-light); 
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.btn-close-white {
+  filter: brightness(0);
+  opacity: 0.6;
+  transition: var(--transition);
+}
+
+.btn-close-white:hover {
+  opacity: 1;
+}
+
+.wuc-modal-body { 
+  padding: 32px; 
+  background: transparent; 
+  position: relative; 
+  z-index: 2; 
+}
+
+.wuc-input { 
+  padding: 12px 14px; 
+  font-size: 16px; 
+  border: 1px solid #d1d5db; 
+  border-radius: var(--radius-sm); 
+  transition: var(--transition);
+}
+
+.wuc-input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(111, 66, 193, 0.1);
+  outline: none;
+}
+
+.input-group { 
+  display: flex; 
+  gap: 8px; 
+  align-items: center; 
+  flex-wrap: wrap;
+}
+
+.search-btn { 
+  display: inline-flex; 
+  align-items: center; 
+  justify-content: center;
+  gap: 8px; 
+  background: var(--primary-color); 
+  color: #fff; 
+  border: none; 
+  padding: 12px 18px; 
+  border-radius: var(--radius-sm); 
+  cursor: pointer;
+  font-weight: 600;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+
+.search-btn:hover {
+  background: #5a32a3;
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.search-btn:active {
+  transform: translateY(0);
+}
+
+.search-btn svg { 
+  width: 18px; 
+  height: 18px; 
+  flex-shrink: 0;
+}
+
+.wuc-btn-primary { 
+  background: var(--primary-color, #6f42c1); 
+  border: none; 
+  color: #fff; 
+  padding: 12px 18px; 
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-weight: 600;
+  transition: var(--transition);
+}
+
+.wuc-btn-primary:hover {
+  background: #5a32a3;
+  box-shadow: var(--shadow-md);
+}
+
+.search-result-card { 
+  margin-top: 28px; 
+  padding: 28px; 
+  border: 1px solid var(--border-light); 
+  border-radius: var(--radius); 
+  background: #ffffff; 
+  box-shadow: var(--shadow-md); 
+  animation: slideIn 0.4s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.search-result-card h5 { 
+  margin: 0 0 20px 0; 
+  font-size: 1.25rem; 
+  font-weight: 700;
+  color: #111827;
+}
+
+.main-content.container { 
+  max-width: 1200px; 
+  margin: 0 auto;
+}
+
+.search-heading { 
+  font-size: 1.5rem; 
+  font-weight: 700;
+  color: #111827;
+}
+
+.search-section { 
+  margin-bottom: 1.75rem; 
+}
+
+.search-section label {
+  font-weight: 600;
+  color: #374151;
+  display: block;
+  margin-bottom: 8px;
+}
+
+/* Table container */
+.result-table-wrap { 
+  border-radius: var(--radius); 
+  overflow: hidden; 
+  border: 1px solid var(--border-light); 
+}
+
+.result-table-wrap table { 
+  margin-bottom: 0; 
+  font-size: 14px;
+}
+
+.result-table-wrap thead th { 
+  background: var(--bg-gray); 
+  font-weight: 600; 
+  color: #111827;
+  padding: 14px !important;
+  border-bottom: 2px solid var(--border-light);
+}
+
+.result-table-wrap tbody tr { 
+  transition: var(--transition);
+}
+
+.result-table-wrap tbody tr:nth-child(odd) { 
+  background: var(--bg-light); 
+}
+
+.result-table-wrap tbody tr:hover {
+  background: #f0f0f0;
+}
+
+.result-table-wrap tbody td {
+  padding: 14px !important;
+  vertical-align: middle;
+}
+
+.result-table-wrap td.field-label { 
+  color: var(--muted-foreground); 
+  font-weight: 600; 
+  width: 30%;
+}
+
+/* Watermark inside card */
+.card-watermark { 
+  position: absolute; 
+  inset: 0; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  pointer-events: none; 
+  opacity: 0.04; 
+  filter: grayscale(100%); 
+  z-index: 1; 
+}
+
+.card-watermark img { 
+  max-width: 420px; 
+  width: 40%; 
+  height: auto; 
+}
+
+/* Skeleton loader */
+.skeleton { 
+  display: none; 
+  gap: 12px; 
+}
+
+.skeleton.active { 
+  display: flex; 
+  flex-direction: column; 
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.skeleton .line { 
+  height: 14px; 
+  background: linear-gradient(90deg, #f3f4f6, #e5e7eb, #f3f4f6); 
+  background-size: 200% 100%; 
+  animation: shimmer 1.2s linear infinite; 
+  border-radius: 6px; 
+}
+
+.skeleton .line.lg { 
+  height: 20px; 
+  width: 40%; 
+}
+
+.skeleton .line.md { 
+  height: 16px; 
+  width: 70%; 
+}
+
+.skeleton .line.sm { 
+  height: 12px; 
+  width: 30%; 
+}
+
+@keyframes shimmer { 
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Alert styling */
+.alert {
+  border-radius: var(--radius-sm);
+  border: 1px solid;
+  animation: slideIn 0.3s ease-out;
+}
+
+.alert-danger {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #991b1b;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .wuc-modal-card {
+    margin: 0 8px;
+  }
+  
+  .wuc-modal-header {
+    flex-wrap: wrap;
+  }
+  
+  .search-heading {
+    font-size: 1.25rem;
+  }
+  
+  .wuc-modal-body {
+    padding: 20px;
+  }
+  
+  .search-result-card {
+    padding: 16px;
+  }
+  
+  .input-group {
+    flex-direction: column;
+  }
+  
+  .search-btn {
+    width: 100%;
+  }
+  
+  .result-table-wrap {
+    font-size: 13px;
+  }
+  
+  .result-table-wrap tbody td,
+  .result-table-wrap thead th {
+    padding: 10px !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .search-modal-wrap {
+    padding: 20px 8px;
+    min-height: auto;
+  }
+  
+  .wuc-modal-body {
+    padding: 16px;
+  }
+  
+  .card-watermark {
+    display: none;
+  }
+  
+  .result-table-wrap {
+    font-size: 12px;
+    overflow-x: auto;
+  }
+}
+

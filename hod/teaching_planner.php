@@ -1,0 +1,52 @@
+<?php
+declare(strict_types=1);
+
+$page_title = 'Teaching Planner Review';
+require_once __DIR__ . '/includes/nav.php';
+require_once dirname(__DIR__) . '/includes/teaching_planner/init.php';
+
+$service = new TeachingPlannerService($db);
+$adminService = new TeachingPlannerAdminService($db, new TeachingPlannerTemplateValidator());
+$error = '';
+$sectionId = (string)($activeHosSectionId ?? $_SESSION['hos_section_id'] ?? '');
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    try {
+        tp_require_csrf();
+        $action = (string)($_POST['action'] ?? '');
+        if ($action === 'approve_syllabus') {
+            $adminService->approveSyllabus((int)($_POST['syllabus_id'] ?? 0), tp_actor_id(), true, $sectionId);
+            tp_flash('success', 'Syllabus version approved and is now available for plan generation.');
+        } elseif (in_array($action, ['request_changes', 'approve', 'mark_in_use', 'archive'], true)) {
+            $service->transition((int)($_POST['plan_id'] ?? 0), tp_actor_id(), $action, trim((string)($_POST['comment'] ?? '')), 'hos', $sectionId);
+            tp_flash('success', 'Teaching plan workflow updated. The lecturer has been notified where applicable.');
+        } else {
+            throw new RuntimeException('Unsupported review action.');
+        }
+    } catch (Throwable $e) { $error = $e->getMessage(); }
+}
+$flash = tp_take_flash();
+$plans = tp_schema_ready($db) ? $service->plansForReview($sectionId) : [];
+$syllabi = tp_schema_ready($db) ? $adminService->syllabi($sectionId) : [];
+$reviewId = filter_input(INPUT_GET, 'view', FILTER_VALIDATE_INT) ?: 0;
+$reviewPlan = $reviewId ? $service->plan($reviewId) : null;
+if ($reviewPlan && !in_array($reviewId, array_map(static fn(array $p): int => (int)$p['id'], $plans), true)) { $reviewPlan = null; $error = 'That plan is outside your section or is not available for review.'; }
+$submitted = count(array_filter($plans, static fn(array $p): bool => in_array($p['status'], ['submitted','resubmitted'], true)));
+$approved = count(array_filter($plans, static fn(array $p): bool => in_array($p['status'], ['approved','in_use'], true)));
+$needsChanges = count(array_filter($plans, static fn(array $p): bool => $p['status'] === 'changes_requested'));
+?>
+<link rel="stylesheet" href="/wucportal/css/teaching-planner.css">
+<div class="container-fluid px-3 px-lg-4 py-4 tp-page">
+ <section class="tp-hero mb-4"><h1 class="h3 mb-1"><i class="fas fa-clipboard-check me-2"></i>Teaching Planner Review</h1><p class="mb-0 opacity-75">Review syllabus-grounded plans for <?= tp_h($activeHosSectionName ?: 'your assigned section') ?>. Approvals are recorded and lock the approved revision.</p></section>
+ <?php if ($error): ?><div class="alert alert-danger"><?= tp_h($error) ?></div><?php endif; ?>
+ <?php if ($flash): ?><div class="alert alert-success"><?= tp_h($flash['message']) ?></div><?php endif; ?>
+ <?php if ($reviewPlan): ?><article class="tp-card mb-4"><header class="tp-card-header"><div><h2 class="h5 mb-1"><?= tp_h($reviewPlan['document_number']) ?> — review detail</h2><div class="small text-muted"><?= tp_h($reviewPlan['course_code'].' / '.$reviewPlan['lecturer_name'].' / '.$reviewPlan['academic_period']) ?></div></div><a class="btn btn-sm btn-outline-secondary" href="teaching_planner.php">Close</a></header><div class="table-responsive"><table class="table table-bordered mb-0"><thead><tr><th>Week / date</th><th>Topic & subtopics</th><th>Outcomes</th><th>Methods / activities</th><th>Resources</th><th>Assessment</th><th>Hours</th></tr></thead><tbody><?php foreach ($reviewPlan['items'] as $item): ?><tr><td>W<?= (int)$item['week_number'] ?><br><?= tp_h($item['session_date']) ?></td><td><strong><?= tp_h($item['topic']) ?></strong><div class="small"><?= tp_h($item['subtopics']) ?></div></td><td><?= tp_h($item['learning_outcomes']) ?></td><td><?= tp_h($item['teaching_methods']) ?><div class="small text-muted mt-1"><?= tp_h($item['lecturer_activities']) ?><br><?= tp_h($item['learner_activities']) ?></div></td><td><?= tp_h($item['resources']) ?></td><td><?= tp_h($item['assessment_method']) ?></td><td><?= number_format((int)$item['duration_minutes']/60,2) ?></td></tr><?php endforeach; ?></tbody></table></div></article><?php endif; ?>
+ <div class="row g-3 mb-4"><div class="col-md-4"><div class="tp-stat"><span>Awaiting review</span><strong><?= $submitted ?></strong></div></div><div class="col-md-4"><div class="tp-stat"><span>Changes requested</span><strong><?= $needsChanges ?></strong></div></div><div class="col-md-4"><div class="tp-stat"><span>Approved / in use</span><strong><?= $approved ?></strong></div></div></div>
+ <ul class="nav nav-pills gap-2 mb-4"><li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#plans">Plans & compliance</button></li><li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#syllabi">Syllabus approvals</button></li></ul>
+ <div class="tab-content">
+  <div class="tab-pane fade show active" id="plans"><article class="tp-card"><header class="tp-card-header"><h2 class="h5 mb-0"><i class="fas fa-list-check text-primary me-2"></i>Section plans</h2><span class="badge bg-primary"><?= count($plans) ?></span></header><div class="table-responsive"><table class="table table-hover mb-0"><thead><tr><th>Plan</th><th>Lecturer / class</th><th>Coverage</th><th>Versions</th><th>Status</th><th>Review</th></tr></thead><tbody>
+  <?php if (!$plans): ?><tr><td colspan="6"><div class="tp-empty"><i class="fas fa-inbox"></i>No submitted plans in this section.</div></td></tr><?php endif; ?>
+  <?php foreach ($plans as $plan): ?><tr><td><strong><?= tp_h($plan['document_number']) ?></strong><div class="small text-muted"><?= tp_h($plan['course_code'] . ' — ' . $plan['course_name']) ?><br><?= tp_h($plan['academic_year'] . ' / ' . $plan['academic_period']) ?></div></td><td><?= tp_h($plan['lecturer_name']) ?><div class="small text-muted"><?= tp_h($plan['program_name'] . ($plan['group_name'] ? ' / ' . $plan['group_name'] : '')) ?></div></td><td><strong><?= number_format((float)$plan['coverage_percent'], 1) ?>%</strong><div class="small text-muted"><?= number_format((float)$plan['planned_hours'], 1) ?> planned / <?= number_format((float)$plan['available_hours'], 1) ?> available hours</div></td><td>Template v<?= (int)$plan['template_version'] ?><div class="small text-muted">Syllabus <?= tp_h($plan['syllabus_version']) ?></div></td><td><span class="badge bg-<?= in_array($plan['status'], ['approved','in_use'], true) ? 'success' : ($plan['status'] === 'changes_requested' ? 'warning' : 'primary') ?> tp-status"><?= tp_h(str_replace('_', ' ', $plan['status'])) ?></span></td><td><div class="d-flex flex-wrap gap-1 mb-2"><a class="btn btn-sm btn-outline-primary" href="?view=<?= (int)$plan['id'] ?>"><i class="fas fa-eye"></i></a><a class="btn btn-sm btn-outline-secondary" href="/wucportal/teaching_planner/download.php?id=<?= (int)$plan['id'] ?>&format=docx"><i class="fas fa-file-word"></i></a></div><?php if (in_array($plan['status'], ['submitted','resubmitted'], true)): ?><form method="post" class="d-grid gap-1"><input type="hidden" name="csrf_token" value="<?= tp_h(tp_csrf_token()) ?>"><input type="hidden" name="plan_id" value="<?= (int)$plan['id'] ?>"><textarea class="form-control form-control-sm" name="comment" rows="2" placeholder="Review comment"></textarea><div class="btn-group"><button class="btn btn-sm btn-outline-warning" name="action" value="request_changes">Request changes</button><button class="btn btn-sm btn-success" name="action" value="approve">Approve</button></div></form><?php elseif ($plan['status'] === 'approved'): ?><form method="post"><input type="hidden" name="csrf_token" value="<?= tp_h(tp_csrf_token()) ?>"><input type="hidden" name="plan_id" value="<?= (int)$plan['id'] ?>"><button class="btn btn-sm btn-outline-success" name="action" value="mark_in_use">Mark in use</button></form><?php endif; ?></td></tr><?php endforeach; ?>
+  </tbody></table></div></article></div>
+  <div class="tab-pane fade" id="syllabi"><article class="tp-card"><header class="tp-card-header"><h2 class="h5 mb-0"><i class="fas fa-book-open text-primary me-2"></i>Syllabus versions</h2></header><div class="table-responsive"><table class="table mb-0"><thead><tr><th>Programme / course</th><th>Version</th><th>Validation</th><th>Status / action</th></tr></thead><tbody><?php if (!$syllabi): ?><tr><td colspan="4"><div class="tp-empty"><i class="fas fa-book"></i>No syllabus drafts for this section.</div></td></tr><?php endif; ?><?php foreach ($syllabi as $row): ?><tr><td><strong><?= tp_h($row['program_code'] . ' / ' . $row['course_code']) ?></strong><div class="small text-muted"><?= tp_h($row['program_name'] . ' — ' . $row['course_name']) ?></div></td><td><?= tp_h($row['version_label']) ?><div class="small text-muted">Source: <?= tp_h(str_replace('_',' ',$row['source_type'])) ?></div></td><td><?= (int)$row['topic_count'] ?> topics<br><?= number_format((float)$row['topic_hours'],2) ?> / <?= number_format((float)$row['total_recommended_hours'],2) ?> hours</td><td><span class="badge bg-<?= $row['status']==='approved'?'success':'secondary' ?> tp-status"><?= tp_h(str_replace('_',' ',$row['status'])) ?></span><?php if (in_array($row['status'], ['draft','under_review'], true)): ?><form method="post" class="mt-2"><input type="hidden" name="csrf_token" value="<?= tp_h(tp_csrf_token()) ?>"><input type="hidden" name="action" value="approve_syllabus"><input type="hidden" name="syllabus_id" value="<?= (int)$row['id'] ?>"><button class="btn btn-sm btn-success" onclick="return confirm('Approve this syllabus version for final plan generation?')">Approve syllabus</button></form><?php endif; ?></td></tr><?php endforeach; ?></tbody></table></div></article></div>
+ </div>
+</div>

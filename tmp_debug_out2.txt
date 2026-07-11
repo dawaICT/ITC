@@ -1,0 +1,106 @@
+Courses matching CSE:
+Array
+(
+    [id] => 177
+    [course_code] => CCSE-TEV
+    [course_name] => Craft Cert in Computer Syst Engineering (CCSE) - TEVETA
+)
+Array
+(
+    [id] => 178
+    [course_code] => DCSE-TEV
+    [course_name] => Diploma in Computer Syst Engineering (DCSE) - TEVETA
+)
+Array
+(
+    [id] => 203
+    [course_code] => DCSE-101
+    [course_name] => Information Technology
+)
+Array
+(
+    [id] => 204
+    [course_code] => DCSE-102
+    [course_name] => Application Packages
+)
+Array
+(
+    [id] => 205
+    [course_code] => DCSE-103
+    [course_name] => Computer Hardware Maintenance and Repair
+)
+Array
+(
+    [id] => 206
+    [course_code] => DCSE-104
+    [course_name] => Computer Networks and Communication
+)
+Array
+(
+    [id] => 207
+    [course_code] => DCSE-105
+    [course_name] => Electronics
+)
+Array
+(
+    [id] => 208
+    [course_code] => DCSE-106
+    [course_name] => Engineering Science and Materials
+)
+Array
+(
+    [id] => 209
+    [course_code] => DCSE-107
+    [course_name] => Engineering Mathematics
+)
+Array
+(
+    [id] => 210
+    [course_code] => DCSE-108
+    [course_name] => Communication Skills
+)
+
+Training modes:
+Array
+(
+    [id] => 5
+    [mode_name] => At Campus
+)
+Array
+(
+    [id] => 4
+    [mode_name] => Distance
+)
+Array
+(
+    [id] => 3
+    [mode_name] => Evening
+)
+Array
+(
+    [id] => 1
+    [mode_name] => Full Time
+)
+Array
+(
+    [id] => 11
+    [mode_name] => Full-time
+)
+Array
+(
+    [id] => 2
+    [mode_name] => In-House
+)
+
+Course lookup for 'CSE': NOT FOUND
+Mode lookup for 'Full Time': 1
+
+Programs matching CSE:
+Array
+(
+    [program_code] => CSE
+    [program_name] => Diploma in Computer Systems Engineering
+)
+
+Table student_program exists
+<div style="font-family:Arial,sans-serif;margin:24px;padding:16px;border:1px solid #bfdbfe;background:#eff6ff;color:#1e3a8a;border-radius:8px;">We could not load this page right now. Please try again later or contact support.</div>

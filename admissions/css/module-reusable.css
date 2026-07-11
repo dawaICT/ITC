@@ -1,0 +1,86 @@
+/* Admissions module reusable UI overrides */
+
+.processed-app-page .avatar-circle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+    color: #fff;
+    font-weight: 600;
+    font-size: 14px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.processed-app-page .truncate-200 {
+    max-width: 200px;
+}
+
+.processed-app-page .table-secondary.opacity-75 {
+    opacity: 0.75;
+}
+
+.processed-app-page .stat-card:hover {
+    transform: translateY(-3px);
+    transition: transform 0.2s;
+}
+
+.processed-app-page .cursor-pointer {
+    cursor: pointer;
+}
+
+.processed-app-page [aria-busy="true"] {
+    pointer-events: none;
+    opacity: 0.8;
+}
+
+.processed-app-page .border-left-warning {
+    border-left: 4px solid #f6c23e !important;
+}
+
+.processed-app-page .border-left-success {
+    border-left: 4px solid #1cc88a !important;
+}
+
+.processed-app-page .border-left-danger {
+    border-left: 4px solid #e74a3b !important;
+}
+
+.processed-app-page .border-left-info {
+    border-left: 4px solid #36b9cc !important;
+}
+
+.admissions-empty-state {
+    border: 1px dashed #cbd5e1;
+    border-radius: 8px;
+    background: #f8fafc;
+    color: #64748b;
+    padding: 2rem 1rem;
+    text-align: center;
+}
+
+.admissions-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.admissions-toolbar .input-group,
+.admissions-toolbar .form-select {
+    min-width: min(100%, 220px);
+}
+
+@media (max-width: 767.98px) {
+    .admissions-toolbar {
+        align-items: stretch;
+    }
+
+    .admissions-toolbar > * {
+        width: 100%;
+    }
+}

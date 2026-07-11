@@ -1,0 +1,1081 @@
+/* HOD Dashboard Specific Styles
+   Module-specific overrides only - layout handled by unified nav */
+
+/* HOD color variables */
+:root {
+    --hod-primary: #1B2A4A;
+    --hod-secondary: #C8102E;
+    --hod-accent: #e0253f;
+}
+
+/* HOD-specific background gradient for stats */
+.bg-hod {
+    background: linear-gradient(135deg, var(--hod-primary) 0%, var(--hod-secondary) 100%) !important;
+}
+
+/* Dashboard header styling for HOD section */
+.dashboard-header.hod-section {
+    border-left: 4px solid var(--hod-primary);
+}
+
+/* HOD dashboard header with gradient */
+.hod-section .dashboard-title {
+    color: var(--hod-primary);
+}
+
+/* Stats cards - HOD specific hover effect */
+.admin-dashboard .stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(111, 66, 193, 0.15);
+}
+
+/* HOD-specific card header accent */
+.hod-section + .row .card-header,
+.admin-dashboard .card-header.hod-accent {
+    border-left: 4px solid var(--hod-primary);
+}
+
+/* Quick access cards HOD theming */
+.quick-access-card .bg-hod {
+    background: linear-gradient(135deg, var(--hod-primary) 0%, var(--hod-secondary) 100%) !important;
+}
+
+/* Stat icon HOD colors */
+.stat-icon.bg-hod {
+    background: linear-gradient(135deg, var(--hod-primary) 0%, var(--hod-secondary) 100%) !important;
+    box-shadow: 0 4px 15px rgba(111, 66, 193, 0.3);
+}
+
+/* Profile card accent for HOD */
+.profile-card .badge.bg-hod {
+    background: linear-gradient(135deg, var(--hod-primary) 0%, var(--hod-secondary) 100%) !important;
+}
+
+/* Reusable HOD page styles (students, staff, CA manager, etc.) */
+.portal-dashboard.hod-page {
+    padding-bottom: 3rem;
+}
+
+.portal-dashboard.hod-page .page-header {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.75rem;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
+    padding: 1rem 1.25rem;
+}
+
+.portal-dashboard.hod-page .page-title {
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.portal-dashboard.hod-page .page-subtitle {
+    color: #64748b;
+    font-size: 0.9rem;
+}
+
+.portal-dashboard.hod-page .stat-card {
+    padding: 1.1rem 1.25rem;
+}
+
+.portal-dashboard.hod-page .stat-icon-program {
+    background: linear-gradient(135deg, #0ea5e9, #0284c7);
+}
+
+.portal-dashboard.hod-page .stat-icon-intake {
+    background: linear-gradient(135deg, #f59e0b, #f97316);
+}
+
+.portal-dashboard.hod-page .table-wrap-footer {
+    border-top: 1px solid #e2e8f0;
+    background: #f8fafc;
+}
+
+.portal-dashboard.hod-page .status-text {
+    color: #334155;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.portal-dashboard.hod-page .empty-state-icon {
+    opacity: 0.2;
+}
+
+.portal-dashboard.hod-page .header-search-sm {
+    width: 220px;
+    max-width: 100%;
+}
+
+.portal-dashboard.hod-page .select-auto-width {
+    width: auto;
+}
+
+.portal-dashboard.hod-page .modal-header.admin-modal {
+    background: linear-gradient(135deg, var(--hod-primary), var(--hod-secondary));
+    color: #fff;
+}
+
+.portal-dashboard.hod-page .modal-header.admin-modal .modal-title {
+    color: #fff;
+}
+
+.portal-dashboard.hod-page .modal-header.admin-modal .btn-close {
+    filter: brightness(0) invert(1);
+}
+
+.portal-dashboard.hod-page .student-modal-avatar {
+    width: 90px;
+    height: 90px;
+    background: linear-gradient(135deg, var(--hod-primary), var(--hod-secondary));
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.6rem;
+}
+
+.portal-dashboard.hod-page .staff-initial-badge {
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+    border-radius: 50%;
+}
+
+/* Department calendar page */
+.portal-dashboard.hod-page.calendar-page .stat-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1rem;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
+}
+
+.portal-dashboard.hod-page.calendar-page .stat-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.portal-dashboard.hod-page.calendar-page .stat-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    line-height: 1.1;
+    color: #1e293b;
+}
+
+.portal-dashboard.hod-page.calendar-page .stat-label {
+    font-size: 0.8rem;
+    color: #64748b;
+}
+
+.portal-dashboard.hod-page.calendar-page .stat-icon-calendar {
+    background: linear-gradient(135deg, #0ea5e9, #0284c7);
+}
+
+.portal-dashboard.hod-page.calendar-page .stat-icon-class {
+    background: linear-gradient(135deg, #6f42c1, #5a32a3);
+}
+
+.portal-dashboard.hod-page.calendar-page .stat-icon-exam {
+    background: linear-gradient(135deg, #f59e0b, #ea580c);
+}
+
+.portal-dashboard.hod-page.calendar-page .stat-icon-course {
+    background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.portal-dashboard.hod-page.calendar-page .calendar-legend {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.8rem;
+    font-size: 0.78rem;
+    color: #64748b;
+}
+
+.portal-dashboard.hod-page.calendar-page .legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-weight: 600;
+}
+
+.portal-dashboard.hod-page.calendar-page .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.portal-dashboard.hod-page.calendar-page .legend-class {
+    background: #6f42c1;
+}
+
+.portal-dashboard.hod-page.calendar-page .legend-exam {
+    background: #f59e0b;
+}
+
+.portal-dashboard.hod-page.calendar-page .hod-calendar-shell {
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.portal-dashboard.hod-page.calendar-page .hod-calendar-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.portal-dashboard.hod-page.calendar-page .hod-calendar-weekdays div {
+    padding: 0.65rem 0.55rem;
+    text-align: center;
+    color: #475569;
+    font-size: 0.76rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.portal-dashboard.hod-page.calendar-page .hod-calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.portal-dashboard.hod-page.calendar-page .hod-day-cell {
+    min-height: 115px;
+    border-right: 1px solid #edf2f7;
+    border-bottom: 1px solid #edf2f7;
+    background: #fff;
+    text-align: left;
+    padding: 0.45rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    transition: background-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.portal-dashboard.hod-page.calendar-page .hod-day-cell:not(.is-empty):hover {
+    background: #f8fafc;
+}
+
+.portal-dashboard.hod-page.calendar-page .hod-day-cell.is-empty {
+    background: #f8fafc;
+}
+
+.portal-dashboard.hod-page.calendar-page .hod-day-cell.is-today .hod-day-number {
+    background: #eef2ff;
+    color: #3730a3;
+}
+
+.portal-dashboard.hod-page.calendar-page .hod-day-cell.is-selected {
+    background: #f5f3ff;
+    box-shadow: inset 0 0 0 2px #6f42c1;
+}
+
+.portal-dashboard.hod-page.calendar-page .hod-day-number {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #334155;
+}
+
+.portal-dashboard.hod-page.calendar-page .hod-day-events {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    overflow: hidden;
+}
+
+.portal-dashboard.hod-page.calendar-page .hod-event-chip {
+    display: inline-block;
+    border-radius: 6px;
+    padding: 0.2rem 0.35rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.portal-dashboard.hod-page.calendar-page .hod-event-chip.event-class {
+    background: #ede9fe;
+    color: #5b21b6;
+}
+
+.portal-dashboard.hod-page.calendar-page .hod-event-chip.event-exam {
+    background: #ffedd5;
+    color: #9a3412;
+}
+
+.portal-dashboard.hod-page.calendar-page .hod-event-more {
+    font-size: 0.68rem;
+    color: #64748b;
+    font-weight: 600;
+}
+
+.portal-dashboard.hod-page.calendar-page .calendar-empty-state {
+    border: 1px dashed #dbe5f2;
+    border-radius: 10px;
+    padding: 1rem;
+    color: #64748b;
+    text-align: center;
+}
+
+.portal-dashboard.hod-page.calendar-page .day-events-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+}
+
+.portal-dashboard.hod-page.calendar-page .day-event {
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 0.65rem 0.75rem;
+    background: #fff;
+}
+
+.portal-dashboard.hod-page.calendar-page .day-event.class {
+    border-left: 4px solid #6f42c1;
+}
+
+.portal-dashboard.hod-page.calendar-page .day-event.exam {
+    border-left: 4px solid #f59e0b;
+}
+
+.portal-dashboard.hod-page.calendar-page .day-event-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.2rem;
+}
+
+.portal-dashboard.hod-page.calendar-page .event-badge {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.15rem 0.45rem;
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.portal-dashboard.hod-page.calendar-page .event-badge.event-class {
+    background: #ede9fe;
+    color: #5b21b6;
+}
+
+.portal-dashboard.hod-page.calendar-page .event-badge.event-exam {
+    background: #ffedd5;
+    color: #9a3412;
+}
+
+.portal-dashboard.hod-page.calendar-page .event-course {
+    font-weight: 700;
+    color: #0f172a;
+    font-size: 0.82rem;
+}
+
+.portal-dashboard.hod-page.calendar-page .day-event-subtitle {
+    color: #334155;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.portal-dashboard.hod-page.calendar-page .day-event-meta {
+    color: #64748b;
+    font-size: 0.74rem;
+    margin-top: 0.2rem;
+}
+
+.portal-dashboard.hod-page.calendar-page .upcoming-events-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.portal-dashboard.hod-page.calendar-page .upcoming-item {
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 0.65rem 0.75rem;
+    background: #fff;
+}
+
+.portal-dashboard.hod-page.calendar-page .upcoming-item.upcoming-class {
+    border-left: 4px solid #6f42c1;
+}
+
+.portal-dashboard.hod-page.calendar-page .upcoming-item.upcoming-exam {
+    border-left: 4px solid #f59e0b;
+}
+
+.portal-dashboard.hod-page.calendar-page .upcoming-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.1rem;
+}
+
+.portal-dashboard.hod-page.calendar-page .upcoming-code {
+    font-weight: 700;
+    font-size: 0.82rem;
+    color: #0f172a;
+}
+
+.portal-dashboard.hod-page.calendar-page .upcoming-date {
+    font-size: 0.72rem;
+    color: #475569;
+    font-weight: 700;
+}
+
+.portal-dashboard.hod-page.calendar-page .upcoming-sub {
+    color: #334155;
+    font-size: 0.78rem;
+    margin-bottom: 0.25rem;
+}
+
+.portal-dashboard.hod-page.calendar-page .upcoming-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    font-size: 0.72rem;
+    color: #64748b;
+}
+
+.portal-dashboard.hod-page.calendar-page .upcoming-meta span {
+    display: inline-flex;
+    align-items: center;
+}
+
+/* Department courses page */
+.portal-dashboard.hod-page.courses-page .stat-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.portal-dashboard.hod-page.courses-page .stat-icon-courses {
+    background: linear-gradient(135deg, #0ea5e9, #0284c7);
+}
+
+.portal-dashboard.hod-page.courses-page .stat-icon-assigned {
+    background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.portal-dashboard.hod-page.courses-page .stat-icon-programs {
+    background: linear-gradient(135deg, #6f42c1, #5a32a3);
+}
+
+.portal-dashboard.hod-page.courses-page .stat-icon-lecturers {
+    background: linear-gradient(135deg, #f59e0b, #ea580c);
+}
+
+.portal-dashboard.hod-page.courses-page .chip-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+}
+
+.portal-dashboard.hod-page.courses-page .course-filters-grid > [class*="col-"] {
+    min-width: 0;
+}
+
+.portal-dashboard.hod-page.courses-page .course-list-header {
+    flex-wrap: wrap;
+    gap: 0.6rem;
+}
+
+.portal-dashboard.hod-page.courses-page .course-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.portal-dashboard.hod-page.courses-page #coursesTable {
+    min-width: 980px;
+}
+
+.portal-dashboard.hod-page.courses-page .chip {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.14rem 0.5rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.portal-dashboard.hod-page.courses-page .chip-semester {
+    background: #e0f2fe;
+    color: #0c4a6e;
+}
+
+.portal-dashboard.hod-page.courses-page .chip-program {
+    background: #ede9fe;
+    color: #5b21b6;
+}
+
+.portal-dashboard.hod-page.courses-page .lecturer-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.portal-dashboard.hod-page.courses-page .lecturer-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.45rem;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    padding: 0.24rem 0.35rem 0.24rem 0.55rem;
+    max-width: 100%;
+}
+
+.portal-dashboard.hod-page.courses-page .lecturer-pill.in-dept {
+    border-left: 3px solid #16a34a;
+}
+
+.portal-dashboard.hod-page.courses-page .lecturer-pill.out-dept {
+    border-left: 3px solid #f59e0b;
+}
+
+.portal-dashboard.hod-page.courses-page .lecturer-name {
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: #334155;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.portal-dashboard.hod-page.courses-page .btn-remove-assignment {
+    border: 0;
+    background: transparent;
+    color: #ef4444;
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: background-color 0.16s ease;
+}
+
+.portal-dashboard.hod-page.courses-page .btn-remove-assignment:hover {
+    background: #fee2e2;
+}
+
+/* Department reports page */
+.portal-dashboard.hod-page.reports-page .stat-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.portal-dashboard.hod-page.reports-page .stat-icon-students {
+    background: linear-gradient(135deg, #0ea5e9, #0284c7);
+}
+
+.portal-dashboard.hod-page.reports-page .stat-icon-courses {
+    background: linear-gradient(135deg, #6f42c1, #5a32a3);
+}
+
+.portal-dashboard.hod-page.reports-page .stat-icon-exams {
+    background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.portal-dashboard.hod-page.reports-page .stat-icon-rate {
+    background: linear-gradient(135deg, #f59e0b, #ea580c);
+}
+
+.portal-dashboard.hod-page.reports-page .report-metric-row span {
+    color: #475569;
+    font-size: 0.84rem;
+}
+
+.portal-dashboard.hod-page.reports-page .report-progress {
+    height: 9px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #edf2f7;
+}
+
+.portal-dashboard.hod-page.reports-page .report-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.portal-dashboard.hod-page.reports-page .report-list-item span {
+    font-size: 0.82rem;
+    color: #334155;
+}
+
+.portal-dashboard.hod-page.reports-page .report-search {
+    width: 240px;
+    max-width: 100%;
+}
+
+.portal-dashboard.hod-page.reports-page .report-status {
+    font-size: 0.72rem;
+    background: #e2e8f0;
+    color: #334155;
+}
+
+.portal-dashboard.hod-page.reports-page .report-status.is-active {
+    background: #dcfce7;
+    color: #166534;
+}
+
+/* Reusable admin slip helpers */
+.portal-dashboard.hod-page .admin-slip-logo {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.portal-dashboard.hod-page .admin-slip-label-col {
+    width: 35%;
+}
+
+/* Reusable exam dashboard styles for HOD pages */
+.portal-dashboard.hod-page .text-hod-primary {
+    color: var(--hod-primary) !important;
+}
+
+.portal-dashboard.hod-page .hod-alert-rounded {
+    border-radius: 10px;
+}
+
+.portal-dashboard.hod-page .search-course-input,
+.portal-dashboard.hod-page .search-exam-input {
+    width: 230px;
+    max-width: 100%;
+}
+
+.portal-dashboard.hod-page .th-w-40 {
+    width: 40px;
+}
+
+.portal-dashboard.hod-page .th-w-45 {
+    width: 45px;
+}
+
+.portal-dashboard.hod-page .th-w-50 {
+    width: 50px;
+}
+
+.portal-dashboard.hod-page .th-actions-min {
+    min-width: 118px;
+}
+
+.portal-dashboard.hod-page .hod-progress {
+    height: 9px;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.portal-dashboard.hod-page .report-download-icon {
+    width: 95px;
+    height: 95px;
+}
+
+.portal-dashboard.hod-page .ov-icon-grad-primary {
+    background: linear-gradient(135deg, var(--hod-primary) 0%, var(--hod-secondary) 100%);
+}
+
+.portal-dashboard.hod-page .ov-icon-grad-warning {
+    background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+}
+
+.portal-dashboard.hod-page .ov-icon-grad-success {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.portal-dashboard.hod-page .ov-icon-grad-danger {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+.portal-dashboard.hod-page.hod-exam-dashboard .migration-notice {
+    border: 1px solid #c7d2fe;
+    background: #eef2ff;
+    color: #4338ca;
+    border-radius: 12px;
+    padding: 0.85rem 1rem;
+}
+
+.portal-dashboard.hod-page.hod-exam-dashboard .no-dept-warn {
+    border: 1px solid #fecaca;
+    background: #fef2f2;
+    color: #991b1b;
+    border-radius: 12px;
+    padding: 1rem;
+    text-align: center;
+}
+
+.portal-dashboard.hod-page.hod-exam-dashboard .hod-page-header {
+    background: linear-gradient(135deg, #ffffff 0%, #f6f1ff 100%);
+    border: 1px solid #e9defb;
+    border-radius: 14px;
+    padding: 1.1rem 1.25rem;
+    box-shadow: 0 8px 22px rgba(111, 66, 193, 0.09);
+}
+
+.portal-dashboard.hod-page.hod-exam-dashboard .hod-page-header h1 {
+    margin: 0;
+    font-size: 1.3rem;
+    color: #37265b;
+    font-weight: 700;
+}
+
+.portal-dashboard.hod-page.hod-exam-dashboard .hod-page-header .subtitle {
+    color: #5b4a85;
+    font-weight: 500;
+}
+
+.portal-dashboard.hod-page.hod-exam-dashboard .stat-mini {
+    background: #fff;
+    border: 1px solid #e8defa;
+    border-radius: 12px;
+    padding: 0.55rem 0.65rem;
+    text-align: center;
+    height: 100%;
+}
+
+.portal-dashboard.hod-page.hod-exam-dashboard .stat-mini .stat-val {
+    line-height: 1.1;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #37265b;
+}
+
+.portal-dashboard.hod-page.hod-exam-dashboard .stat-mini .stat-lbl {
+    font-size: 0.73rem;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: #7b6ea0;
+    margin-top: 0.15rem;
+}
+
+.portal-dashboard.hod-page.hod-exam-dashboard .nav-pills .nav-link {
+    border: 1px solid #e7e7f0;
+    background: #fff;
+    color: #4b5563;
+    border-radius: 999px;
+    font-weight: 600;
+}
+
+.portal-dashboard.hod-page.hod-exam-dashboard .nav-pills .nav-link:hover {
+    border-color: #d8c7fb;
+    color: #53358f;
+}
+
+.portal-dashboard.hod-page.hod-exam-dashboard .nav-pills .nav-link.active {
+    background: linear-gradient(135deg, var(--hod-primary), var(--hod-secondary));
+    border-color: transparent;
+    color: #fff;
+}
+
+.portal-dashboard.hod-page.hod-exam-dashboard .ov-card {
+    border: 1px solid #ececf5;
+    border-radius: 14px;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+    padding: 1rem 0.95rem;
+    text-align: center;
+}
+
+.portal-dashboard.hod-page.hod-exam-dashboard .ov-card h2 {
+    margin: 0.6rem 0 0.25rem;
+    font-size: 1.35rem;
+    color: #1f2937;
+}
+
+.portal-dashboard.hod-page.hod-exam-dashboard .ov-card p {
+    margin: 0;
+    color: #6b7280;
+    font-size: 0.85rem;
+}
+
+.portal-dashboard.hod-page.hod-exam-dashboard .ov-icon {
+    width: 54px;
+    height: 54px;
+    border-radius: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 16px rgba(17, 24, 39, 0.16);
+}
+
+.portal-dashboard.hod-page.hod-exam-dashboard .ov-icon i {
+    font-size: 1.1rem;
+}
+
+.portal-dashboard.hod-page.hod-exam-dashboard .hod-card {
+    border: 1px solid #e6e8ef;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+}
+
+.portal-dashboard.hod-page.hod-exam-dashboard .hod-card .card-header {
+    background: #f8fafc;
+    border-bottom: 1px solid #e6e8ef;
+    font-weight: 700;
+    color: #334155;
+    padding: 0.82rem 1rem;
+}
+
+.portal-dashboard.hod-page.hod-exam-dashboard .tbl-wrap {
+    overflow-x: auto;
+}
+
+.portal-dashboard.hod-page.hod-exam-dashboard .tbl-hod {
+    width: 100%;
+    min-width: 960px;
+    border-collapse: collapse;
+}
+
+.portal-dashboard.hod-page.hod-exam-dashboard .tbl-hod thead th {
+    background: #f8fafc;
+    color: #475569;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 0.72rem 0.7rem;
+    white-space: nowrap;
+}
+
+.portal-dashboard.hod-page.hod-exam-dashboard .tbl-hod tbody td {
+    border-bottom: 1px solid #eef2f7;
+    padding: 0.72rem 0.7rem;
+    color: #1f2937;
+    vertical-align: middle;
+}
+
+.portal-dashboard.hod-page.hod-exam-dashboard .tbl-hod tbody tr:hover {
+    background: #fbfdff;
+}
+
+.portal-dashboard.hod-page.hod-exam-dashboard .prog-tag {
+    display: inline-block;
+    margin: 0 0.35rem 0.35rem 0;
+    padding: 0.22rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    background: #ede9fe;
+    color: #5b21b6;
+}
+
+.portal-dashboard.hod-page.hod-exam-dashboard .bs-grade {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    padding: 0.15rem 0.45rem;
+    border-radius: 999px;
+    background: #f1f5f9;
+    color: #334155;
+    font-weight: 700;
+    font-size: 0.72rem;
+}
+
+.portal-dashboard.hod-page.hod-exam-dashboard .bs-pending,
+.portal-dashboard.hod-page.hod-exam-dashboard .bs-approved,
+.portal-dashboard.hod-page.hod-exam-dashboard .bs-rejected {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.73rem;
+    font-weight: 700;
+    border-radius: 999px;
+    padding: 0.22rem 0.58rem;
+}
+
+.portal-dashboard.hod-page.hod-exam-dashboard .bs-pending {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.portal-dashboard.hod-page.hod-exam-dashboard .bs-approved {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.portal-dashboard.hod-page.hod-exam-dashboard .bs-rejected {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.portal-dashboard.hod-page.hod-exam-dashboard .btn-act-approve,
+.portal-dashboard.hod-page.hod-exam-dashboard .btn-act-reject,
+.portal-dashboard.hod-page.hod-exam-dashboard .btn-act-reapprove {
+    border: 0;
+    border-radius: 9px;
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.34rem 0.62rem;
+    line-height: 1.2;
+    transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.portal-dashboard.hod-page.hod-exam-dashboard .btn-act-approve {
+    background: #16a34a;
+}
+
+.portal-dashboard.hod-page.hod-exam-dashboard .btn-act-reject {
+    background: #dc2626;
+}
+
+.portal-dashboard.hod-page.hod-exam-dashboard .btn-act-reapprove {
+    background: #0ea5e9;
+}
+
+.portal-dashboard.hod-page.hod-exam-dashboard .btn-act-approve:hover,
+.portal-dashboard.hod-page.hod-exam-dashboard .btn-act-reject:hover,
+.portal-dashboard.hod-page.hod-exam-dashboard .btn-act-reapprove:hover {
+    transform: translateY(-1px);
+    filter: brightness(0.96);
+}
+
+@media print {
+    .portal-dashboard.hod-page .data-table-card {
+        box-shadow: none;
+        border: 1px solid #ddd;
+    }
+
+    .portal-dashboard.hod-page.hod-exam-dashboard .nav,
+    .portal-dashboard.hod-page.hod-exam-dashboard .btn,
+    .portal-dashboard.hod-page.hod-exam-dashboard form {
+        display: none !important;
+    }
+
+    .portal-dashboard.hod-page.hod-exam-dashboard .tbl-hod {
+        min-width: 0;
+    }
+}
+
+@media (max-width: 991.98px) {
+    .portal-dashboard.hod-page.hod-exam-dashboard .search-course-input,
+    .portal-dashboard.hod-page.hod-exam-dashboard .search-exam-input {
+        width: 100%;
+    }
+
+    .portal-dashboard.hod-page.calendar-page .hod-day-cell {
+        min-height: 95px;
+    }
+
+    .portal-dashboard.hod-page.courses-page .lecturer-name {
+        max-width: 160px;
+    }
+
+    .portal-dashboard.hod-page.courses-page #coursesTable {
+        min-width: 920px;
+    }
+
+    .portal-dashboard.hod-page.courses-page .course-filters-grid > .col-md-1 {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+
+    .portal-dashboard.hod-page.reports-page .report-search {
+        width: 100%;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .portal-dashboard.hod-page.hod-exam-dashboard .hod-page-header {
+        padding: 0.9rem;
+    }
+
+    .portal-dashboard.hod-page.hod-exam-dashboard .hod-page-header h1 {
+        font-size: 1.1rem;
+    }
+
+    .portal-dashboard.hod-page.hod-exam-dashboard .ov-card {
+        padding: 0.85rem 0.75rem;
+    }
+
+    .portal-dashboard.hod-page.calendar-page .hod-calendar-weekdays div {
+        font-size: 0.66rem;
+        padding: 0.5rem 0.35rem;
+    }
+
+    .portal-dashboard.hod-page.calendar-page .hod-day-cell {
+        min-height: 84px;
+        padding: 0.35rem;
+    }
+
+    .portal-dashboard.hod-page.calendar-page .hod-day-number {
+        width: 24px;
+        height: 24px;
+        font-size: 0.75rem;
+    }
+
+    .portal-dashboard.hod-page.calendar-page .hod-event-chip {
+        font-size: 0.62rem;
+    }
+
+    .portal-dashboard.hod-page.courses-page .lecturer-name {
+        max-width: 100%;
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+        line-height: 1.25;
+    }
+
+    .portal-dashboard.hod-page.courses-page .course-list-header h5 {
+        width: 100%;
+        font-size: 0.95rem;
+    }
+
+    .portal-dashboard.hod-page.courses-page .course-list-header .text-muted {
+        width: 100%;
+    }
+
+    .portal-dashboard.hod-page.courses-page .chip {
+        font-size: 0.68rem;
+    }
+
+    .portal-dashboard.hod-page.courses-page #coursesTable {
+        min-width: 860px;
+    }
+
+    .portal-dashboard.hod-page.courses-page .modal-footer {
+        gap: 0.5rem;
+    }
+
+    .portal-dashboard.hod-page.courses-page .modal-footer .btn {
+        flex: 1 1 100%;
+    }
+
+    .portal-dashboard.hod-page.reports-page .report-search {
+        width: 100%;
+    }
+}

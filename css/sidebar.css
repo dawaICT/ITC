@@ -1,0 +1,200 @@
+/* Modern Sidebar Styles
+   DEPRECATED for unified portal pages — do not load alongside
+   css/unified-sidebar.css or on body.has-unified-sidebar / body.student-portal.
+   Kept for legacy layout.php pages only. */
+:root {
+    --sidebar-width: 260px;
+    --primary-purple: var(--sb-primary, #1B2A4A);
+    --primary-purple-hover: var(--primary-dark, #111c33);
+    --primary-purple-light: rgba(27, 42, 74, 0.1);
+    --text-primary: #2c2c2c;
+    --text-secondary: #6c757d;
+    --transition-speed: 0.3s;
+}
+
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: var(--sidebar-width);
+    background: #ffffff;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+    transition: transform var(--transition-speed) ease;
+    z-index: 1000;
+    overflow: hidden; /* Hide overflow on main container - content area scrolls */
+    display: flex;
+    flex-direction: column;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+.sidebar-header {
+    padding: 2rem 1.5rem;
+    background: linear-gradient(135deg, var(--primary-purple) 0%, var(--primary-purple-hover) 100%);
+    color: white;
+    text-align: center;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    flex-shrink: 0;
+}
+
+.sidebar-logo {
+    width: 80px;
+    height: 80px;
+    margin-bottom: 1rem;
+    border-radius: 50%;
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(4px);
+    transition: transform 0.2s ease;
+}
+
+.sidebar-logo:hover {
+    transform: scale(1.05);
+}
+
+.sidebar-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0;
+    letter-spacing: 0.5px;
+}
+
+.sidebar-menu {
+    padding: 1rem 0;
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Scrollable content area (alternative class name) */
+.sidebar-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Fixed footer at bottom of sidebar */
+.sidebar-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    background: #ffffff;
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+    flex-shrink: 0;
+}
+
+.menu-item {
+    padding: 0.9rem 1.5rem;
+    display: flex;
+    align-items: center;
+    color: var(--text-primary);
+    text-decoration: none;
+    transition: all var(--transition-speed) ease;
+    border-left: 3px solid transparent;
+    position: relative;
+    font-weight: 500;
+}
+
+.menu-item:hover, 
+.menu-item.active {
+    background: var(--primary-purple-light);
+    color: var(--primary-purple);
+    border-left-color: var(--primary-purple);
+}
+
+.menu-item i {
+    margin-right: 1rem;
+    font-size: 1.2rem;
+    width: 24px;
+    text-align: center;
+    transition: transform 0.2s ease;
+}
+
+.menu-item:hover i {
+    transform: translateX(2px);
+}
+
+.menu-title {
+    font-weight: 500;
+    font-size: 0.95rem;
+    letter-spacing: 0.3px;
+}
+
+/* Main Content Wrapper */
+.main-wrapper {
+    margin-left: var(--sidebar-width);
+    min-height: 100vh;
+    transition: margin var(--transition-speed) ease;
+    background: #f8f9fa;
+}
+
+/* Responsive Design */
+@media (max-width: 991.98px) {
+    .sidebar {
+        transform: translateX(-100%);
+    }
+
+    .sidebar.show {
+        transform: translateX(0);
+    }
+
+    .main-wrapper {
+        margin-left: 0;
+    }
+
+    .sidebar-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.3);
+        z-index: 999;
+        opacity: 0;
+        visibility: hidden;
+        transition: all var(--transition-speed) ease;
+        backdrop-filter: blur(3px);
+    }
+
+    .sidebar-backdrop.show {
+        opacity: 1;
+        visibility: visible;
+    }
+}
+
+/* Modern Scrollbar Styling for sidebar content */
+.sidebar-content::-webkit-scrollbar,
+.sidebar-menu::-webkit-scrollbar {
+    width: 6px;
+}
+
+.sidebar-content::-webkit-scrollbar-track,
+.sidebar-menu::-webkit-scrollbar-track {
+    background: #f8f9fa;
+    border-radius: 3px;
+}
+
+.sidebar-content::-webkit-scrollbar-thumb,
+.sidebar-menu::-webkit-scrollbar-thumb {
+    background: rgba(27, 42, 74, 0.3);
+    border-radius: 3px;
+}
+
+.sidebar-content::-webkit-scrollbar-thumb:hover,
+.sidebar-menu::-webkit-scrollbar-thumb:hover {
+    background: rgba(27, 42, 74, 0.5);
+}
+
+/* Firefox scrollbar styling */
+.sidebar-content,
+.sidebar-menu {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(27, 42, 74, 0.3) #f8f9fa;
+} 

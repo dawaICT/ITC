@@ -1,0 +1,133 @@
+/* ============================================================
+   WUC Portal — Modals
+   Bootstrap modal overrides for consistent portal UI.
+   ============================================================ */
+
+/* ── Backdrop ─────────────────────────────────────────────── */
+.modal-backdrop {
+    background-color: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(3px);
+}
+
+/* ── Modal Dialog ─────────────────────────────────────────── */
+.modal-dialog { margin: 2rem auto; }
+
+.modal-content {
+    border: none;
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-xl);
+    overflow: hidden;
+    font-family: var(--font-base);
+    font-size: var(--font-size-base);
+}
+
+/* ── Modal Header ─────────────────────────────────────────── */
+.modal-header {
+    padding: 1.15rem 1.5rem;
+    border-bottom: 1px solid var(--border-light);
+    background: var(--white);
+    align-items: center;
+}
+
+.modal-title {
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    color: var(--gray-800);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.btn-close {
+    opacity: 0.55;
+    transition: opacity var(--transition-fast);
+}
+.btn-close:hover { opacity: 1; }
+
+/* ── Colored modal headers ────────────────────────────────── */
+.modal-header.bg-primary  { background: var(--primary) !important; }
+.modal-header.bg-purple   { background: var(--purple) !important; }
+.modal-header.bg-danger   { background: var(--danger) !important; }
+.modal-header.bg-success  { background: var(--success) !important; }
+.modal-header.bg-warning  { background: var(--warning) !important; }
+
+.modal-header.bg-primary .modal-title,
+.modal-header.bg-purple  .modal-title,
+.modal-header.bg-danger  .modal-title,
+.modal-header.bg-success .modal-title,
+.modal-header.bg-warning .modal-title {
+    color: var(--white);
+}
+
+.modal-header.bg-primary  .btn-close,
+.modal-header.bg-purple   .btn-close,
+.modal-header.bg-danger   .btn-close,
+.modal-header.bg-success  .btn-close,
+.modal-header.bg-warning  .btn-close {
+    filter: invert(1) brightness(2);
+}
+
+/* ── Modal Body ───────────────────────────────────────────── */
+.modal-body {
+    padding: 1.5rem;
+    background: var(--white);
+}
+
+/* ── Modal Footer ─────────────────────────────────────────── */
+.modal-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--border-light);
+    background: var(--gray-50);
+    gap: var(--space-2);
+}
+
+/* ── Sizes ────────────────────────────────────────────────── */
+.modal-sm  .modal-dialog { max-width: 400px; }
+.modal-lg  .modal-dialog { max-width: 800px; }
+.modal-xl  .modal-dialog { max-width: 1100px; }
+
+/* ── Confirmation / alert modal ──────────────────────────── */
+.modal-confirm .modal-icon {
+    font-size: 3rem;
+    display: block;
+    text-align: center;
+    margin-bottom: var(--space-4);
+}
+
+.modal-confirm .modal-body { text-align: center; }
+
+/* ── Off-canvas (side drawer) ─────────────────────────────── */
+.offcanvas {
+    border: none;
+    box-shadow: var(--shadow-xl);
+}
+
+.offcanvas-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border-light);
+    background: var(--white);
+}
+
+.offcanvas-title {
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    color: var(--gray-800);
+}
+
+.offcanvas-body { padding: 1.25rem; }
+
+/* ── Toast ────────────────────────────────────────────────── */
+.toast {
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    font-size: var(--font-size-base);
+    border: 1px solid var(--border-color);
+}
+
+.toast-header {
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+    border-bottom: 1px solid var(--border-light);
+}
+
+.toast-body { padding: 0.85rem 1rem; }

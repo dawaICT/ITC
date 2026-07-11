@@ -1,0 +1,52 @@
+/* Lecturer Dashboard Specific Styles
+   Module-specific overrides only - layout handled by unified nav */
+
+/* Lecturer color variables */
+:root {
+    --lecturer-primary: #17a2b8;
+    --lecturer-secondary: #20c997;
+    --lecturer-accent: #1dd3c9;
+}
+
+/* Lecturer-specific background gradient for stats */
+.bg-lecturer {
+    background: linear-gradient(135deg, var(--lecturer-primary) 0%, var(--lecturer-secondary) 100%) !important;
+}
+
+/* Dashboard header styling for lecturer section */
+.dashboard-header.lecturer-section {
+    border-left: 4px solid var(--lecturer-primary);
+}
+
+/* Lecturer dashboard header with gradient */
+.lecturer-section .dashboard-title {
+    color: var(--lecturer-primary);
+}
+
+/* Stats cards - lecturer specific hover effect */
+.admin-dashboard .stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(23, 162, 184, 0.15);
+}
+
+/* Lecturer-specific card header accent */
+.lecturer-section + .row .card-header,
+.admin-dashboard .card-header.lecturer-accent {
+    border-left: 4px solid var(--lecturer-primary);
+}
+
+/* Quick access cards lecturer theming */
+.quick-access-card .bg-lecturer {
+    background: linear-gradient(135deg, var(--lecturer-primary) 0%, var(--lecturer-secondary) 100%) !important;
+}
+
+/* Stat icon lecturer colors */
+.stat-icon.bg-lecturer {
+    background: linear-gradient(135deg, var(--lecturer-primary) 0%, var(--lecturer-secondary) 100%) !important;
+    box-shadow: 0 4px 15px rgba(23, 162, 184, 0.3);
+}
+
+/* Profile card accent for lecturer */
+.profile-card .badge.bg-lecturer {
+    background: linear-gradient(135deg, var(--lecturer-primary) 0%, var(--lecturer-secondary) 100%) !important;
+}

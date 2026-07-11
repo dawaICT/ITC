@@ -1,0 +1,898 @@
+{
+    "(root)": [
+        {
+            "file": "admittedstud_report.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "manage_departments.php",
+            "tables": 2,
+            "theads": 1
+        }
+    ],
+    "accounts": [
+        {
+            "file": "accounts\/ageReceivables.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "accounts\/balanceStatement.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "accounts\/bankTransaction.php",
+            "tables": 1,
+            "theads": 0
+        },
+        {
+            "file": "accounts\/feesCollection.php",
+            "tables": 1,
+            "theads": 0
+        },
+        {
+            "file": "accounts\/pendingPayments.php",
+            "tables": 1,
+            "theads": 0
+        },
+        {
+            "file": "accounts\/programFees.php",
+            "tables": 1,
+            "theads": 0
+        },
+        {
+            "file": "accounts\/receivables.php",
+            "tables": 3,
+            "theads": 0
+        },
+        {
+            "file": "accounts\/unpaidBalance.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "accounts\/updateFees.php",
+            "tables": 1,
+            "theads": 1
+        }
+    ],
+    "admin": [
+        {
+            "file": "admin\/academic_mgmt\/curriculum.php",
+            "tables": 1,
+            "theads": 0
+        },
+        {
+            "file": "admin\/academic_mgmt\/grading.php",
+            "tables": 1,
+            "theads": 0
+        },
+        {
+            "file": "admin\/airtel_config.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "admin\/ajax\/finance_report.php",
+            "tables": 1,
+            "theads": 0
+        },
+        {
+            "file": "admin\/ajax\/student_report.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "admin\/all_courses.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "admin\/ca.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "admin\/courseLecturer.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "admin\/dashboard_admin.php",
+            "tables": 1,
+            "theads": 0
+        },
+        {
+            "file": "admin\/demo.php",
+            "tables": 2,
+            "theads": 2
+        },
+        {
+            "file": "admin\/department_details.php",
+            "tables": 1,
+            "theads": 0
+        },
+        {
+            "file": "admin\/editCourse.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "admin\/editCourseLecturer.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "admin\/editProgram.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "admin\/editStud_by_prog.php",
+            "tables": 1,
+            "theads": 0
+        },
+        {
+            "file": "admin\/edit_course_program.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "admin\/elearning\/analytics.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "admin\/elearning\/assessments.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "admin\/elearning\/forum.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "admin\/elearning\/manage.php",
+            "tables": 2,
+            "theads": 0
+        },
+        {
+            "file": "admin\/elearning\/manage_session.php",
+            "tables": 3,
+            "theads": 3
+        },
+        {
+            "file": "admin\/elearning\/modules.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "admin\/elearning\/sessions.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "admin\/exams.php",
+            "tables": 4,
+            "theads": 1
+        },
+        {
+            "file": "admin\/exams_series.php",
+            "tables": 0,
+            "theads": 1
+        },
+        {
+            "file": "admin\/exam_script.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "admin\/export_access_data.php",
+            "tables": 2,
+            "theads": 0
+        },
+        {
+            "file": "admin\/fee_structures.php",
+            "tables": 0,
+            "theads": 1
+        },
+        {
+            "file": "admin\/finalExams.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "admin\/finance\/ap.php",
+            "tables": 2,
+            "theads": 2
+        },
+        {
+            "file": "admin\/finance\/ar.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "admin\/finance\/budgeting.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "admin\/finance\/fees.php",
+            "tables": 1,
+            "theads": 0
+        },
+        {
+            "file": "admin\/financial_overview.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "admin\/get_program_details.php",
+            "tables": 3,
+            "theads": 1
+        },
+        {
+            "file": "admin\/includes\/program_fees_overview.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "admin\/includes\/registration_modal.php",
+            "tables": 1,
+            "theads": 0
+        },
+        {
+            "file": "admin\/insert_demo_data.php",
+            "tables": 2,
+            "theads": 2
+        },
+        {
+            "file": "admin\/institution_results.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "admin\/lecturers.php",
+            "tables": 1,
+            "theads": 0
+        },
+        {
+            "file": "admin\/library.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "admin\/library_catalog.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "admin\/library_circulation.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "admin\/library_digital.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "admin\/library_fines.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "admin\/login_activity.php",
+            "tables": 1,
+            "theads": 0
+        },
+        {
+            "file": "admin\/modern_semester_courses.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "admin\/processEdit_student.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "admin\/regNewStud.php",
+            "tables": 1,
+            "theads": 0
+        },
+        {
+            "file": "admin\/reportStudy_mode.php",
+            "tables": 1,
+            "theads": 0
+        },
+        {
+            "file": "admin\/report_year_intake.php",
+            "tables": 1,
+            "theads": 0
+        },
+        {
+            "file": "admin\/semesterReg.php",
+            "tables": 2,
+            "theads": 0
+        },
+        {
+            "file": "admin\/semester_courses.php",
+            "tables": 0,
+            "theads": 1
+        },
+        {
+            "file": "admin\/short_course_content.php",
+            "tables": 0,
+            "theads": 1
+        },
+        {
+            "file": "admin\/studentPop.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "admin\/student_ca.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "admin\/student_fees.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "admin\/student_index.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "admin\/student_table.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "admin\/student_transcript.php",
+            "tables": 2,
+            "theads": 0
+        },
+        {
+            "file": "admin\/transcript.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "admin\/user_role_mgmt.php",
+            "tables": 2,
+            "theads": 2
+        },
+        {
+            "file": "admin\/view_all_courses.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "admin\/view_invoice.php",
+            "tables": 1,
+            "theads": 0
+        }
+    ],
+    "admissions": [
+        {
+            "file": "admissions\/applicants.php",
+            "tables": 3,
+            "theads": 1
+        },
+        {
+            "file": "admissions\/courses.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "admissions\/dashboard_admin.php",
+            "tables": 1,
+            "theads": 0
+        },
+        {
+            "file": "admissions\/getApplicantDetails.php",
+            "tables": 4,
+            "theads": 0
+        },
+        {
+            "file": "admissions\/includes\/admit_modal.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "admissions\/includes\/bulk_registration_modal.php",
+            "tables": 1,
+            "theads": 0
+        },
+        {
+            "file": "admissions\/includes\/registration_modal.php",
+            "tables": 7,
+            "theads": 1
+        },
+        {
+            "file": "admissions\/institution_results.php",
+            "tables": 1,
+            "theads": 0
+        },
+        {
+            "file": "admissions\/programs.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "admissions\/recent_students.php",
+            "tables": 0,
+            "theads": 1
+        },
+        {
+            "file": "admissions\/reports.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "admissions\/search_student.php",
+            "tables": 1,
+            "theads": 0
+        },
+        {
+            "file": "admissions\/students.php",
+            "tables": 2,
+            "theads": 1
+        },
+        {
+            "file": "admissions\/student_results.php",
+            "tables": 1,
+            "theads": 0
+        },
+        {
+            "file": "admissions\/view_student.php",
+            "tables": 1,
+            "theads": 0
+        }
+    ],
+    "elearning": [
+        {
+            "file": "elearning\/assessments.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "elearning\/module.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "elearning\/sessions.php",
+            "tables": 1,
+            "theads": 0
+        },
+        {
+            "file": "elearning\/student_progress.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "elearning\/versions.php",
+            "tables": 1,
+            "theads": 1
+        }
+    ],
+    "hod": [
+        {
+            "file": "hod\/CAmanager.php",
+            "tables": 1,
+            "theads": 0
+        },
+        {
+            "file": "hod\/finance.php",
+            "tables": 1,
+            "theads": 0
+        },
+        {
+            "file": "hod\/hod_dashboard.php",
+            "tables": 2,
+            "theads": 2
+        },
+        {
+            "file": "hod\/view_staff.php",
+            "tables": 1,
+            "theads": 1
+        }
+    ],
+    "lecturers": [
+        {
+            "file": "lecturers\/archive_submissions_drive.php",
+            "tables": 1,
+            "theads": 2
+        },
+        {
+            "file": "lecturers\/editStaff.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "lecturers\/myStudent.php",
+            "tables": 1,
+            "theads": 0
+        },
+        {
+            "file": "lecturers\/student_login_log.php",
+            "tables": 1,
+            "theads": 0
+        },
+        {
+            "file": "lecturers\/viewCaRes.php",
+            "tables": 1,
+            "theads": 0
+        },
+        {
+            "file": "lecturers\/viewCourse.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "lecturers\/viewStaff.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "lecturers\/view_course_registrations.php",
+            "tables": 1,
+            "theads": 1
+        }
+    ],
+    "library": [
+        {
+            "file": "library\/index.php",
+            "tables": 1,
+            "theads": 0
+        }
+    ],
+    "online_services": [
+        {
+            "file": "online_services\/trackApp.php",
+            "tables": 1,
+            "theads": 1
+        }
+    ],
+    "registrar": [
+        {
+            "file": "registrar\/assessments.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "registrar\/ca.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "registrar\/courses.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "registrar\/dashboard_admin.php",
+            "tables": 1,
+            "theads": 0
+        },
+        {
+            "file": "registrar\/departments.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "registrar\/editCourse.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "registrar\/editCourseLecturer.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "registrar\/editProgram.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "registrar\/editStaff.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "registrar\/exams.php",
+            "tables": 2,
+            "theads": 1
+        },
+        {
+            "file": "registrar\/exams_series.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "registrar\/exam_script.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "registrar\/final_results.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "registrar\/hostels.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "registrar\/index.php",
+            "tables": 2,
+            "theads": 0
+        },
+        {
+            "file": "registrar\/institution_results.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "registrar\/programs.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "registrar\/reportManager.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "registrar\/staff.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "registrar\/students_by_admin.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "registrar\/student_ca.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "registrar\/student_fees.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "registrar\/student_results.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "registrar\/student_table.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "registrar\/view_staff.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "registrar\/view_student_admin.php",
+            "tables": 1,
+            "theads": 1
+        }
+    ],
+    "students": [
+        {
+            "file": "students\/assessments.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "students\/assignments.php",
+            "tables": 1,
+            "theads": 0
+        },
+        {
+            "file": "students\/balanceStatement.php",
+            "tables": 2,
+            "theads": 2
+        },
+        {
+            "file": "students\/continuousAssessment.php",
+            "tables": 3,
+            "theads": 3
+        },
+        {
+            "file": "students\/course.php",
+            "tables": 1,
+            "theads": 0
+        },
+        {
+            "file": "students\/courseReg.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "students\/editStudent.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "students\/examTranscript.php",
+            "tables": 2,
+            "theads": 0
+        },
+        {
+            "file": "students\/exempStatus.php",
+            "tables": 1,
+            "theads": 0
+        },
+        {
+            "file": "students\/invoice.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "students\/materials.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "students\/myCourses.php",
+            "tables": 4,
+            "theads": 2
+        },
+        {
+            "file": "students\/processSearchReturning.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "students\/registration.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "students\/session_trace.php",
+            "tables": 1,
+            "theads": 0
+        },
+        {
+            "file": "students\/short_courses.php",
+            "tables": 0,
+            "theads": 1
+        },
+        {
+            "file": "students\/simulate_fee_check.php",
+            "tables": 1,
+            "theads": 0
+        },
+        {
+            "file": "students\/submittedAssign.php",
+            "tables": 1,
+            "theads": 0
+        },
+        {
+            "file": "students\/timetable.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "students\/view_ca.php",
+            "tables": 1,
+            "theads": 1
+        }
+    ],
+    "transport": [
+        {
+            "file": "transport\/transport_management.php",
+            "tables": 13,
+            "theads": 13
+        }
+    ],
+    "vc": [
+        {
+            "file": "vc\/assessments.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "vc\/ca.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "vc\/departments.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "vc\/exams.php",
+            "tables": 2,
+            "theads": 1
+        },
+        {
+            "file": "vc\/exams_series.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "vc\/exam_script.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "vc\/final_results.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "vc\/index.php",
+            "tables": 1,
+            "theads": 0
+        },
+        {
+            "file": "vc\/institution_results.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "vc\/reportManager.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "vc\/staff.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "vc\/students_by_admin.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "vc\/student_ca.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "vc\/student_fees.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "vc\/student_results.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "vc\/student_table.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "vc\/view_staff.php",
+            "tables": 1,
+            "theads": 1
+        },
+        {
+            "file": "vc\/view_student_admin.php",
+            "tables": 1,
+            "theads": 1
+        }
+    ]
+}

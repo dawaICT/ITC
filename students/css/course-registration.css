@@ -1,0 +1,295 @@
+.student-course-registration-page {
+    --course-reg-primary: var(--sp-primary, #1B2A4A);
+    --course-reg-primary-dark: var(--sp-primary-dark, #111c33);
+    --course-reg-primary-light: rgba(27, 42, 74, 0.08);
+    --course-reg-text-dark: var(--sp-text-dark, #0f172a);
+    --course-reg-text-muted: var(--sp-text-muted, #64748b);
+    --course-reg-border: var(--sp-border, #e2e8f0);
+    --course-reg-card: var(--sp-card, #ffffff);
+    --course-reg-bg-soft: #f8fafc;
+    --course-reg-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.student-course-registration-page .content-wrapper {
+    max-width: 1400px;
+}
+
+.student-course-registration-page .course-reg-layout {
+    padding-top: 1rem !important;
+}
+
+.student-course-registration-page .course-reg-page-header {
+    margin-bottom: 1.5rem;
+}
+
+.student-course-registration-page .course-reg-status-grid {
+    margin-top: 0;
+}
+
+.student-course-registration-page .course-reg-shell {
+    border-radius: 14px;
+    overflow: hidden;
+    padding: 0;
+}
+
+.student-course-registration-page .course-reg-shell .reg-card-header {
+    margin-bottom: 0;
+    padding: 1.5rem 1.5rem 1rem;
+}
+
+.student-course-registration-page .course-reg-program-badge {
+    margin-left: auto;
+}
+
+.student-course-registration-page .course-reg-shell-body {
+    padding: 0;
+}
+
+.student-course-registration-page .course-reg-alerts {
+    padding: 1.25rem 1.25rem 0;
+}
+
+.student-course-registration-page .course-reg-flash-alert,
+.student-course-registration-page .course-reg-state-alert,
+.student-course-registration-page .course-reg-legacy-alert {
+    border: none;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.07);
+}
+
+.student-course-registration-page .course-reg-alert-content {
+    display: flex;
+    align-items: center;
+}
+
+.student-course-registration-page .course-reg-state-alert {
+    margin: 0 1.25rem 1.25rem;
+    border-left-width: 4px;
+    border-left-style: solid;
+}
+
+.student-course-registration-page .course-reg-state-alert-danger {
+    border-left-color: var(--sp-red, #ef4444);
+}
+
+.student-course-registration-page .course-reg-state-alert-warning {
+    border-left-color: var(--sp-amber, #f59e0b);
+}
+
+.student-course-registration-page .course-reg-state-alert-info {
+    border-left-color: var(--sp-blue, #3b82f6);
+}
+
+.student-course-registration-page .course-reg-debug-alert {
+    margin: 0 1.25rem 1rem;
+    font-size: 0.78rem;
+    line-height: 1.45;
+}
+
+.student-course-registration-page .course-reg-inline-link {
+    font-weight: 600;
+}
+
+.student-course-registration-page .course-reg-table-area {
+    min-height: 0;
+}
+
+.student-course-registration-page .course-reg-table-wrap {
+    border-top: 1px solid var(--course-reg-border);
+}
+
+.student-course-registration-page .course-reg-table {
+    margin-bottom: 0;
+}
+
+.student-course-registration-page .course-reg-table thead th {
+    background: var(--course-reg-primary);
+    color: #ffffff;
+}
+
+.student-course-registration-page .course-reg-table tbody tr {
+    transition: background-color 0.18s ease, box-shadow 0.18s ease;
+    cursor: pointer;
+}
+
+.student-course-registration-page .course-reg-table tbody tr:hover {
+    background: var(--course-reg-primary-light) !important;
+}
+
+.student-course-registration-page .course-reg-table tbody tr.is-selected {
+    background: rgba(27, 42, 74, 0.07);
+}
+
+.student-course-registration-page .course-reg-table tbody tr.is-selected:hover {
+    background: rgba(27, 42, 74, 0.1) !important;
+}
+
+.student-course-registration-page .course-select-col {
+    width: 56px;
+}
+
+.student-course-registration-page .course-reg-checkbox {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.student-course-registration-page .course-checkbox:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+.student-course-registration-page .form-check-input:checked {
+    background-color: var(--course-reg-primary);
+    border-color: var(--course-reg-primary);
+}
+
+.student-course-registration-page .course-reg-course-code {
+    font-weight: 700;
+    color: var(--course-reg-text-dark);
+}
+
+.student-course-registration-page .course-reg-credit {
+    font-weight: 700;
+    color: var(--course-reg-primary);
+}
+
+.student-course-registration-page .course-reg-empty-cell {
+    padding: 3rem 1rem !important;
+    text-align: center;
+    color: var(--course-reg-text-muted);
+    font-size: 0.95rem;
+}
+
+.student-course-registration-page .course-reg-empty-cell i {
+    display: block;
+    font-size: 2rem;
+    margin-bottom: 0.75rem;
+    opacity: 0.35;
+}
+
+.student-course-registration-page .course-reg-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem 1.25rem;
+    border-top: 1px solid var(--course-reg-border);
+    background: var(--course-reg-bg-soft);
+    justify-content: flex-start;
+}
+
+.student-course-registration-page .course-reg-action-btn {
+    min-height: 42px;
+    min-width: 168px;
+    white-space: nowrap;
+}
+
+.student-course-registration-page .course-reg-action-btn[disabled] {
+    opacity: 0.65;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.student-course-registration-page .course-reg-note {
+    flex: 1 0 100%;
+    margin-bottom: 0;
+}
+
+.student-course-registration-page .course-reg-print-btn {
+    margin-left: auto;
+}
+
+.student-course-registration-page .badge-primary-soft {
+    background: var(--course-reg-primary-light);
+    color: var(--course-reg-primary);
+    font-weight: 600;
+}
+
+.student-course-registration-page .course-reg-selection-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.student-course-registration-page .course-reg-kicker,
+.student-course-registration-page .course-reg-field-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--course-reg-text-muted);
+}
+
+.student-course-registration-page .course-reg-legacy-alert {
+    margin-bottom: 1.25rem;
+}
+
+.student-course-registration-page .course-reg-readonly-input {
+    background: var(--course-reg-bg-soft) !important;
+    border: none;
+    box-shadow: none;
+}
+
+.student-course-registration-page .course-reg-readonly-input:focus {
+    box-shadow: none;
+}
+
+.student-course-registration-page .course-reg-multi-select {
+    min-height: 200px;
+    border: none;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+}
+
+.student-course-registration-page .course-reg-credit-summary {
+    border: none;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
+}
+
+@media (max-width: 991.98px) {
+    .student-course-registration-page .course-reg-program-badge {
+        margin-left: 0;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .student-course-registration-page .course-reg-layout {
+        padding-top: 0 !important;
+    }
+
+    .student-course-registration-page .course-reg-page-header {
+        margin-bottom: 1.25rem;
+    }
+
+    .student-course-registration-page .course-reg-alerts,
+    .student-course-registration-page .course-reg-actions {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    .student-course-registration-page .course-reg-state-alert,
+    .student-course-registration-page .course-reg-debug-alert {
+        margin-left: 1rem;
+        margin-right: 1rem;
+    }
+
+    .student-course-registration-page .course-reg-actions {
+        align-items: stretch;
+    }
+
+    .student-course-registration-page .course-reg-action-btn,
+    .student-course-registration-page .course-reg-print-btn {
+        width: 100%;
+        margin-left: 0 !important;
+    }
+
+    .student-course-registration-page .course-reg-program-badge {
+        width: 100%;
+        text-align: center;
+    }
+
+    .student-course-registration-page .course-reg-table-wrap > .course-reg-table {
+        min-width: 640px;
+    }
+}

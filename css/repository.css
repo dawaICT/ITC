@@ -1,0 +1,74 @@
+.repository-page .dashboard-header h2 {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    margin-bottom: .5rem;
+}
+
+.repository-page .dashboard-header hr {
+    margin: .75rem 0 1rem;
+}
+
+.repository-page .welcome-subtitle {
+    margin-bottom: 0;
+    color: #64748b;
+}
+
+.repository-page .form-label {
+    font-weight: 600;
+    color: #334155;
+}
+
+.repository-page .form-control,
+.repository-page .form-select {
+    border-radius: 12px;
+    border-color: #dbe3ef;
+}
+
+.repository-page .form-control:focus,
+.repository-page .form-select:focus {
+    border-color: var(--logo-primary, #1B2A4A);
+    box-shadow: 0 0 0 .2rem rgba(27, 42, 74, .12);
+}
+
+.repository-page .search-form-card,
+.repository-page .results-card,
+.repository-page .data-table-card {
+    overflow: hidden;
+}
+
+.repository-page .search-form-card .card-header,
+.repository-page .results-card .card-header {
+    border-bottom: 0;
+}
+
+.repository-resource-grid .btn {
+    border-radius: 14px;
+    padding: .85rem 1rem;
+    background: #fff;
+}
+
+.repository-resource-grid .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(15, 23, 42, .08);
+}
+
+.repository-material-card {
+    transition: transform .18s ease, box-shadow .18s ease;
+}
+
+.repository-material-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 36px rgba(15, 23, 42, .12);
+}
+
+.repository-empty-icon {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(27, 42, 74, .08);
+    color: var(--logo-primary, #1B2A4A);
+}

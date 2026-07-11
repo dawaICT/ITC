@@ -1,0 +1,378 @@
+.student-registration-theme {
+    --primary-purple: var(--sp-primary, #6f42c1);
+    --primary-blue: var(--sp-blue, #3b82f6);
+    --success-green: var(--sp-green, #10b981);
+    --warning-orange: var(--sp-amber, #f59e0b);
+}
+
+.student-registration-theme .steps-container {
+    display: flex;
+    justify-content: space-between;
+    margin: 1.5rem 0 2rem;
+    position: relative;
+    counter-reset: step;
+}
+
+.student-registration-theme .steps-container::before {
+    content: '';
+    position: absolute;
+    top: 20px;
+    left: 10%;
+    right: 10%;
+    height: 3px;
+    background: #e2e8f0;
+    z-index: 1;
+}
+
+.student-registration-theme .step {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    flex: 1;
+}
+
+.student-registration-theme .step-number {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: white;
+    border: 3px solid #e2e8f0;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    margin: 0 auto 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.student-registration-theme .step-number::before {
+    counter-increment: step;
+    content: counter(step);
+}
+
+.student-registration-theme .step.active .step-number {
+    border-color: var(--primary-purple);
+    background: var(--primary-purple);
+    color: white;
+    box-shadow: 0 0 0 4px rgba(111, 66, 193, 0.2);
+}
+
+.student-registration-theme .step.completed .step-number {
+    border-color: var(--success-green);
+    background: var(--success-green);
+    color: white;
+}
+
+.student-registration-theme .step.completed .step-number::before {
+    content: "\2713";
+}
+
+.student-registration-theme .step-text {
+    font-weight: 600;
+    color: #64748b;
+    font-size: 0.85rem;
+}
+
+.student-registration-theme .step.active .step-text {
+    color: var(--primary-purple);
+}
+
+.student-registration-theme .step.completed .step-text {
+    color: var(--success-green);
+}
+
+.student-registration-theme .reg-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+}
+
+.student-registration-theme .reg-card-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.student-registration-theme .reg-card-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--primary-purple), #5a32a3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.25rem;
+}
+
+.student-registration-theme .reg-card-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0;
+}
+
+.student-registration-theme .reg-card-subtitle {
+    color: #64748b;
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+.student-registration-theme .registration-box {
+    background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+    border-radius: 12px;
+    padding: 2rem;
+    text-align: center;
+    margin: 1.5rem 0;
+    border: 2px dashed #e2e8f0;
+}
+
+.student-registration-theme .registration-box h3 {
+    font-size: 1.25rem;
+    margin-bottom: 0.5rem;
+    color: #1e293b;
+}
+
+.student-registration-theme .registration-box p {
+    color: #64748b;
+    margin-bottom: 1rem;
+}
+
+.student-registration-theme .free-badge {
+    background: linear-gradient(135deg, var(--success-green), #047857);
+    color: white;
+    font-weight: 700;
+    font-size: 1.1rem;
+    padding: 0.5rem 1.5rem;
+    border-radius: 50px;
+    display: inline-block;
+    margin-bottom: 1rem;
+}
+
+.student-registration-theme .btn-register,
+.student-registration-theme .btn-course {
+    border: none;
+    padding: 0.875rem 2rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: white;
+    text-decoration: none;
+    justify-content: center;
+}
+
+.student-registration-theme .btn-register {
+    background: linear-gradient(135deg, var(--primary-purple), #5a32a3);
+}
+
+.student-registration-theme .btn-course {
+    background: linear-gradient(135deg, var(--success-green), #047857);
+}
+
+.student-registration-theme .btn-register:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(111, 66, 193, 0.4);
+    color: white;
+}
+
+.student-registration-theme .btn-course:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(5, 150, 105, 0.4);
+    color: white;
+}
+
+.student-registration-theme .status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.student-registration-theme .status-item {
+    background: #f8fafc;
+    padding: 1rem;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.student-registration-theme .status-label {
+    font-size: 0.75rem;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.25rem;
+}
+
+.student-registration-theme .status-value {
+    font-weight: 700;
+    font-size: 1rem;
+    color: #1e293b;
+}
+
+.student-registration-theme .status-value.free,
+.student-registration-theme .status-value.success {
+    color: var(--success-green);
+}
+
+.student-registration-theme .status-value.primary {
+    color: var(--primary-purple);
+}
+
+.student-registration-theme .status-value.warning {
+    color: var(--warning-orange);
+}
+
+.student-registration-theme .student-type-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 50px;
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.student-registration-theme .badge-new {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.student-registration-theme .badge-returning {
+    background: #e0e7ff;
+    color: #3730a3;
+}
+
+.student-registration-theme .badge-transfer {
+    background: #ccfbf1;
+    color: #0f766e;
+}
+
+.student-registration-theme .info-alert {
+    background: #eff6ff;
+    border-left: 4px solid var(--primary-blue);
+    border-radius: 0 8px 8px 0;
+    padding: 1rem 1.25rem;
+    margin: 1rem 0;
+}
+
+.student-registration-theme .info-alert h5 {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #1e40af;
+    margin-bottom: 0.5rem;
+}
+
+.student-registration-theme .info-alert ul {
+    margin: 0;
+    padding-left: 1.25rem;
+    color: #1e40af;
+    font-size: 0.875rem;
+}
+
+.student-registration-theme .info-alert ul li {
+    margin-bottom: 0.25rem;
+}
+
+.student-registration-theme .complete-section {
+    text-align: center;
+    padding: 2rem;
+}
+
+.student-registration-theme .complete-icon {
+    width: 80px;
+    height: 80px;
+    background: rgba(5, 150, 105, 0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    color: var(--success-green);
+    font-size: 2.5rem;
+}
+
+.student-registration-theme .action-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-top: 1.5rem;
+}
+
+.student-registration-theme .btn-action {
+    padding: 0.625rem 1.25rem;
+    border-radius: 8px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+    justify-content: center;
+}
+
+.student-registration-theme .btn-action:hover {
+    transform: translateY(-2px);
+}
+
+.student-registration-theme .btn-outline-purple {
+    background: white;
+    color: var(--primary-purple);
+    border: 2px solid var(--primary-purple);
+}
+
+.student-registration-theme .btn-outline-purple:hover {
+    background: var(--primary-purple);
+    color: white;
+}
+
+.student-registration-theme .btn-outline-green {
+    background: white;
+    color: var(--success-green);
+    border: 2px solid var(--success-green);
+}
+
+.student-registration-theme .btn-outline-green:hover {
+    background: var(--success-green);
+    color: white;
+}
+
+@media (max-width: 768px) {
+    .student-registration-theme .reg-card {
+        padding: 1.25rem;
+    }
+
+    .student-registration-theme .steps-container::before {
+        left: 5%;
+        right: 5%;
+    }
+
+    .student-registration-theme .step-text {
+        font-size: 0.75rem;
+    }
+
+    .student-registration-theme .status-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .student-registration-theme .action-buttons {
+        flex-direction: column;
+    }
+
+    .student-registration-theme .btn-action,
+    .student-registration-theme .btn-register,
+    .student-registration-theme .btn-course {
+        width: 100%;
+    }
+}

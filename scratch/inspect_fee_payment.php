@@ -1,0 +1,23 @@
+<?php
+require_once __DIR__ . '/../db/connect.php';
+$sid = 'CSE26456789';
+echo "=== fee_structure CSE y1 ===\n";
+$r = $db->query("SELECT program_code, year_of_study, semester, fee_description, amount, status FROM fee_structure WHERE program_code='CSE' AND year_of_study=1 ORDER BY semester");
+while ($row = $r->fetch_assoc()) echo json_encode($row)."\n";
+echo "\n=== payments for $sid ===\n";
+$stmt = $db->prepare("SELECT * FROM payments WHERE student_id = ? ORDER BY payment_date DESC LIMIT 10");
+$stmt->bind_param('s', $sid);
+$stmt->execute();
+$res = $stmt->get_result();
+while ($row = $res->fetch_assoc()) echo json_encode($row)."\n";
+$stmt->close();
+echo "\n=== semester_registration for $sid ===\n";
+$stmt = $db->prepare("SELECT * FROM semester_registration WHERE student_id = ? ORDER BY id DESC");
+$stmt->bind_param('s', $sid);
+$stmt->execute();
+$res = $stmt->get_result();
+while ($row = $res->fetch_assoc()) echo json_encode($row)."\n";
+$stmt->close();
+echo "\nDESCRIBE payments:\n";
+$r = $db->query('DESCRIBE payments');
+while ($row = $r->fetch_assoc()) echo $row['Field'].' '.$row['Type']."\n";

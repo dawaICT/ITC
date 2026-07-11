@@ -1,0 +1,124 @@
+/* DEAN SPACING SCALE - Quick Reference */
+
+/* 
+   Use these variables for ALL margin and padding throughout the dean folder.
+   This ensures consistent, scalable spacing across the entire project.
+*/
+
+/* Variable values (in pixels) */
+$spacing-xs:   5px;    /* Tiny gaps, icon spacing */
+$spacing-sm:   10px;   /* Small margins, internal padding */
+$spacing-md:   15px;   /* Standard spacing, footer widgets */
+$spacing-lg:   20px;   /* Section margins, heading spacing */
+$spacing-xl:   30px;   /* Block spacing, card gaps */
+$spacing-2xl:  50px;   /* Large sections, footer/hero */
+$spacing-3xl:  100px;  /* Full sections, hero backgrounds */
+
+
+/* USAGE EXAMPLES */
+
+/* Margin Examples */
+.card {
+    margin-bottom: $spacing-lg;       /* 20px below each card */
+    margin-right: $spacing-md;        /* 15px right padding */
+}
+
+/* Padding Examples */
+.button {
+    padding: $spacing-sm $spacing-lg;  /* 10px top/bottom, 20px left/right */
+}
+
+.section {
+    padding: $spacing-2xl 0;          /* 50px top/bottom, no side padding */
+}
+
+/* Shorthand Examples */
+/* Single value: applies to all sides */
+.tight { margin: $spacing-xs; }       /* 5px all around */
+.normal { margin: $spacing-md; }      /* 15px all around */
+
+/* Two values: top/bottom, left/right */
+.padded { padding: $spacing-sm $spacing-lg; } /* 10px V, 20px H */
+
+/* Four values: top, right, bottom, left */
+.custom { padding: $spacing-lg $spacing-md $spacing-sm $spacing-md; }
+
+
+/* VISUAL SPACING CHART */
+
+/*
+    $spacing-xs    [5px]    ▁
+    $spacing-sm    [10px]   ▃
+    $spacing-md    [15px]   ▄
+    $spacing-lg    [20px]   ▅
+    $spacing-xl    [30px]   ▆
+    $spacing-2xl   [50px]   ▇
+    $spacing-3xl   [100px]  ███
+*/
+
+
+/* COMMON PATTERNS */
+
+/* Stacked cards/items */
+.item {
+    margin-bottom: $spacing-xl;  /* 30px gap between items */
+}
+
+/* Form fields */
+input {
+    padding: $spacing-sm $spacing-md;  /* 10px V, 15px H */
+    margin-bottom: $spacing-lg;        /* 20px below field */
+}
+
+/* Section padding */
+#section {
+    padding: $spacing-2xl 0;  /* 50px top/bottom */
+}
+
+/* Icon buttons */
+.icon-btn {
+    padding: $spacing-xs;     /* 5px all around */
+}
+
+/* Navigation items */
+nav a {
+    padding: $spacing-md $spacing-lg;  /* 15px V, 20px H */
+    margin: 0 $spacing-xs;             /* 5px horizontal gap */
+}
+
+
+/* RESPONSIVE ADJUSTMENTS */
+
+@media (max-width: 768px) {
+    .section {
+        padding: $spacing-xl 0;        /* Reduce from 50px to 30px on mobile */
+    }
+}
+
+@media (max-width: 480px) {
+    .section {
+        padding: $spacing-lg 0;        /* Further reduce to 20px on small mobile */
+    }
+}
+
+
+/* ⚠️ DO NOT USE */
+
+/* ❌ WRONG - Hardcoded pixel values */
+.bad { margin: 15px; padding: 10px 20px; }
+
+/* ✅ CORRECT - Use variables */
+.good { margin: $spacing-md; padding: $spacing-sm $spacing-lg; }
+
+
+/* SCALING THE SYSTEM */
+
+/* If you need to change ALL spacing globally,
+   just update the variables in _variables.scss:
+   
+   $spacing-xs:   5px;   ← Change this one value
+   $spacing-sm:   10px;  ← And all 15px instances update
+   ... etc
+   
+   No need to update individual files!
+*/

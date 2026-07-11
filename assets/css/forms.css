@@ -1,0 +1,103 @@
+/* WUC Portal — Form Styles */
+
+.form-control, .form-select {
+    font-family: inherit;
+    font-size: 0.875rem;
+    border-radius: var(--radius-md, 10px);
+    border: 1px solid var(--border-color, #e2e8f0);
+    padding: 0.65rem 1rem;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+    background-color: var(--bg-card, #fff);
+    color: var(--text-primary, #0f172a);
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--primary, #1B2A4A);
+    box-shadow: 0 0 0 3px rgba(27, 42, 74, 0.12);
+    outline: none;
+}
+
+.form-control::placeholder { color: var(--gray-400, #94a3b8); }
+
+.form-control-lg {
+    padding: 0.85rem 1.25rem;
+    font-size: 0.95rem;
+    border-radius: 10px;
+}
+
+.form-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--gray-700, #334155);
+    margin-bottom: 0.35rem;
+}
+
+.form-text {
+    font-size: 0.75rem;
+    color: var(--text-muted, #64748b);
+    margin-top: 0.3rem;
+}
+
+.input-group-text {
+    background: transparent;
+    color: var(--gray-500, #64748b);
+    border-color: var(--border-color, #e2e8f0);
+}
+
+/* Search Card */
+.search-card {
+    background: var(--bg-card, #fff);
+    border-radius: 14px;
+    padding: 2rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+    border: 1px solid #f0f0f0;
+    margin-bottom: 2rem;
+}
+
+.search-dropdown {
+    position: absolute;
+    z-index: 1050;
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    max-height: 250px;
+    overflow-y: auto;
+    width: 100%;
+}
+
+.search-dropdown .item {
+    padding: 10px 14px;
+    cursor: pointer;
+    border-bottom: 1px solid #f1f5f9;
+    transition: background 150ms;
+}
+
+.search-dropdown .item:hover { background: #f8f9ff; }
+.search-dropdown .item:last-child { border-bottom: none; }
+
+/* Validation */
+.form-control.is-invalid { border-color: #dc2626; }
+.form-control.is-invalid:focus { box-shadow: 0 0 0 3px rgba(220,38,38,0.15); }
+.form-control.is-valid { border-color: #059669; }
+.invalid-feedback { font-size: 0.78rem; color: #dc2626; margin-top: 0.3rem; }
+
+/* Modals */
+.modal-content { border-radius: 14px; border: none; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
+.modal-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid #e2e8f0; }
+.modal-title { font-weight: 700; color: #1e293b; }
+.modal-body { padding: 1.5rem; }
+.modal-footer { padding: 1rem 1.5rem; background: #f8fafc; border-top: 1px solid #e2e8f0; }
+
+.modal-header.finance-modal {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: #fff;
+    border-radius: 14px 14px 0 0;
+}
+.modal-header.finance-modal .modal-title { color: #fff; }
+.modal-header.finance-modal .btn-close { filter: brightness(0) invert(1); }
+
+@media (max-width: 768px) {
+    .search-card { padding: 1.25rem; }
+    .form-control-lg { padding: 0.75rem 1rem; }
+}

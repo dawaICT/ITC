@@ -1,0 +1,69 @@
+=== course id 50 ===
+Array
+(
+    [course_code] => ITC-ENG-02
+    [course_name] => Diploma in Computer Systems Engineering
+)
+Array
+(
+)
+payable: {"base_fee":0,"currency":"ZMW","mandatory_institution_fees":[],"external_fees":[],"informational_fees":[],"additional_fee_total":0,"total_payable":0}
+
+=== course id 178 ===
+Array
+(
+    [course_code] => DCSE-TEV
+    [course_name] => Diploma in Computer Syst Engineering (DCSE) - TEVETA
+)
+Array
+(
+    [0] => Array
+        (
+            [id] => 61
+            [course_id] => 178
+            [training_mode_id] => 1
+            [academic_year] => 2026
+            [currency] => ZMW
+            [base_fee] => 8133.00
+            [effective_start_date] => 2026-01-01
+            [effective_end_date] => 
+            [status] => active
+            [created_at] => 2026-06-28 04:35:48
+            [updated_at] => 2026-06-28 04:35:48
+        )
+
+    [1] => Array
+        (
+            [id] => 62
+            [course_id] => 178
+            [training_mode_id] => 3
+            [academic_year] => 2026
+            [currency] => ZMW
+            [base_fee] => 6541.80
+            [effective_start_date] => 2026-01-01
+            [effective_end_date] => 
+            [status] => active
+            [created_at] => 2026-06-28 04:35:48
+            [updated_at] => 2026-06-28 04:35:48
+        )
+
+    [2] => Array
+        (
+            [id] => 63
+            [course_id] => 178
+            [training_mode_id] => 4
+            [academic_year] => 2026
+            [currency] => ZMW
+            [base_fee] => 6341.80
+            [effective_start_date] => 2026-01-01
+            [effective_end_date] => 
+            [status] => active
+            [created_at] => 2026-06-28 04:35:48
+            [updated_at] => 2026-06-28 04:35:48
+        )
+
+)
+payable: {"base_fee":8133,"currency":"ZMW","mandatory_institution_fees":[],"external_fees":[],"informational_fees":[],"additional_fee_total":0,"total_payable":8133}
+
+=== Try generate with course 50 ===
+result: 22

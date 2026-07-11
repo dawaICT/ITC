@@ -1,0 +1,94 @@
+/* ===================================
+   WUC Portal - Debug Panel Styling
+   =================================== */
+
+.debug-panel {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-height: 300px;
+    overflow-y: auto;
+    background: #1e1e1e;
+    color: #d4d4d4;
+    font-family: monospace;
+    font-size: 12px;
+    z-index: 9999;
+    border-top: 3px solid #007acc;
+}
+
+.debug-panel-header {
+    position: sticky;
+    top: 0;
+    background: #007acc;
+    color: #fff;
+    padding: 8px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.debug-btn {
+    background: #fff;
+    color: #007acc;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.debug-toggle-btn {
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    background: #007acc;
+    color: #fff;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    z-index: 9998;
+    font-size: 12px;
+}
+
+.debug-data-container {
+    margin-bottom: 10px;
+    padding: 8px;
+    background: #2d2d2d;
+    border-radius: 4px;
+}
+
+.debug-data-title {
+    color: #4fc3f7;
+}
+
+.debug-data-pre {
+    margin: 5px 0 0 0;
+    color: #ce9178;
+}
+
+.debug-log-title {
+    color: #569cd6;
+    margin-bottom: 8px;
+}
+
+.debug-log-entry {
+    margin-bottom: 6px;
+    padding: 6px 8px;
+    border-radius: 3px;
+}
+
+.debug-log-time {
+    color: #808080;
+}
+
+.debug-log-msg {
+    color: #d4d4d4;
+}
+
+.debug-log-pre {
+    margin: 4px 0 0 0;
+    color: #ce9178;
+    font-size: 11px;
+    overflow-x: auto;
+}

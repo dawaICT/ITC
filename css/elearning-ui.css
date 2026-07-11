@@ -1,0 +1,657 @@
+.elearning-shell {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 18px 20px 28px;
+}
+
+.elearning-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 18px;
+}
+
+.elearning-header .elearning-actions {
+    margin-top: 0;
+}
+
+.elearning-title {
+    margin: 0;
+    font-size: 1.55rem;
+    line-height: 1.2;
+    color: #1f2937;
+    font-weight: 700;
+}
+
+.elearning-subtitle {
+    margin: 6px 0 0;
+    color: #64748b;
+    max-width: 760px;
+}
+
+.elearning-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+    align-items: stretch;
+}
+
+.elearning-panel,
+.elearning-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+    transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+}
+
+.elearning-card:hover,
+.elearning-panel:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 10px 26px rgba(15, 23, 42, 0.08);
+}
+
+.elearning-card {
+    display: flex;
+    min-height: 230px;
+    flex-direction: column;
+    gap: 14px;
+    padding: 18px;
+}
+
+.elearning-card-main {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 12px;
+    align-items: start;
+}
+
+.elearning-course-icon {
+    width: 44px;
+    height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background: #eef4ff;
+    color: #1d4ed8;
+    flex: 0 0 auto;
+}
+
+.elearning-course-title {
+    margin: 0;
+    color: #0f172a;
+    font-size: 1.05rem;
+    font-weight: 700;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+}
+
+.elearning-course-name {
+    margin: 4px 0 0;
+    color: #475569;
+    line-height: 1.4;
+}
+
+.elearning-course-description {
+    margin: 0;
+    color: #64748b;
+    line-height: 1.5;
+}
+
+.elearning-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.elearning-panel-body {
+    padding: 16px;
+}
+
+.elearning-list {
+    display: grid;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.elearning-list-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px;
+    border: 1px solid #eef2f7;
+    border-radius: 8px;
+    background: #f8fafc;
+    transition: background-color 0.16s ease, border-color 0.16s ease;
+}
+
+.elearning-list-item:hover {
+    background: #fff;
+    border-color: #dbeafe;
+}
+
+.elearning-list-item a {
+    text-decoration: none;
+}
+
+.elearning-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: auto;
+}
+
+.elearning-actions .btn,
+.elearning-footer-actions .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 38px;
+    white-space: normal;
+    text-align: center;
+}
+
+.elearning-actions .btn:focus-visible,
+.elearning-footer-actions .btn:focus-visible,
+.elearning-tab:focus-visible {
+    outline: 3px solid rgba(37, 99, 235, 0.25);
+    outline-offset: 2px;
+}
+
+.elearning-footer-actions {
+    margin-top: 26px;
+}
+
+.elearning-tabs {
+    display: flex;
+    gap: 8px;
+    margin: 0 0 18px;
+    padding: 6px;
+    overflow-x: auto;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #f8fafc;
+    scrollbar-width: thin;
+}
+
+.elearning-tab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-height: 38px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    color: #475569;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background-color 0.16s ease, color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.elearning-tab:hover {
+    background: #fff;
+    color: #1d4ed8;
+}
+
+.elearning-tab.active {
+    background: #1d4ed8;
+    color: #fff;
+    box-shadow: 0 6px 14px rgba(29, 78, 216, 0.18);
+}
+
+.elearning-table {
+    margin-bottom: 0;
+}
+
+.elearning-table th {
+    white-space: nowrap;
+}
+
+.elearning-table td {
+    vertical-align: middle;
+}
+
+.elearning-inline-form {
+    display: inline-flex;
+    margin: 0;
+}
+
+.badge-success {
+    background: #198754;
+    color: #fff;
+}
+
+.badge-warning {
+    background: #f59e0b;
+    color: #111827;
+}
+
+.badge-danger {
+    background: #dc3545;
+    color: #fff;
+}
+
+.badge-draft {
+    background: #6c757d;
+    color: #fff;
+}
+
+.elearning-assessment-item {
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #fff;
+    transition: border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.elearning-assessment-item:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.07);
+}
+
+.elearning-assessment-item .item-title {
+    margin-bottom: 4px;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.elearning-assessment-item .item-meta {
+    font-size: 0.8rem;
+}
+
+.elearning-assessment-item .item-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+}
+
+.empty-state {
+    padding: 24px 12px;
+    color: #6c757d;
+    text-align: center;
+}
+
+.elearning-thread-list {
+    display: grid;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.elearning-thread-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 14px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #f8fafc;
+    transition: background-color 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.elearning-thread-item:hover {
+    border-color: #cbd5e1;
+    background: #fff;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.07);
+}
+
+.elearning-thread-title {
+    display: inline-block;
+    color: #0f172a;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.elearning-thread-title:hover {
+    color: #1d4ed8;
+}
+
+.elearning-thread-tags {
+    margin-top: 4px;
+    color: #64748b;
+    font-size: 0.82rem;
+}
+
+.elearning-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.elearning-stat-card {
+    padding: 16px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+}
+
+.elearning-stat-label {
+    display: block;
+    margin-bottom: 6px;
+    color: #64748b;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.elearning-stat-card strong {
+    color: #0f172a;
+    font-size: 1.6rem;
+    line-height: 1.1;
+}
+
+.elearning-analytics-list,
+.elearning-chip-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.elearning-analytics-list {
+    display: grid;
+    gap: 12px;
+}
+
+.elearning-analytics-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 6px;
+}
+
+.elearning-progress {
+    display: block;
+    width: 100%;
+    height: 8px;
+    overflow: hidden;
+    border-radius: 999px;
+    appearance: none;
+    border: 0;
+    background: #e2e8f0;
+}
+
+.elearning-progress::-webkit-progress-bar {
+    border-radius: 999px;
+    background: #e2e8f0;
+}
+
+.elearning-progress::-webkit-progress-value {
+    border-radius: 999px;
+    background: #1d4ed8;
+}
+
+.elearning-progress::-moz-progress-bar {
+    border-radius: 999px;
+    background: #1d4ed8;
+}
+
+.elearning-chip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.elearning-chip-list li {
+    padding: 7px 10px;
+    border: 1px solid #e2e8f0;
+    border-radius: 999px;
+    background: #f8fafc;
+    color: #334155;
+    font-weight: 600;
+}
+
+.sessions-table {
+    width: 100%;
+    table-layout: fixed;
+}
+
+.sessions-table th,
+.sessions-table td {
+    padding: 0.75rem 0.5rem;
+    vertical-align: middle;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sessions-table th:nth-child(1),
+.sessions-table td:nth-child(1) {
+    width: auto;
+    white-space: normal;
+}
+
+.sessions-table th:nth-child(2),
+.sessions-table td:nth-child(2) {
+    width: 120px;
+}
+
+.sessions-table th:nth-child(3),
+.sessions-table td:nth-child(3) {
+    width: 160px;
+}
+
+.sessions-table th:nth-child(4),
+.sessions-table td:nth-child(4) {
+    width: 160px;
+}
+
+.sessions-table th:nth-child(5),
+.sessions-table td:nth-child(5) {
+    width: 110px;
+}
+
+.sessions-table th:nth-child(6),
+.sessions-table td:nth-child(6) {
+    width: 92px;
+}
+
+.sessions-table .badge {
+    font-size: 0.75rem;
+}
+
+.sessions-table .btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+}
+
+.elearning-file-row {
+    display: grid;
+    grid-template-columns: minmax(140px, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+}
+
+.elearning-muted {
+    color: #64748b;
+}
+
+.elearning-empty {
+    margin: 0;
+    padding: 18px;
+    color: #64748b;
+    background: #f8fafc;
+    border: 1px dashed #cbd5e1;
+    border-radius: 8px;
+}
+
+.elearning-form {
+    max-width: 760px;
+    min-height: auto;
+}
+
+.elearning-form .form-control,
+.elearning-form .form-select {
+    min-height: 40px;
+}
+
+.elearning-inline-form {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(150px, 1fr)) auto;
+    gap: 12px;
+    align-items: end;
+    padding: 12px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+}
+
+.elearning-inline-form label {
+    display: grid;
+    gap: 5px;
+    margin: 0;
+}
+
+.elearning-inline-form span {
+    color: #475569;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.elearning-notification-list {
+    display: grid;
+    gap: 10px;
+}
+
+.elearning-notification {
+    display: grid;
+    grid-template-columns: 38px minmax(0, 1fr);
+    gap: 10px;
+    padding: 10px;
+    color: #0f172a;
+    text-decoration: none;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #f8fafc;
+}
+
+.elearning-notification:hover {
+    color: #0f172a;
+    border-color: #bfdbfe;
+    background: #eff6ff;
+}
+
+.elearning-notification-icon {
+    display: inline-flex;
+    width: 38px;
+    height: 38px;
+    align-items: center;
+    justify-content: center;
+    color: #1d4ed8;
+    background: #dbeafe;
+    border-radius: 8px;
+}
+
+.elearning-notification strong,
+.elearning-notification small,
+.elearning-notification em {
+    display: block;
+}
+
+.elearning-notification small,
+.elearning-notification em {
+    color: #64748b;
+    font-size: 0.82rem;
+}
+
+.elearning-notification em {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-style: normal;
+}
+
+.student-live-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 18px;
+}
+
+.student-live-card {
+    display: flex;
+    flex-direction: column;
+    min-height: 280px;
+}
+
+.student-live-card .btn {
+    white-space: normal;
+}
+
+.student-live-action {
+    margin-bottom: 0;
+}
+
+.student-live-card-footer {
+    margin-top: auto;
+    padding-top: 14px;
+    border-top: 1px solid #e2e8f0;
+}
+
+@media (max-width: 700px) {
+    .elearning-shell {
+        padding: 14px;
+    }
+
+    .elearning-header,
+    .elearning-list-item,
+    .elearning-file-row {
+        display: block;
+    }
+
+    .elearning-header .elearning-actions {
+        margin-top: 12px;
+    }
+
+    .elearning-card {
+        min-height: auto;
+    }
+
+    .elearning-card-main {
+        grid-template-columns: 40px minmax(0, 1fr);
+    }
+
+    .elearning-actions {
+        margin-top: 12px;
+    }
+
+    .elearning-actions .btn {
+        flex: 1 1 100%;
+    }
+
+    .elearning-tabs {
+        margin-left: -2px;
+        margin-right: -2px;
+    }
+
+    .elearning-thread-item {
+        display: block;
+    }
+
+    .elearning-thread-item .btn {
+        width: 100%;
+        margin-top: 10px;
+    }
+
+    .sessions-table {
+        min-width: 820px;
+    }
+
+    .elearning-inline-form {
+        grid-template-columns: 1fr;
+    }
+}

@@ -1,0 +1,825 @@
+<USER_REQUEST>
+# WUCPortal Online University Upgrade /goal Prompt
+
+/goal - Upgrade Existing WUCPortal into a Complete Online University Without Rebuilding
+
+## Primary Objective
+
+Act as a Senior Software Architect, PHP/MySQL Developer, Systems Analyst, Database Engineer, UI/UX Engineer, Security Engineer, QA Tester, and TEVETA Academic Systems Consultant.
+
+Upgrade the existing WUCPortal into a complete Digital Campus and Online University platform.
+
+This is **not a new system**. Do not rebuild WUCPortal from scratch. Improve, refactor, connect, and strengthen the modules that already exist.
+
+---
+
+# Critical Agent Rules
+
+## 1. Do Not Hallucinate
+
+Before making any change:
+
+- Inspect the actual files.
+- Inspect the actual database tables.
+- Inspect the actual column names.
+- Inspect existing routes, includes, sessions, redirects, and permissions.
+- Confirm whether a module already exists before creating a new one.
+- Do not invent table names.
+- Do not invent column names.
+- Do not invent file paths.
+- Do not invent user roles.
+- Do not assume framework structure unless confirmed from the codebase.
+
+If something is missing, document it first before creating it.
+
+---
+
+## 2. Follow the Existing System
+
+Preserve:
+
+- Existing database connections.
+- Existing session logic unless broken.
+- Existing user accounts.
+- Existing students.
+- Existing staff.
+- Existing admissions.
+- Existing results.
+- Existing finance records.
+- Existing eLearning records.
+- Existing links and navigation.
+- Existing production workflows.
+
+Only modify what is necessary.
+
+---
+
+## 3. Work in Small Verified Steps
+
+For every phase:
+
+1. Inspect relevant files and tables.
+2. Identify current implementation.
+3. Identify the problem.
+4. Propose the smallest safe fix.
+5. Implement only that fix.
+6. Test affected pages.
+7. Check for broken links.
+8. Check for database errors.
+9. Check permissions.
+10. Document what changed.
+
+Do not jump phases.
+
+Do not make large unrelated changes.
+
+---
+
+## 4. Use Evidence-Based Implementation
+
+Before editing any module, produce a short implementation note containing:
+
+- Files found.
+- Tables found.
+- Current logic.
+- Problem discovered.
+- Safe improvement plan.
+- Risk level.
+- Backup recommendation.
+
+Only then implement.
+
+---
+
+## 5. Protect Production Stability
+
+Do not break working modules.
+
+Before changing code:
+
+- Back up the file.
+- Avoid destructive database changes.
+- Prefer additive migrations.
+- Do not drop tables.
+- Do not rename columns unless absolutely required.
+- Do not remove working logic without replacing it safely.
+- Preserve backward compatibility.
+
+---
+
+# Phase 1 — Stabilization and Standardization
+
+Improve existing modules:
+
+- Admissions
+- Student Portal
+- Staff Portal
+- Registrar
+- Finance
+- HOD
+- eLearning
+- AI Assistant
+
+Tasks:
+
+- Remove duplicate logic.
+- Standardize page layouts.
+- Remove inline CSS gradually.
+- Move CSS into external reusable files.
+- Centralize JavaScript.
+- Improve responsive design.
+- Fix broken links.
+- Fix incorrect redirects between admin, student, and staff areas.
+- Improve session persistence.
+- Improve validation.
+- Improve error logging.
+- Improve SQL query safety using prepared statements.
+- Improve loading speed.
+
+Validation:
+
+- Login works for all roles.
+- Student links stay in student portal.
+- Staff links stay in staff portal.
+- Admin links stay in admin portal.
+- Sessions do not reset when navigating.
+- No PHP fatal errors.
+- No broken navigation.
+
+---
+
+# Phase 2 — Academic Structure Refactoring
+
+Do not replace registration.
+
+Improve existing academic logic so one academic engine supports:
+
+- Short Courses
+- Trade Tests
+- Certificates
+- Diplomas
+
+The engine must manage:
+
+Program
+
+↓
+
+Course
+
+↓
+
+Academic Year
+
+↓
+
+Intake
+
+↓
+
+Term or Semester
+
+↓
+
+Registration
+
+↓
+
+Assessment
+
+↓
+
+Results
+
+↓
+
+Graduation
+
+Special rules:
+
+- Transport and Logistics must remain semester-based.
+- One semester is 6 months for Transport and Logistics.
+- Most other programmes follow TEVETA term-based structure.
+- All programmes are externally examined unless marked otherwise.
+- Selected short courses may be internally examined.
+
+Implementation rule:
+
+Use configuration tables or clear settings instead of hardcoding programme exceptions inside many files.
+
+Validation:
+
+- Short course registration works.
+- Certificate registration works.
+- Diploma registration works.
+- Transport and Logistics works as semester-based.
+- Existing registered students are not corrupted.
+
+---
+
+# Phase 3 — Student Lifecycle Management
+
+Improve admissions into a complete student lifecycle.
+
+Lifecycle:
+
+Applicant
+
+↓
+
+Accepted
+
+↓
+
+Registered
+
+↓
+
+Active Student
+
+↓
+
+Industrial Attachment
+
+↓
+
+Completed
+
+↓
+
+Graduated
+
+↓
+
+Alumni
+
+Automation:
+
+When an applicant is accepted:
+
+- Generate correct student number.
+- Activate student portal.
+- Activate finance account.
+- Activate registration access.
+- Activate eLearning access.
+- Activate library access.
+- Activate AI assistant access.
+
+Validation:
+
+- No duplicate student accounts.
+- Student number uses correct ITC/programme logic.
+- Students cannot access modules before proper activation.
+- Existing students remain active.
+
+---
+
+# Phase 4 — Identity and Role-Based Access Control
+
+Improve permissions into RBAC.
+
+Support one user having multiple roles.
+
+Possible roles:
+
+- Admin
+- Registrar
+- HOD
+- Lecturer
+- Finance
+- Admissions
+- Student
+- Librarian
+- Employer
+- Alumni
+
+Rules:
+
+- Do not duplicate dashboards unnecessarily.
+- Show modules based on permissions.
+- Keep role checks centralized.
+- Avoid hardcoded role checks scattered across many pages.
+
+Validation:
+
+- Registrar sees registrar functions.
+- Admin sees admin functions.
+- Lecturer sees assigned courses only.
+- HOD sees department data only.
+- Student sees own records only.
+- Finance sees financial records only.
+
+---
+
+# Phase 5 — Academic Operations Integration
+
+Connect existing academic modules into one workflow:
+
+Registration
+
+↓
+
+Course Allocation
+
+↓
+
+Lecturer Allocation
+
+↓
+
+Timetable
+
+↓
+
+Attendance
+
+↓
+
+Continuous Assessment
+
+↓
+
+Examination
+
+↓
+
+Results
+
+↓
+
+Transcript
+
+↓
+
+Graduation
+
+Rules:
+
+- Do not create isolated duplicate modules.
+- Reuse existing student, staff, programme, course, and result data.
+- Use clear relationships between lecturer, course, programme, intake, term, semester, and student.
+
+Validation:
+
+- Lecturer sees all assigned courses.
+- Lecturer can upload CA for different assigned courses.
+- Students see correct courses in eLearning.
+- Students only see registered courses.
+- Results match registered courses.
+
+---
+
+# Phase 6 — eLearning Enhancement
+
+Improve the existing eLearning module.
+
+Each course should support:
+
+- Weekly modules.
+- Lessons.
+- Lecture notes.
+- Videos.
+- Assignments.
+- Practical activities.
+- Discussion forums.
+- Quizzes.
+- Progress tracking.
+- Learning analytics.
+
+Rules:
+
+- Do not build a separate LMS.
+- Extend the existing eLearning area.
+- Students and lecturers must access eLearning based on registration and course assignment.
+
+Validation:
+
+- Students access their own courses only.
+- Lecturers manage assigned courses only.
+- Course materials remain linked to correct programme, intake, term, or semester.
+- Navigation does not reset chat or learning sessions.
+
+---
+
+# Phase 7 — Practical and Competency Tracking
+
+Add competency tracking to existing assessment logic.
+
+Track:
+
+- Practical tasks.
+- Skills.
+- Evidence.
+- Lecturer verification.
+- Trainer verification.
+- Industry supervisor verification where applicable.
+
+Competency statuses:
+
+- Not Started
+- In Progress
+- Competent
+- Verified
+
+Validation:
+
+- Competency records link to student, programme, course, and lecturer.
+- Practical evidence can be reviewed.
+- Existing marks-based assessment still works.
+
+---
+
+# Phase 8 — Assessment and Examination Engine
+
+Improve existing CA and results system.
+
+Support:
+
+- Assignments.
+- Projects.
+- Practicals.
+- Continuous Assessment.
+- Trade Tests.
+- Internal Moderation.
+- External Moderation.
+- Final Examinations.
+- Result Publication.
+
+Rules:
+
+- Maintain TEVETA-compatible assessment logic.
+- Do not overwrite existing results.
+- Use clear audit logs for result changes.
+- Allow different assessment structures by programme type.
+
+Validation:
+
+- CA upload works for lecturers with multiple assigned courses.
+- Moderation status is tracked.
+- Final results calculate correctly.
+- Students only view published results.
+
+---
+
+# Phase 9 — Lecturer Workspace
+
+Improve lecturer dashboard into one workspace.
+
+Include:
+
+- Today's timetable.
+- Assigned courses.
+- Student lists.
+- Attendance.
+- CA upload.
+- Results.
+- Course materials.
+- eLearning.
+- AI assistant.
+- Analytics.
+- Notifications.
+
+Validation:
+
+- Lecturer only sees assigned courses.
+- Lecturer can manage different student types.
+- Lecturer can manage short course, certificate, and diploma students without conflict.
+
+---
+
+# Phase 10 — Student Experience
+
+Improve student dashboard.
+
+Include:
+
+- Today's classes.
+- Registered courses.
+- Assignments.
+- Upcoming exams.
+- Outstanding fees.
+- Learning progress.
+- Attendance.
+- Results.
+- Messages.
+- Announcements.
+- AI tutor.
+- Digital student ID.
+
+Validation:
+
+- Short course students see correct structure.
+- Certificate students see correct structure.
+- Diploma students see correct structure.
+- Transport and Logistics students see semester structure.
+- No student sees another student's data.
+
+---
+
+# Phase 11 — Digital Campus Services
+
+Improve existing services:
+
+- Library.
+- Hostel.
+- Transport.
+- Counselling.
+- Medical.
+- Student requests.
+- Clearance.
+- Graduation.
+
+Rules:
+
+- Keep services inside WUCPortal.
+- Connect services to the student lifecycle.
+
+Validation:
+
+- Requests are linked to the correct student.
+- Clearance checks finance, library, academics, and administration.
+- Graduation is only available after completion requirements are met.
+
+---
+
+# Phase 12 — Embedded AI
+
+Do not create one isolated chatbot.
+
+Embed AI into existing modules.
+
+Examples:
+
+Admissions:
+
+- Explain programmes.
+- Guide applicants.
+
+Registration:
+
+- Help students understand course selection.
+
+Finance:
+
+- Explain balances and payment status.
+
+Results:
+
+- Explain performance.
+
+Lecturer:
+
+- Generate quizzes.
+- Suggest feedback.
+- Summarize student progress.
+
+Registrar:
+
+- Validate academic records.
+
+HOD:
+
+- Analyse department performance.
+
+Rules:
+
+- AI must use current module context.
+- AI must not invent student records.
+- AI must not invent financial records.
+- AI must not modify records without explicit confirmation.
+- AI responses should sound academic, professional, and human.
+- Avoid emojis, unnecessary symbols, and overly robotic phrasing.
+
+Validation:
+
+- AI respects user role.
+- AI cannot expose another user's data.
+- AI keeps chat session active during navigation.
+- AI session ends only when the user logs out.
+
+---
+
+# Phase 13 — Analytics and Decision Support
+
+Use existing system data to create dashboards.
+
+Dashboards:
+
+- Admissions.
+- Finance.
+- Departments.
+- Programmes.
+- Student performance.
+- Lecturer workload.
+- Completion rates.
+- Dropout risk.
+- Fee collection.
+- Graduate statistics.
+- Industry placement.
+
+Rules:
+
+- Show useful insights, not only raw numbers.
+- Do not expose restricted data to unauthorized users.
+- Use filters by programme, intake, academic year, term, semester, gender, and department.
+
+Validation:
+
+- Dashboard data matches database records.
+- Role permissions are respected.
+- Reports export correctly.
+
+---
+
+# Phase 14 — Quality Assurance
+
+Strengthen academic quality workflows.
+
+Support:
+
+- Programme review.
+- Course review.
+- Student evaluation.
+- Lecturer evaluation.
+- Internal moderation.
+- External moderation.
+- Accreditation evidence.
+- Curriculum version control.
+
+Validation:
+
+- Evidence can be generated for inspection.
+- Moderation records are traceable.
+- Curriculum changes are versioned.
+
+---
+
+# Phase 15 — Employer and Alumni Integration
+
+Extend existing student records after graduation.
+
+Workflow:
+
+Graduate
+
+↓
+
+Certificate Verification
+
+↓
+
+Employer Verification
+
+↓
+
+Internship
+
+↓
+
+Employment Tracking
+
+↓
+
+Alumni
+
+↓
+
+Professional Development
+
+Features:
+
+- QR certificate verification.
+- Employer portal.
+- Alumni records.
+- Employment status tracking.
+- Internship placement tracking.
+
+Validation:
+
+- Employers only verify approved records.
+- Alumni records are linked to former students.
+- Certificate verification cannot expose private data.
+
+---
+
+# Phase 16 — Continuous Optimization
+
+Continuously improve:
+
+- Performance.
+- Security.
+- Accessibility.
+- API integration.
+- Backups.
+- Monitoring.
+- Audit logs.
+- Cloud readiness.
+- Offline support.
+- Mobile optimization.
+- AI optimization.
+- Scalability.
+
+Validation:
+
+- System remains stable.
+- Error logs are clean.
+- Backups work.
+- Audit logs capture sensitive actions.
+- Mobile layout is usable.
+- Security checks pass.
+
+---
+
+# Mandatory Security Requirements
+
+Apply across all phases:
+
+- Use prepared statements.
+- Validate all inputs.
+- Escape all outputs.
+- Protect against SQL injection.
+- Protect against XSS.
+- Protect against CSRF.
+- Protect against session hijacking.
+- Enforce role-based permissions.
+- Restrict direct URL access.
+- Hash passwords securely.
+- Do not expose database errors to users.
+- Log errors safely.
+- Protect uploaded files.
+- Validate file types.
+- Prevent unauthorized downloads.
+- Add audit logs for sensitive actions.
+
+---
+
+# Mandatory Testing Checklist
+
+After each phase, test:
+
+- Login.
+- Logout.
+- Sessions.
+- Role access.
+- Navigation.
+- Forms.
+- Database inserts.
+- Database updates.
+- File uploads.
+- Reports.
+- Mobile layout.
+- Error logs.
+- Broken links.
+- Unauthorized access.
+- Student data privacy.
+- Lecturer course assignment.
+- Registrar workflows.
+- Finance workflows.
+- eLearning access.
+
+Do not move to the next phase until the current phase passes testing.
+
+---
+
+# Final Output Required From Agent
+
+For every implementation step, provide:
+
+1. Summary of files inspected.
+2. Summary of tables inspected.
+3. Existing logic discovered.
+4. Changes made.
+5. Files modified.
+6. Database changes made.
+7. Testing performed.
+8. Errors found.
+9. Errors fixed.
+10. Remaining risks.
+11. Next recommended step.
+
+---
+
+# Final Instruction
+
+Proceed carefully, phase by phase.
+
+Do not hallucinate.
+
+Do not assume.
+
+Do not rebuild.
+
+Do not skip verification.
+
+Do not create duplicate modules.
+
+Improve the existing WUCPortal into one unified Digital Campus and Online University by upgrading what already exists, connecting modules properly, strengthening security, improving user experience, and ensuring the system remains stable, scalable, TEVETA-aligned, and production-ready.
+```
+
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-06-28T16:26:14+02:00.
+</ADDITIONAL_METADATA>
+<USER_SETTINGS_CHANGE>
+The user changed setting `Model Selection` from None to Gemini 3.5 Flash (High). No need to comment on this change if the user doesn't ask about it. If reporting what model you are, please use a human readable name instead of the exact string.
+</USER_SETTINGS_CHANGE>

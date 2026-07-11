@@ -1,0 +1,161 @@
+/* ============================================================
+   WUC Portal — Responsive Breakpoints
+   Consolidated media queries for all portal sections.
+   ============================================================ */
+
+/* ── Small mobile (≤480px) ──────────────────────────────── */
+@media (max-width: 480px) {
+    h1 { font-size: 1.3rem; }
+    h2 { font-size: 1.1rem; }
+
+    .content-wrapper { padding: 0.75rem; }
+    .page-header { padding: 0.75rem 1rem; }
+
+    .stat-card {
+        flex-direction: column;
+        text-align: center;
+        padding: 1.25rem;
+    }
+
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        font-size: 1.2rem;
+    }
+
+    .btn-lg { padding: 0.65rem 1.25rem; font-size: 0.9rem; }
+}
+
+/* ── Mobile (≤767px) ─────────────────────────────────────── */
+@media (max-width: 767px) {
+    h1 { font-size: 1.4rem; }
+    h2 { font-size: 1.25rem; }
+
+    .content-wrapper { padding: 1rem; }
+    .page-header { padding: 1rem; }
+
+    /* Sidebar */
+    .sidebar { transform: translateX(-100%); }
+    .sidebar.show { transform: translateX(0); }
+    .mobile-toggle { display: block; }
+
+    /* Tables */
+    .table-responsive { border-radius: var(--radius-md); }
+
+    /* Cards: stack vertically */
+    .stat-card { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
+
+    /* Buttons */
+    .btn-mobile-full { width: 100%; justify-content: center; }
+
+    /* Page header actions */
+    .page-header .d-flex { flex-wrap: wrap; gap: 0.5rem; }
+
+    /* Modals */
+    .modal-dialog { margin: 1rem; }
+    .modal-content { border-radius: var(--radius-lg); }
+
+    /* Data table card padding reduction */
+    .data-table-card .card-body { padding: 0.75rem; }
+    .data-table-card .card-header { padding: 0.75rem 1rem; }
+}
+
+/* ── Tablet (768px – 991px) ──────────────────────────────── */
+@media (min-width: 768px) and (max-width: 991px) {
+    .content-wrapper { padding: 1.25rem; }
+
+    .sidebar {
+        width: min(var(--sidebar-width), calc(100vw - 24px));
+        --sidebar-width: 280px;
+    }
+
+    body.has-unified-sidebar .content-wrapper,
+    body.student-portal .content-wrapper,
+    body.has-sidebar .content-wrapper {
+        margin-left: 0;
+        width: 100%;
+    }
+
+    .sidebar { transform: translateX(-100%); }
+    .sidebar.show { transform: translateX(0); }
+    .mobile-toggle { display: block; }
+}
+
+/* ── Desktop (≥992px) ───────────────────────────────────── */
+@media (min-width: 992px) {
+    body.has-unified-sidebar .content-wrapper,
+    body.student-portal .content-wrapper,
+    body.has-sidebar .content-wrapper {
+        margin-left: var(--sidebar-width);
+        width: calc(100% - var(--sidebar-width));
+    }
+
+    .mobile-toggle { display: none; }
+    .sidebar-overlay { display: none !important; }
+}
+
+/* ── Wide (≥1400px) ──────────────────────────────────────── */
+@media (min-width: 1400px) {
+    .content-wrapper { max-width: var(--content-max-width); }
+}
+
+/* ── Dashboard grid: responsive stat cards ───────────────── */
+@media (max-width: 575px) {
+    .row.g-3 > [class*="col-md-"] {
+        width: 100%;
+    }
+}
+
+/* ── Form layouts ─────────────────────────────────────────── */
+@media (max-width: 767px) {
+    .form-row-mobile { flex-direction: column; }
+    .form-row-mobile > * { width: 100% !important; }
+}
+
+/* ── Nav / breadcrumb ─────────────────────────────────────── */
+@media (max-width: 767px) {
+    .nav.nav-pills { gap: 0.35rem; }
+    .nav.nav-pills .nav-link { padding: 0.4rem 0.75rem; font-size: 0.8rem; }
+}
+
+/* ── Data table ──────────────────────────────────────────── */
+@media (max-width: 767px) {
+    .table > :not(caption) > * > * { padding: 0.6rem 0.75rem; }
+    .table thead th { white-space: nowrap; }
+}
+
+/* ── Legacy chrome nav ───────────────────────────────────── */
+@media (max-width: 767px) {
+    .legacy-portal-nav .navbar-collapse { background: rgba(0,0,0,0.2); border-radius: 0 0 12px 12px; padding: 0.5rem; }
+}
+
+/* ── Print ────────────────────────────────────────────────── */
+@media print {
+    .sidebar,
+    .sidebar-toggle,
+    .btn-print,
+    .no-print,
+    .quick-actions,
+    .mobile-toggle,
+    .legacy-portal-nav,
+    nav { display: none !important; }
+
+    body { background: white !important; color: black !important; font-size: 11pt; }
+
+    .content-wrapper {
+        margin-left: 0 !important;
+        width: 100% !important;
+        padding: 0 !important;
+    }
+
+    .card, .data-table-card {
+        border: 1px solid #ccc;
+        box-shadow: none;
+        break-inside: avoid;
+    }
+
+    .table { font-size: 9pt; }
+    .badge { border: 1px solid #ccc; background: transparent !important; color: #000 !important; }
+
+    a[href]::after { content: ''; }
+}

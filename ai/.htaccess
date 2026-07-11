@@ -1,0 +1,5 @@
+Options -Indexes
+
+# AI code, provider diagnostics, database setup scripts, and local key files are
+# server-side only. Portal features include them from PHP; none need direct HTTP access.
+Require all denied

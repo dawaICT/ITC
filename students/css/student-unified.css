@@ -1,0 +1,827 @@
+/* ============================================
+   Student Portal – Unified Page Styles
+   Imported on every student page for consistency.
+   ============================================ */
+
+/* Design Tokens */
+:root {
+    --sp-primary: var(--sb-primary, #1B2A4A);
+    --sp-primary-dark: var(--primary-dark, #111c33);
+    --sp-primary-light: rgba(27, 42, 74, 0.08);
+    --sp-blue: #3b82f6;
+    --sp-green: #10b981;
+    --sp-red: #ef4444;
+    --sp-amber: #f59e0b;
+    --sp-text-dark: #0f172a;
+    --sp-text-body: #334155;
+    --sp-text-muted: #64748b;
+    --sp-text-light: #94a3b8;
+    --sp-bg: #f1f5f9;
+    --sp-card: #ffffff;
+    --sp-border: #e2e8f0;
+    --sp-radius: 8px;
+    --sp-radius-sm: 7px;
+    --sp-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+    --sp-shadow-md: 0 12px 30px rgba(15, 23, 42, 0.08);
+    --sp-transition: 0.2s ease;
+}
+
+/* Typography */
+body {
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--sp-text-body);
+    background: var(--sp-bg) !important;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+body.student-portal,
+body.student-portal * {
+    box-sizing: border-box;
+}
+
+html,
+body.student-portal {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+body.student-portal img,
+body.student-portal video,
+body.student-portal canvas,
+body.student-portal iframe {
+    max-width: 100%;
+}
+
+body.student-portal img,
+body.student-portal video {
+    height: auto;
+}
+
+/* Page Container */
+.content-wrapper {
+    padding: 1.15rem 1.35rem;
+    max-width: 1480px;
+    margin-left: var(--sidebar-width, 280px);
+    width: calc(100% - var(--sidebar-width, 280px));
+    min-height: 100vh;
+    overflow-x: clip;
+}
+
+/* Containers nested inside the offset wrapper must not re-apply the sidebar
+   offset. Legacy project-reusable.css adds margin-left:var(--sidebar-width) to
+   every .container/.container-fluid, which stacks on top of .content-wrapper's
+   own offset and shoves content ~280px to the right. unified-sidebar.css only
+   neutralises .container-fluid/.w3-container, so plain .container leaked through. */
+.content-wrapper .container,
+.content-wrapper .container-fluid,
+.dash-content .container,
+.dash-content .container-fluid {
+    width: 100%;
+    max-width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.content-wrapper .row,
+.dash-content .row {
+    min-width: 0;
+}
+
+.content-wrapper [class^="col-"],
+.content-wrapper [class*=" col-"],
+.dash-content [class^="col-"],
+.dash-content [class*=" col-"] {
+    min-width: 0;
+}
+
+@media (min-width: 992px) {
+    body.student-portal > .container:not(.content-wrapper),
+    body.student-portal > .container-fluid:not(.content-wrapper),
+    body.student-portal > .main-content {
+        margin-left: var(--sidebar-width, 280px);
+        width: calc(100% - var(--sidebar-width, 280px));
+        max-width: calc(100% - var(--sidebar-width, 280px));
+    }
+
+    body.student-portal > .container:not(.content-wrapper),
+    body.student-portal > .container-fluid:not(.content-wrapper) {
+        padding-left: 1.35rem;
+        padding-right: 1.35rem;
+    }
+}
+
+@media (max-width: 991.98px) {
+    body.student-portal .content-wrapper,
+    body.student-portal .dash-content {
+        margin-left: 0 !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        padding: 4.45rem 1.15rem 1.2rem !important;
+    }
+
+    body.student-portal > .container:not(.content-wrapper),
+    body.student-portal > .container-fluid:not(.content-wrapper),
+    body.student-portal > .main-content {
+        margin-left: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        padding-top: 4.35rem !important;
+        padding-left: 1.15rem;
+        padding-right: 1.15rem;
+    }
+
+    body.student-portal .card,
+    body.student-portal .dash-card,
+    body.student-portal .data-table-card,
+    body.student-portal .stat-card,
+    body.student-portal .page-header {
+        max-width: 100%;
+    }
+
+    body.student-portal .page-header {
+        align-items: flex-start;
+    }
+}
+
+@supports not (overflow: clip) {
+    .content-wrapper {
+        overflow-x: hidden;
+    }
+}
+
+/* Page Header */
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding: 0.85rem 1rem;
+    background: var(--sp-card);
+    border: 1px solid var(--sp-border);
+    border-left: 4px solid var(--sp-primary);
+    border-radius: var(--sp-radius);
+    box-shadow: var(--sp-shadow);
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.page-title {
+    font-size: clamp(1.05rem, 0.55vw + 0.95rem, 1.32rem);
+    font-weight: 700;
+    color: var(--sp-text-dark);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.page-title i {
+    color: var(--sp-primary);
+}
+
+.page-subtitle {
+    color: var(--sp-text-muted);
+    font-size: 0.92rem;
+    margin: 0.15rem 0 0;
+}
+
+/* Card Styling */
+.card,
+.dash-card,
+.reg-card,
+.data-table-card,
+.stat-card {
+    background: var(--sp-card);
+    border-radius: var(--sp-radius);
+    box-shadow: var(--sp-shadow);
+    border: 1px solid var(--sp-border);
+    overflow: hidden;
+}
+
+.card .card-header,
+.card-hdr,
+.data-table-card .card-header {
+    padding: 0.72rem 1rem;
+    border-bottom: 1px solid var(--sp-border);
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.card .card-header h3,
+.card .card-header h5,
+.card-hdr h3,
+.data-table-card .card-header h5,
+.data-table-card .card-header h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--sp-text-dark);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.card .card-header h3 i,
+.card .card-header h5 i,
+.card-hdr h3 i {
+    color: var(--sp-primary);
+    font-size: 1rem;
+}
+
+.card .card-body,
+.data-table-card .card-body {
+    padding: 1rem;
+}
+
+.data-table-card {
+    margin-bottom: 1rem;
+}
+
+.stat-card {
+    padding: 0.85rem;
+    transition: transform var(--sp-transition), box-shadow var(--sp-transition);
+}
+
+.stat-card:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--sp-shadow-md);
+}
+
+.stat-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: var(--sp-radius-sm);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 0.75rem;
+    flex: 0 0 auto;
+}
+
+/* Tables */
+.table {
+    font-size: 1rem;
+    margin-bottom: 0;
+}
+
+.table-responsive,
+.portal-dashboard .table-responsive,
+.table-container,
+.student-table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border: 1px solid var(--sp-border);
+    border-radius: var(--sp-radius);
+}
+
+.student-table-scroll {
+    width: 100%;
+    max-width: 100%;
+    margin-bottom: 1rem;
+}
+
+.student-table-scroll > table {
+    width: 100%;
+}
+
+.student-table-scroll > table.w3-table,
+.student-table-scroll > table.table-bordered,
+.student-table-scroll > table.table-striped,
+.student-table-scroll > table.table-hover,
+.student-table-scroll > table.data-table,
+.table-responsive > table.w3-table,
+.table-responsive > table.table-bordered,
+.table-responsive > table.table-striped,
+.table-responsive > table.table-hover,
+.table-responsive > table.data-table {
+    min-width: 640px;
+}
+
+.table thead th {
+    background: var(--sp-primary);
+    color: white;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0;
+    border: none;
+    padding: 0.62rem 0.75rem;
+    white-space: nowrap;
+}
+
+.table tbody td {
+    padding: 0.55rem 0.75rem;
+    vertical-align: middle;
+    color: var(--sp-text-body);
+    border-color: var(--sp-border);
+    overflow-wrap: anywhere;
+}
+
+.table th,
+.table td,
+.w3-table th,
+.w3-table td {
+    max-width: 32rem;
+}
+
+.table-hover tbody tr:hover {
+    background: var(--sp-primary-light);
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+    background: rgba(0, 0, 0, 0.015);
+}
+
+/* Buttons */
+.btn-purple,
+.btn-sp-primary,
+.content-wrapper .btn-primary,
+.dash-content .btn-primary {
+    background: var(--sp-primary);
+    color: white;
+    border: none;
+    border-radius: var(--sp-radius-sm);
+    font-weight: 600;
+    font-size: 1rem;
+    padding: 0.42rem 0.8rem;
+    transition: all var(--sp-transition);
+}
+
+.btn-purple:hover,
+.btn-sp-primary:hover,
+.content-wrapper .btn-primary:hover,
+.dash-content .btn-primary:hover {
+    background: var(--sp-primary-dark);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(27, 42, 74, 0.25);
+}
+
+.btn-outline-purple,
+.btn-sp-outline {
+    background: transparent;
+    color: var(--sp-primary);
+    border: 2px solid var(--sp-primary);
+    border-radius: var(--sp-radius-sm);
+    font-weight: 600;
+    font-size: 1rem;
+    padding: 0.38rem 0.8rem;
+    transition: all var(--sp-transition);
+}
+
+.btn-outline-purple:hover,
+.btn-sp-outline:hover,
+.content-wrapper .btn-outline-primary:hover,
+.dash-content .btn-outline-primary:hover {
+    background: var(--sp-primary);
+    color: white;
+}
+
+.content-wrapper .btn,
+.dash-content .btn {
+    border-radius: var(--sp-radius-sm);
+    font-weight: 600;
+    letter-spacing: 0;
+    min-height: 2.05rem;
+}
+
+/* Student compact overrides for shared portal CSS loaded before this file. */
+body.student-portal .portal-dashboard {
+    font-size: 1rem;
+    line-height: 1.45;
+}
+
+body.student-portal .portal-dashboard .dashboard-header,
+body.student-portal .content-wrapper .dashboard-header {
+    padding: 0.85rem 1rem;
+    margin-bottom: 1rem;
+    border-radius: var(--sp-radius);
+}
+
+body.student-portal .portal-dashboard .dashboard-title {
+    font-size: 1.18rem;
+}
+
+body.student-portal .portal-dashboard .stat-card,
+body.student-portal .dash-content .stat-card,
+body.student-portal .content-wrapper .stat-card {
+    padding: 0.85rem;
+    border-radius: var(--sp-radius);
+    box-shadow: var(--sp-shadow);
+}
+
+body.student-portal .portal-dashboard .stat-card .stat-icon,
+body.student-portal .dash-content .stat-card .stat-icon,
+body.student-portal .content-wrapper .stat-card .stat-icon {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    margin-right: 0.65rem;
+    border-radius: var(--sp-radius-sm);
+}
+
+body.student-portal .portal-dashboard .stat-card .stat-icon i,
+body.student-portal .dash-content .stat-card .stat-icon i,
+body.student-portal .content-wrapper .stat-card .stat-icon i {
+    font-size: 1rem;
+}
+
+body.student-portal .portal-dashboard .stat-card h3,
+body.student-portal .dash-content .stat-card h3,
+body.student-portal .content-wrapper .stat-card h3 {
+    font-size: 1rem;
+}
+
+body.student-portal .portal-dashboard .stat-card p,
+body.student-portal .dash-content .stat-card p,
+body.student-portal .content-wrapper .stat-card p {
+    font-size: 0.84rem;
+}
+
+body.student-portal .content-wrapper .table,
+body.student-portal .dash-content .table,
+body.student-portal .portal-dashboard .table {
+    font-size: 1rem;
+}
+
+body.student-portal .content-wrapper .table > :not(caption) > * > *,
+body.student-portal .dash-content .table > :not(caption) > * > *,
+body.student-portal .portal-dashboard .table > :not(caption) > * > * {
+    padding: 0.55rem 0.75rem;
+}
+
+body.student-portal .content-wrapper .data-table-card,
+body.student-portal .dash-content .data-table-card,
+body.student-portal .portal-dashboard .data-table-card {
+    margin-bottom: 1rem;
+    border-radius: var(--sp-radius);
+}
+
+body.student-portal .content-wrapper .data-table-card .card-header,
+body.student-portal .dash-content .data-table-card .card-header,
+body.student-portal .portal-dashboard .data-table-card .card-header {
+    padding: 0.72rem 1rem;
+}
+
+body.student-portal .content-wrapper .data-table-card .card-body,
+body.student-portal .dash-content .data-table-card .card-body,
+body.student-portal .portal-dashboard .data-table-card .card-body {
+    padding: 1rem;
+}
+
+.content-wrapper .nav-pills,
+.dash-content .nav-pills,
+.content-wrapper .nav-tabs,
+.dash-content .nav-tabs {
+    flex-wrap: wrap;
+}
+
+.content-wrapper .nav-pills .nav-link,
+.dash-content .nav-pills .nav-link {
+    border-radius: 999px;
+    color: var(--sp-primary);
+    font-weight: 600;
+}
+
+.content-wrapper .nav-pills .nav-link.active,
+.dash-content .nav-pills .nav-link.active {
+    background: var(--sp-primary);
+    color: #fff;
+}
+
+/* Badges */
+.stat-badge,
+.badge-sp {
+    background: var(--sp-primary-light);
+    color: var(--sp-primary);
+    border-radius: 50px;
+    padding: 0.2rem 0.7rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+/* Alerts */
+.alert {
+    border-radius: var(--sp-radius-sm);
+    font-size: 1rem;
+    border: none;
+}
+
+.alert-success {
+    background: rgba(16, 185, 129, 0.08);
+    color: #065f46;
+    border-left: 4px solid var(--sp-green);
+}
+
+.alert-danger {
+    background: rgba(239, 68, 68, 0.08);
+    color: #991b1b;
+    border-left: 4px solid var(--sp-red);
+}
+
+.alert-warning {
+    background: rgba(245, 158, 11, 0.08);
+    color: #92400e;
+    border-left: 4px solid var(--sp-amber);
+}
+
+.alert-info {
+    background: rgba(59, 130, 246, 0.08);
+    color: #1e40af;
+    border-left: 4px solid var(--sp-blue);
+}
+
+/* Breadcrumbs */
+.breadcrumb {
+    background: transparent;
+    padding: 0;
+    font-size: 0.92rem;
+    margin-bottom: 0.75rem;
+}
+
+.breadcrumb-item a {
+    color: var(--sp-primary);
+    text-decoration: none;
+}
+
+.breadcrumb-item.active {
+    color: var(--sp-text-muted);
+}
+
+/* Empty States */
+.empty-state {
+    text-align: center;
+    padding: 2rem 0.85rem;
+    color: var(--sp-text-light);
+}
+
+.empty-state i {
+    font-size: 2rem;
+    opacity: 0.25;
+    margin-bottom: 0.75rem;
+    display: block;
+}
+
+.empty-state p {
+    font-size: 0.95rem;
+    margin: 0;
+}
+
+/* Form Controls */
+.form-control,
+.form-select {
+    border-radius: var(--sp-radius-sm);
+    border: 1px solid var(--sp-border);
+    padding: 0.48rem 0.7rem;
+    font-size: 1rem;
+    transition: border-color var(--sp-transition), box-shadow var(--sp-transition);
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--sp-primary);
+    box-shadow: 0 0 0 3px rgba(27, 42, 74, 0.1);
+}
+
+.form-label {
+    font-weight: 500;
+    font-size: 0.95rem;
+    color: var(--sp-text-dark);
+    margin-bottom: 0.35rem;
+}
+
+.content-wrapper .input-group,
+.dash-content .input-group {
+    min-width: 0;
+}
+
+.content-wrapper .btn,
+.dash-content .btn,
+.content-wrapper button,
+.dash-content button {
+    max-width: 100%;
+}
+
+.content-wrapper .d-flex,
+.dash-content .d-flex {
+    min-width: 0;
+}
+
+.content-wrapper .gap-2,
+.dash-content .gap-2,
+.content-wrapper .gap-3,
+.dash-content .gap-3 {
+    min-width: 0;
+}
+
+.content-wrapper .text-truncate,
+.dash-content .text-truncate {
+    min-width: 0;
+}
+
+/* Utility */
+.text-purple { color: var(--sp-primary) !important; }
+.bg-purple-light { background: var(--sp-primary-light) !important; }
+
+/* Legacy W3/Bootstrap student pages */
+.content-wrapper .w3-card,
+.content-wrapper .w3-card-2,
+.content-wrapper .w3-card-4,
+.content-wrapper .card,
+.dash-content .card {
+    max-width: 100%;
+}
+
+.content-wrapper .w3-container,
+.dash-content .w3-container {
+    max-width: 100%;
+}
+
+.content-wrapper #section,
+.dash-content #section {
+    width: 100%;
+    max-width: 320px;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--sp-bg); }
+::-webkit-scrollbar-thumb { background: rgba(27, 42, 74, 0.2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(27, 42, 74, 0.35); }
+
+@media (max-width: 767.98px) {
+    body {
+        font-size: 14px;
+    }
+
+    body.student-portal .content-wrapper,
+    body.student-portal .dash-content {
+        padding: 4.35rem 1rem 1.1rem !important;
+    }
+
+    .content-wrapper > .container,
+    .content-wrapper > .container-fluid,
+    .dash-content > .container,
+    .dash-content > .container-fluid {
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    .content-wrapper .row,
+    .dash-content .row {
+        margin-left: -0.4rem;
+        margin-right: -0.4rem;
+        row-gap: 1rem;
+    }
+
+    .content-wrapper .row > [class^="col-sm-"],
+    .content-wrapper .row > [class*=" col-sm-"],
+    .dash-content .row > [class^="col-sm-"],
+    .dash-content .row > [class*=" col-sm-"] {
+        flex: 0 0 100%;
+        width: 100%;
+        max-width: 100%;
+        padding-left: 0.4rem;
+        padding-right: 0.4rem;
+    }
+
+    .content-wrapper .row > [class^="col-sm-"]:empty,
+    .content-wrapper .row > [class*=" col-sm-"]:empty,
+    .dash-content .row > [class^="col-sm-"]:empty,
+    .dash-content .row > [class*=" col-sm-"]:empty {
+        display: none;
+    }
+
+    .page-header,
+    .card .card-header,
+    .card-hdr {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 0.65rem;
+    }
+
+    .page-title {
+        font-size: 1.12rem;
+        line-height: 1.25;
+    }
+
+    .page-subtitle,
+    .breadcrumb {
+        font-size: 0.92rem;
+    }
+
+    .card .card-body {
+        padding: 1rem;
+    }
+
+    .data-table-card .card-body,
+    .stat-card {
+        padding: 1rem;
+    }
+
+    .content-wrapper .d-flex:not(.user-info):not(.quick-actions),
+    .dash-content .d-flex:not(.user-info):not(.quick-actions) {
+        min-width: 0;
+    }
+
+    .content-wrapper .btn-group,
+    .content-wrapper .input-group,
+    .dash-content .btn-group,
+    .dash-content .input-group {
+        width: 100%;
+    }
+
+    .content-wrapper .input-group,
+    .dash-content .input-group {
+        flex-wrap: wrap;
+    }
+
+    .content-wrapper .input-group > .form-control,
+    .content-wrapper .input-group > .form-select,
+    .dash-content .input-group > .form-control,
+    .dash-content .input-group > .form-select {
+        min-width: 0;
+    }
+
+    .content-wrapper .btn,
+    .dash-content .btn {
+        white-space: normal;
+    }
+
+    .content-wrapper .btn-print,
+    .dash-content .btn-print,
+    .content-wrapper .page-header .btn,
+    .dash-content .page-header .btn {
+        width: 100%;
+    }
+
+    .table-responsive > table,
+    .student-table-scroll > table {
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 575.98px) {
+    body.student-portal .content-wrapper,
+    body.student-portal .dash-content {
+        padding-left: 0.9rem !important;
+        padding-right: 0.9rem !important;
+    }
+
+    body.student-portal > .container:not(.content-wrapper),
+    body.student-portal > .container-fluid:not(.content-wrapper),
+    body.student-portal > .main-content {
+        padding-left: 0.9rem;
+        padding-right: 0.9rem;
+    }
+
+    .page-header {
+        padding: 0.9rem;
+    }
+
+    .table-responsive,
+    .student-table-scroll {
+        margin-left: 0;
+        margin-right: 0;
+        width: 100%;
+    }
+
+    .table-responsive > table.w3-table,
+    .table-responsive > table.table-bordered,
+    .table-responsive > table.table-striped,
+    .table-responsive > table.table-hover,
+    .table-responsive > table.data-table,
+    .student-table-scroll > table.w3-table,
+    .student-table-scroll > table.table-bordered,
+    .student-table-scroll > table.table-striped,
+    .student-table-scroll > table.table-hover,
+    .student-table-scroll > table.data-table {
+        min-width: 520px;
+    }
+
+    .stat-badge,
+    .badge-sp,
+    .badge {
+        white-space: normal;
+        text-align: center;
+    }
+
+    .alert {
+        padding: 0.85rem;
+    }
+}
+
+/* Print */
+@media print {
+    .sidebar, .sidebar-toggle, .quick-actions { display: none !important; }
+    .content-wrapper { margin-left: 0 !important; padding: 0 !important; width: 100% !important; }
+}

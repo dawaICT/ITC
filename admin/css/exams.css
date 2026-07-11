@@ -1,0 +1,133 @@
+/* Transcript Specific Styles for exams.php */
+@import url('https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700&family=Open+Sans:wght@400;600&display=swap');
+
+.paper {
+    background: white;
+    padding: 3rem;
+    margin: 0 auto;
+    max-width: 210mm;
+    min-height: 297mm;
+    border: 1px solid #dee2e6;
+    font-family: 'Open Sans', sans-serif;
+    font-size: 14px;
+}
+
+.transcript-results-table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+}
+
+.transcript-results-table th,
+.transcript-results-table td {
+    border: 1px solid #000 !important;
+    padding: 8px 10px !important;
+    vertical-align: middle;
+}
+
+.transcript-results-table th:nth-child(1),
+.transcript-results-table td:nth-child(1) {
+    width: 15%;
+    white-space: nowrap !important;
+}
+
+.transcript-results-table th:nth-child(2),
+.transcript-results-table td:nth-child(2) {
+    width: 50%;
+}
+
+.transcript-results-table th:nth-child(3),
+.transcript-results-table td:nth-child(3) {
+    width: 10%;
+    text-align: center;
+}
+
+.transcript-results-table th:nth-child(4),
+.transcript-results-table td:nth-child(4) {
+    width: 25%;
+    text-align: center;
+}
+
+.semester-block {
+    margin-bottom: 30px;
+    page-break-inside: avoid;
+}
+
+.header-table .info-table tr td:first-child {
+    padding-right: 15px;
+    vertical-align: top;
+}
+
+@media print {
+    @page {
+        size: A4 portrait;
+        margin: 10mm 15mm;
+    }
+    
+    body {
+        font-size: 12pt;
+        line-height: 1.4;
+        background: white !important;
+        color: #000 !important;
+        transform: scale(1) !important;
+        width: 100% !important;
+    }
+    
+    .no-print, .navbar, .sidebar, .dashboard-header {
+        display: none !important;
+    }
+    
+    .main-content {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+    }
+    
+    .paper {
+        padding: 0 !important;
+        margin: 0 !important;
+        border: none !important;
+        box-shadow: none !important;
+        max-width: none !important;
+        min-height: auto !important;
+    }
+    
+    .transcript-results-table th,
+    .transcript-results-table td {
+        padding: 6px 8px !important;
+        font-size: 11pt;
+    }
+    
+    .signatures {
+        margin-top: 30mm !important;
+        page-break-before: avoid;
+    }
+    
+    .semester-block {
+        page-break-inside: avoid;
+        page-break-after: auto;
+        margin-bottom: 20px !important;
+    }
+    
+    /* Ensure borders are visible in print */
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+}
+
+/* Local page styling */
+.glass-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+}
+
+.exams-fade-in {
+    animation: examsFadeIn 0.5s ease-in;
+}
+
+@keyframes examsFadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}

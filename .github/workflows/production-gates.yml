@@ -1,0 +1,45 @@
+name: Production gates
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mysqli, mbstring, openssl, fileinfo
+          coverage: none
+      - name: Validate Composer files
+        run: composer validate --strict
+      - name: Install locked dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Audit dependencies
+        run: composer audit --locked
+      - name: Lint application PHP
+        run: php scripts/lint_all.php
+      - name: Run stateless regression checks
+        run: |
+          php scripts/test_api_helpers.php
+          php scripts/test_safe_redirect_resolver.php
+          php scripts/test_session_guard.php
+          php scripts/test_registration_ownership_contract.php
+      - name: Validate production configuration contract
+        env:
+          APP_ENV: production
+          WUC_DB_HOST: db
+          WUC_DB_NAME: wucportal
+          WUC_DB_USER: wucportal_app
+          WUC_DB_PASSWORD: ci-placeholder-not-used
+          WUC_LOG_DIR: /tmp/wucportal/logs
+          WUC_BACKUP_DIR: /tmp/wucportal/backups
+        run: php scripts/production_preflight.php --skip-db

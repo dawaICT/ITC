@@ -1,0 +1,62 @@
+/* Accounts Sidebar Styles
+   Import the unified portal sidebar styling.
+   This file imports the shared styles and adds only module-specific overrides if needed. */
+
+@import url('/wucportal/css/unified-sidebar.css');
+
+/* Context-aware sizing for logo and text - same as admin */
+:root {
+    --sidebar-logo-size: 45px;
+    --sidebar-width: 280px;
+}
+
+/* Ensure sidebar uses unified typography */
+.sidebar {
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif;
+}
+
+/* Logo sizing consistent with admin sidebar */
+.sidebar .logo {
+    width: min(var(--sidebar-logo-width, 220px), 100%);
+    height: auto;
+    max-height: var(--sidebar-logo-size);
+    border-radius: var(--border-radius);
+    margin: 0 auto;
+    background-color: rgba(255, 255, 255, 0.95);
+    padding: 6px 10px;
+    display: block;
+    object-fit: contain;
+    object-position: center center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transition: all 0.25s ease;
+}
+
+.sidebar .logo:hover {
+    transform: scale(1.05) rotate(2deg);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.sidebar .logo-text {
+    color: #fff;
+    font-size: 1.5rem;
+    line-height: var(--sidebar-logo-size);
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    text-transform: uppercase;
+}
+
+/* Logo container alignment for abbreviated name */
+.sidebar .logo-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+}
+
+/* Reduced padding for compact header */
+.sidebar .sidebar-header {
+    padding: 1rem 1rem;
+}
+
+

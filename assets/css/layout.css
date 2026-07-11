@@ -1,0 +1,302 @@
+/* ============================================================
+   WUC Portal — Layout
+   Sidebar, navbar, content wrapper, page headers, overlays.
+   ============================================================ */
+
+/* ── Reset & Base ─────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: var(--font-base);
+    font-size: var(--font-size-base);
+    line-height: 1.6;
+    color: var(--text-primary);
+    background-color: var(--bg-body);
+    margin: 0;
+    min-height: 100vh;
+}
+
+/* ── Typography ───────────────────────────────────────────── */
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--gray-800);
+    margin-bottom: 0.5rem;
+}
+
+h1 { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.02em; }
+h2 { font-size: 1.5rem;  letter-spacing: -0.01em; }
+h3 { font-size: 1.25rem; }
+h4 { font-size: 1.1rem; }
+h5 { font-size: 1rem; }
+h6 { font-size: 0.875rem; }
+
+p { margin-bottom: 1rem; color: var(--text-secondary); }
+
+a { color: var(--primary); text-decoration: none; transition: color var(--transition-fast); }
+a:hover { color: var(--primary-light); }
+
+/* ── Content Wrapper ──────────────────────────────────────── */
+.content-wrapper {
+    padding: var(--space-6);
+    max-width: 100%;
+}
+
+@media (min-width: 992px) {
+    body.has-unified-sidebar .content-wrapper,
+    body.student-portal .content-wrapper,
+    body.has-sidebar .content-wrapper {
+        margin-left: var(--sidebar-width);
+        width: calc(100% - var(--sidebar-width));
+    }
+}
+
+/* ── Page Header ──────────────────────────────────────────── */
+.page-header {
+    background: var(--bg-card);
+    padding: var(--space-5) var(--space-6);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-xs);
+    margin-bottom: var(--space-6);
+}
+
+.page-title {
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    color: var(--gray-800);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.page-subtitle {
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+    margin: 0.15rem 0 0;
+}
+
+/* ── Student Sidebar (navbar.php) ─────────────────────────── */
+/* Scoped to student portal only — unified-nav dark sidebar must not inherit this white background */
+body:not(.has-unified-sidebar) .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: var(--sidebar-width);
+    height: 100vh;
+    background: var(--white);
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+    z-index: 1000;
+    transition: transform var(--transition-base);
+    overflow-y: auto;
+}
+
+.sidebar-header {
+    height: var(--navbar-height);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1px solid var(--border-light);
+    padding: 0 var(--space-4);
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    color: var(--primary-color, var(--primary));
+}
+
+.logo-icon { font-size: 1.4rem; }
+
+.logo-text {
+    font-size: 0.9rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.mobile-toggle {
+    display: none;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--text-dark);
+    padding: var(--space-2);
+    border-radius: var(--radius-sm);
+    transition: background var(--transition-fast);
+}
+
+.mobile-toggle:hover { background: var(--gray-100); }
+
+.sidebar-nav {
+    padding: var(--space-5) 0;
+    height: calc(100vh - var(--navbar-height));
+    overflow-y: auto;
+}
+
+.sidebar-nav ul { list-style: none; padding: 0; margin: 0; }
+.sidebar-nav li { margin-bottom: var(--space-1); }
+
+.sidebar-nav a {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 25px;
+    color: var(--text-dark, var(--gray-700));
+    text-decoration: none;
+    transition: all var(--transition-fast);
+    border-left: 3px solid transparent;
+    font-size: var(--font-size-base);
+    font-weight: 500;
+}
+
+.sidebar-nav a:hover,
+.sidebar-nav li.active a {
+    background: var(--bg-light);
+    color: var(--primary-color, var(--primary));
+    border-left-color: var(--primary-color, var(--primary));
+}
+
+.sidebar-nav i { width: 20px; text-align: center; }
+
+/* ── Legacy Staff Navbar ─────────────────────────────────── */
+.legacy-portal-nav {
+    background: linear-gradient(135deg, var(--purple) 0%, var(--purple-dark) 100%);
+    box-shadow: 0 8px 30px rgba(80, 60, 180, 0.18);
+}
+
+.legacy-portal-nav .navbar-brand,
+.legacy-portal-nav .nav-link {
+    color: var(--white);
+}
+
+.legacy-portal-nav .nav-link {
+    border-radius: var(--radius-md);
+    font-weight: 500;
+    transition: background var(--transition-fast);
+}
+
+.legacy-portal-nav .nav-link:hover,
+.legacy-portal-nav .nav-link:focus {
+    color: var(--white);
+    background: rgba(255, 255, 255, 0.14);
+}
+
+.legacy-user {
+    color: rgba(255, 255, 255, 0.88);
+    font-size: 0.82rem;
+    line-height: 1.15;
+}
+
+.legacy-user strong { display: block; color: var(--white); }
+
+.legacy-logout {
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    color: var(--white);
+    background: transparent;
+    border-radius: var(--radius-md);
+    padding: 0.35rem 0.85rem;
+    font-size: 0.82rem;
+    transition: all var(--transition-fast);
+    cursor: pointer;
+}
+
+.legacy-logout:hover { background: var(--white); color: var(--purple-dark); }
+
+/* ── Alerts ───────────────────────────────────────────────── */
+.alert {
+    border-radius: var(--radius-md);
+    padding: 0.85rem 1.15rem;
+    font-size: var(--font-size-base);
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    border: 1px solid transparent;
+    margin-bottom: var(--space-4);
+}
+
+.alert i { font-size: 1rem; flex-shrink: 0; }
+
+/* ── Badges ───────────────────────────────────────────────── */
+.badge {
+    padding: 0.35rem 0.7rem;
+    font-weight: 600;
+    font-size: var(--font-size-xs);
+    border-radius: var(--radius-sm);
+    letter-spacing: 0.2px;
+}
+
+/* ── Utilities ────────────────────────────────────────────── */
+.text-primary  { color: var(--primary) !important; }
+.text-accent   { color: var(--accent) !important; }
+.text-muted    { color: var(--text-muted) !important; }
+.text-success  { color: var(--success) !important; }
+.text-warning  { color: var(--warning) !important; }
+.text-danger   { color: var(--danger) !important; }
+.text-info     { color: var(--info) !important; }
+
+.bg-brand-navy { background-color: var(--brand-navy) !important; }
+.bg-brand-red  { background-color: var(--brand-red) !important; }
+.bg-purple     { background-color: var(--purple) !important; }
+
+.hover-lift {
+    transition: transform var(--transition-base), box-shadow var(--transition-base);
+}
+.hover-lift:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+}
+
+/* ── Mobile Overlay ───────────────────────────────────────── */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 999;
+    backdrop-filter: blur(2px);
+}
+
+.sidebar-overlay.show { display: block; }
+
+/* ── Breadcrumb ───────────────────────────────────────────── */
+.breadcrumb {
+    font-size: var(--font-size-sm);
+    background: transparent;
+    padding: 0;
+    margin-bottom: var(--space-4);
+}
+
+.breadcrumb-item + .breadcrumb-item::before { color: var(--gray-400); }
+
+/* ── Print ────────────────────────────────────────────────── */
+@media print {
+    .sidebar,
+    .sidebar-toggle,
+    .mobile-toggle,
+    .btn-print,
+    .no-print,
+    .quick-actions,
+    .legacy-portal-nav {
+        display: none !important;
+    }
+
+    body { background: white !important; color: black !important; }
+
+    .content-wrapper {
+        margin-left: 0 !important;
+        width: 100% !important;
+        padding: 0 !important;
+    }
+}

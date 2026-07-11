@@ -1,0 +1,325 @@
+/* Admissions module UI layer */
+:root {
+    --admissions-primary: #2E3190;
+    --admissions-primary-dark: #20246f;
+    --admissions-accent: #F9AD59;
+    --admissions-ink: #111827;
+    --admissions-muted: #64748b;
+    --admissions-border: #e5e7eb;
+    --admissions-surface: #ffffff;
+    --admissions-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+    --brand-primary: var(--admissions-primary);
+    --brand-secondary: var(--admissions-accent);
+}
+
+body.has-unified-sidebar {
+    background:
+        radial-gradient(circle at top right, rgba(249, 173, 89, 0.13), transparent 32rem),
+        linear-gradient(135deg, rgba(46, 49, 144, 0.035), rgba(15, 23, 42, 0.02));
+    color: var(--admissions-ink);
+}
+
+.portal-dashboard,
+.main-content > .container-fluid {
+    max-width: 1480px;
+    margin-inline: auto;
+}
+
+.main-content > .container-fluid {
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
+}
+
+.portal-dashboard .dashboard-header,
+.portal-dashboard .page-header,
+.main-content > .container-fluid .dashboard-header,
+.main-content > .container-fluid .page-header,
+.dashboard-header.admissions-section,
+.dashboard-header.admin-section {
+    background: var(--admissions-surface);
+    border: 1px solid var(--admissions-border);
+    border-left: 4px solid var(--admissions-primary);
+    border-radius: 8px;
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+    padding: 1rem 1.125rem;
+}
+
+.portal-dashboard .dashboard-header h1,
+.portal-dashboard .dashboard-header h2,
+.portal-dashboard .dashboard-header h3,
+.portal-dashboard .dashboard-title,
+.portal-dashboard .page-title,
+.main-content > .container-fluid .dashboard-header h1,
+.main-content > .container-fluid .dashboard-header h2,
+.main-content > .container-fluid .dashboard-header h3,
+.main-content > .container-fluid .dashboard-title,
+.main-content > .container-fluid .page-title {
+    color: var(--admissions-primary);
+    font-size: clamp(1.15rem, 1.2vw + 0.9rem, 1.7rem);
+    font-weight: 700;
+    letter-spacing: 0;
+}
+
+.portal-dashboard .page-subtitle,
+.portal-dashboard .dashboard-header p,
+.portal-dashboard .text-muted,
+.main-content > .container-fluid .page-subtitle,
+.main-content > .container-fluid .dashboard-header p {
+    color: var(--admissions-muted) !important;
+}
+
+.portal-dashboard .card,
+.portal-dashboard .admin-card,
+.portal-dashboard .data-table-card,
+.portal-dashboard .stat-card,
+.main-content > .container-fluid .card,
+.main-content > .container-fluid .admin-card,
+.main-content > .container-fluid .data-table-card,
+.main-content > .container-fluid .stat-card,
+.admissions-dashboard-page .adm-stat-card {
+    background: var(--admissions-surface) !important;
+    border: 1px solid var(--admissions-border) !important;
+    border-radius: 8px !important;
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06) !important;
+    color: var(--admissions-ink) !important;
+}
+
+.portal-dashboard .card:hover,
+.portal-dashboard .stat-card:hover,
+.main-content > .container-fluid .card:hover,
+.main-content > .container-fluid .stat-card:hover,
+.admissions-dashboard-page .adm-stat-card:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--admissions-shadow) !important;
+}
+
+.portal-dashboard .data-table-card,
+.main-content > .container-fluid .data-table-card {
+    overflow: hidden;
+}
+
+.portal-dashboard .data-table-card > .card-header,
+.portal-dashboard .card > .card-header,
+.main-content > .container-fluid .data-table-card > .card-header,
+.main-content > .container-fluid .card > .card-header {
+    background: linear-gradient(90deg, var(--admissions-primary), var(--admissions-primary-dark)) !important;
+    color: #fff !important;
+    border: 0 !important;
+    padding: 0.9rem 1rem;
+}
+
+.portal-dashboard .card-header.bg-white,
+.portal-dashboard .data-table-card .card-header.bg-white,
+.main-content > .container-fluid .card-header.bg-white,
+.main-content > .container-fluid .data-table-card .card-header.bg-white {
+    background: var(--admissions-surface) !important;
+    color: var(--admissions-primary) !important;
+    border-bottom: 1px solid var(--admissions-border) !important;
+}
+
+.portal-dashboard .card-body,
+.main-content > .container-fluid .card-body {
+    padding: 1rem;
+}
+
+.portal-dashboard .table-responsive,
+.main-content > .container-fluid .table-responsive {
+    border: 1px solid var(--admissions-border);
+    border-radius: 8px;
+    overflow-x: auto;
+}
+
+.portal-dashboard table.table,
+.main-content > .container-fluid table.table {
+    margin-bottom: 0;
+}
+
+.portal-dashboard .table thead th,
+.portal-dashboard .table thead.table-light th,
+.main-content > .container-fluid .table thead th,
+.main-content > .container-fluid .table thead.table-light th {
+    background: #f1f5f9 !important;
+    color: #334155 !important;
+    border-bottom: 1px solid var(--admissions-border) !important;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.portal-dashboard .table td,
+.main-content > .container-fluid .table td {
+    color: #1f2937;
+    vertical-align: middle;
+}
+
+.portal-dashboard .table-hover tbody tr:hover > *,
+.main-content > .container-fluid .table-hover tbody tr:hover > * {
+    background-color: rgba(46, 49, 144, 0.045) !important;
+}
+
+.portal-dashboard .btn,
+.main-content > .container-fluid .btn {
+    border-radius: 7px;
+    font-weight: 600;
+    letter-spacing: 0;
+    min-height: 2.25rem;
+}
+
+.portal-dashboard .btn-primary,
+.portal-dashboard .btn-success,
+.main-content > .container-fluid .btn-primary,
+.main-content > .container-fluid .btn-success {
+    box-shadow: 0 6px 16px rgba(46, 49, 144, 0.14);
+}
+
+.portal-dashboard .btn-primary,
+.main-content > .container-fluid .btn-primary {
+    background: var(--admissions-primary);
+    border-color: var(--admissions-primary);
+}
+
+.portal-dashboard .btn-primary:hover,
+.portal-dashboard .btn-primary:focus,
+.main-content > .container-fluid .btn-primary:hover,
+.main-content > .container-fluid .btn-primary:focus {
+    background: var(--admissions-primary-dark);
+    border-color: var(--admissions-primary-dark);
+}
+
+.portal-dashboard .form-control,
+.portal-dashboard .form-select,
+.portal-dashboard .input-group-text,
+.main-content > .container-fluid .form-control,
+.main-content > .container-fluid .form-select,
+.main-content > .container-fluid .input-group-text {
+    border-color: var(--admissions-border);
+    border-radius: 7px;
+}
+
+.portal-dashboard .form-control:focus,
+.portal-dashboard .form-select:focus,
+.main-content > .container-fluid .form-control:focus,
+.main-content > .container-fluid .form-select:focus {
+    border-color: var(--admissions-primary);
+    box-shadow: 0 0 0 0.2rem rgba(46, 49, 144, 0.14);
+}
+
+.portal-dashboard .breadcrumb,
+.main-content > .container-fluid .breadcrumb {
+    border: 1px solid var(--admissions-border);
+    border-radius: 8px;
+}
+
+.portal-dashboard .modal-content,
+.main-content > .container-fluid .modal-content {
+    border: 0;
+    border-radius: 8px;
+    box-shadow: var(--admissions-shadow);
+}
+
+.portal-dashboard .modal-header,
+.main-content > .container-fluid .modal-header {
+    background: var(--admissions-primary);
+    color: #fff;
+}
+
+.portal-dashboard .modal-header .btn-close,
+.main-content > .container-fluid .modal-header .btn-close {
+    filter: invert(1) grayscale(100%);
+}
+
+.avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--admissions-primary), var(--admissions-accent));
+    color: #fff;
+    font-weight: 700;
+    flex: 0 0 auto;
+    overflow: hidden;
+}
+
+.avatar-circle img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.border-left-primary { border-left: 4px solid var(--admissions-primary) !important; }
+.border-left-success { border-left: 4px solid #16a34a !important; }
+.border-left-info { border-left: 4px solid #0284c7 !important; }
+.border-left-warning { border-left: 4px solid #d97706 !important; }
+.border-left-danger { border-left: 4px solid #dc2626 !important; }
+
+.bg-admissions {
+    background: var(--admissions-primary) !important;
+    color: #fff !important;
+}
+
+.hover-lift {
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.bg-purple { background-color: #6f42c1 !important; }
+.bg-orange { background-color: #f97316 !important; }
+.bg-teal { background-color: #0f766e !important; }
+
+@media (max-width: 767.98px) {
+    .main-content {
+        padding-inline: 0.75rem !important;
+    }
+
+    .portal-dashboard,
+    .main-content > .container-fluid {
+        padding-inline: 0.5rem !important;
+    }
+
+    .portal-dashboard .dashboard-header,
+    .portal-dashboard .page-header,
+    .main-content > .container-fluid .dashboard-header,
+    .main-content > .container-fluid .page-header {
+        padding: 0.875rem;
+    }
+
+    .portal-dashboard .dashboard-header .row,
+    .portal-dashboard .page-header .d-flex,
+    .portal-dashboard .data-table-card > .card-header .d-flex,
+    .main-content > .container-fluid .dashboard-header .row,
+    .main-content > .container-fluid .page-header .d-flex,
+    .main-content > .container-fluid .data-table-card > .card-header .d-flex {
+        gap: 0.75rem;
+    }
+
+    .portal-dashboard .dashboard-header .col-auto,
+    .portal-dashboard .page-header .btn,
+    .portal-dashboard .dashboard-header .btn,
+    .main-content > .container-fluid .dashboard-header .col-auto,
+    .main-content > .container-fluid .page-header .btn,
+    .main-content > .container-fluid .dashboard-header .btn {
+        width: 100%;
+    }
+
+    .portal-dashboard .dashboard-header .d-flex.gap-2,
+    .portal-dashboard .page-header .d-flex.gap-2,
+    .main-content > .container-fluid .dashboard-header .d-flex.gap-2,
+    .main-content > .container-fluid .page-header .d-flex.gap-2 {
+        width: 100%;
+        flex-direction: column;
+    }
+
+    .portal-dashboard .btn,
+    .main-content > .container-fluid .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .portal-dashboard .card-body,
+    .main-content > .container-fluid .card-body {
+        padding: 0.875rem;
+    }
+}

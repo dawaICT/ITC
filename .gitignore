@@ -1,0 +1,48 @@
+/.env
+vendor/
+node_modules/
+/logs/*
+/backups/*
+tmp*/
+/exports/*
+*.log
+*.sql.gz
+*.sql
+!migrations/*.sql
+*.bak
+*.backup
+uploads/
+admissions/uploads/
+lecturers/uploads/
+students/uploads/
+online_services/uploads/
+exports/
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Environment files
+.env
+.env.local
+
+# XAMPP/local files
+*.sql
+!migrations/*.sql
+*.zip
+*.rar
+
+# Cache/temp
+cache/
+tmp/
+temp/
+.tmp.driveupload/
+
+# Uploaded files, optional
+uploads/

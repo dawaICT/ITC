@@ -1,0 +1,1271 @@
+/* Admin Dashboard Styling - Consolidated & Conflict-Free */
+
+:root {
+    --sidebar-width: 280px;
+}
+
+.portal-dashboard {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-size: 0.925rem;
+    line-height: 1.5;
+    color: #334155;
+}
+
+/* Ensure all child elements inherit the font-size */
+.portal-dashboard *:not(i):not(.fa):not(.fas):not(.far):not(.fab) {
+    font-size: inherit;
+}
+
+/* Typography Scales */
+.portal-dashboard h1,
+.portal-dashboard h2,
+.portal-dashboard h3,
+.portal-dashboard h4,
+.portal-dashboard h5,
+.portal-dashboard h6 {
+    margin-bottom: 0.5rem;
+    line-height: 1.25;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.portal-dashboard h1 {
+    font-size: 1.85rem;
+}
+
+.portal-dashboard h2 {
+    font-size: 1.5rem;
+}
+
+.portal-dashboard h3 {
+    font-size: 1.35rem;
+}
+
+.portal-dashboard h4 {
+    font-size: 1.2rem;
+}
+
+.portal-dashboard h5 {
+    font-size: 1.05rem;
+}
+
+.portal-dashboard h6 {
+    font-size: 0.925rem;
+}
+
+.portal-dashboard .dashboard-title {
+    font-size: 1.65rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+/* Page Header */
+.portal-dashboard .dashboard-header {
+    background: #fff;
+    padding: 1.25rem 1.5rem;
+    border-radius: 0.75rem;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    margin-bottom: 1.5rem;
+}
+
+.portal-dashboard .dashboard-header.admin-section {
+    border-left: 4px solid var(--logo-primary, #1B2A4A);
+}
+
+.portal-dashboard .dashboard-header.student-section {
+    border-left: 4px solid #0ea5e9;
+}
+
+.portal-dashboard .dashboard-header.finance-section {
+    border-left: 4px solid #10b981;
+}
+
+.portal-dashboard .dashboard-header.admissions-section {
+    border-left: 4px solid #2E3190;
+}
+
+.portal-dashboard .dashboard-header.registrar-section {
+    border-left: 4px solid #0ea5e9;
+}
+
+/* Finance Modal Header */
+.portal-dashboard .modal-header.finance-modal {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: #fff;
+    border-radius: 0.75rem 0.75rem 0 0;
+}
+
+.portal-dashboard .modal-header.finance-modal .modal-title {
+    color: #fff;
+}
+
+.portal-dashboard .modal-header.finance-modal .btn-close {
+    filter: brightness(0) invert(1);
+}
+
+/* Statistics Cards */
+.portal-dashboard .stat-card {
+    background: #fff;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: 1px solid #f2f5f8;
+    display: flex;
+    align-items: center;
+}
+
+.portal-dashboard .stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(149, 157, 165, 0.2);
+}
+
+.portal-dashboard .stat-card .stat-icon {
+    width: 60px;
+    height: 60px;
+    min-width: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    margin-right: 1.25rem;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.portal-dashboard .stat-card .stat-icon i {
+    font-size: 1.65rem;
+}
+
+.portal-dashboard .stat-card h3 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 0;
+}
+
+.portal-dashboard .stat-card p {
+    font-size: 0.875rem;
+    color: #64748b;
+    font-weight: 500;
+    margin-bottom: 0;
+}
+
+/* Quick Actions Card */
+.portal-dashboard .quick-actions-card {
+    background: #fff;
+    border-radius: 0.75rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+    border: 1px solid #e2e8f0;
+}
+
+.portal-dashboard .quick-actions-card .card-header {
+    background: #fff;
+    border-bottom: 1px solid #f0f0f0;
+    padding: 1rem 1.25rem;
+}
+
+.portal-dashboard .quick-actions-card .card-header h5 {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--logo-primary, #1B2A4A);
+    margin-bottom: 0;
+}
+
+.portal-dashboard .quick-actions-card .card-body {
+    padding: 1.25rem;
+}
+
+.portal-dashboard .action-btn-card {
+    min-height: 110px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem 1rem;
+    border-radius: 0.75rem;
+    transition: all 0.2s ease;
+}
+
+.portal-dashboard .action-btn-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+}
+
+.portal-dashboard .action-btn-card i {
+    font-size: 1.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.portal-dashboard .action-btn-card span {
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.portal-dashboard .action-btn-card small {
+    font-size: 0.75rem;
+    text-align: center;
+    line-height: 1.2;
+}
+
+/* Data Table Card */
+.portal-dashboard .data-table-card {
+    background: #fff;
+    border-radius: 0.75rem;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
+    border: 1px solid #e2e8f0;
+    margin-bottom: 1.5rem;
+}
+
+.portal-dashboard .data-table-card .card-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.portal-dashboard .data-table-card .card-header h5 {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--logo-primary, #1B2A4A);
+    margin-bottom: 0;
+}
+
+.portal-dashboard .data-table-card .card-body {
+    padding: 1.25rem;
+}
+
+/* Tables Overrides */
+.portal-dashboard table.table> :not(caption)>*>* {
+    padding: 0.75rem 1rem;
+    vertical-align: middle;
+}
+
+.portal-dashboard .table tbody td {
+    font-size: 0.925rem;
+}
+
+.portal-dashboard .table thead th {
+    background: #f8f9fa;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #475569;
+}
+
+/* Modals */
+.portal-dashboard .modal-content {
+    border-radius: 0.75rem;
+    border: none;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.portal-dashboard .modal-header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.portal-dashboard .modal-title {
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.portal-dashboard .modal-body {
+    padding: 1.5rem;
+}
+
+.portal-dashboard .modal-footer {
+    padding: 1rem 1.5rem;
+    background: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+}
+
+/* Status Badges */
+.portal-dashboard .badge {
+    padding: 0.4rem 0.75rem;
+    font-weight: 600;
+    font-size: 0.75rem;
+    border-radius: 0.375rem;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .portal-dashboard h1 {
+        font-size: 1.5rem;
+    }
+
+    .portal-dashboard .dashboard-title {
+        font-size: 1.35rem;
+    }
+
+    .portal-dashboard .stat-card {
+        padding: 1rem;
+    }
+
+    .portal-dashboard .stat-card .stat-icon {
+        width: 48px;
+        height: 48px;
+        min-width: 48px;
+        margin-right: 1rem;
+    }
+
+    .portal-dashboard .stat-card .stat-icon i {
+        font-size: 1.25rem;
+    }
+
+    .portal-dashboard .stat-card h3 {
+        font-size: 1.35rem;
+    }
+}
+
+/* Print Styles */
+@media print {
+
+    .sidebar,
+    .header-actions,
+    .mobile-toggle,
+    .btn,
+    .modal {
+        display: none !important;
+    }
+
+    .main-content {
+        margin-left: 0 !important;
+        padding: 0 !important;
+    }
+
+    .portal-dashboard .dashboard-header {
+        border: 1px solid #000;
+        box-shadow: none;
+    }
+
+    .portal-dashboard .card,
+    .portal-dashboard .data-table-card {
+        border: 1px solid #000;
+        box-shadow: none;
+    }
+}
+
+/* Student profile specific improvements */
+.portal-dashboard .student-profile-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.portal-dashboard .student-profile-header img {
+    width: 88px;
+    height: 88px;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 3px solid #fff;
+    box-shadow: 0 6px 18px rgba(2, 6, 23, 0.08);
+}
+
+.portal-dashboard .student-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.portal-dashboard .student-meta .meta-row {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+/* Quick actions bar (horizontal buttons) */
+.portal-dashboard .quick-actions-row .btn {
+    border-radius: 0.65rem;
+    font-weight: 700;
+}
+
+/* Ensure data-table-card doesn't float or overlap with sidebars */
+.portal-dashboard .data-table-card {
+    overflow: visible;
+    position: relative;
+    z-index: 1;
+}
+
+/* Fix overlapping when admin sidebar is present by constraining container */
+.portal-dashboard>.container-fluid {
+    max-width: 1200px;
+}
+
+/* Responsive adjustments specifically for profile page */
+@media (max-width: 992px) {
+    .portal-dashboard .student-profile-header {
+        align-items: flex-start;
+    }
+
+    .portal-dashboard>.container-fluid {
+        max-width: 100%;
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    .portal-dashboard .quick-actions-row .btn {
+        padding-top: 0.8rem;
+        padding-bottom: 0.8rem;
+    }
+}
+
+/* Migrated from dashboard_template.php - Unified Dashboard Components */
+.profile-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 2rem;
+}
+
+.profile-image-container {
+    display: inline-block;
+}
+
+.profile-image {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 4px solid #f0f0f0;
+}
+
+.info-table th {
+    width: 40%;
+    font-weight: 500;
+    color: #6c757d;
+    border: none;
+    padding: 0.5rem 0;
+}
+
+.info-table td {
+    border: none;
+    padding: 0.5rem 0;
+}
+
+.stat-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .1) !important;
+}
+
+.stat-card h3 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 0.15rem;
+}
+
+.stat-card p {
+    font-size: 0.9rem;
+}
+
+.stat-icon {
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.stat-icon i,
+.stat-icon svg {
+    color: white;
+}
+
+/* Role-specific colors - Using CSS variables where possible for unification */
+.bg-lecturer {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+}
+
+.bg-finance {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%) !important;
+}
+
+.bg-hod {
+    background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%) !important;
+}
+
+.bg-admin {
+    background: linear-gradient(135deg, var(--logo-primary, #1B2A4A) 0%, var(--accent-color, #C8102E) 100%) !important;
+}
+
+.bg-purple {
+    background: linear-gradient(135deg, #6f42c1 0%, #8c68cd 100%) !important;
+}
+
+.bg-orange {
+    background: linear-gradient(135deg, #e67e22 0%, #f39c12 100%) !important;
+}
+
+.bg-teal {
+    background: linear-gradient(135deg, #20c997 0%, #0dcaf0 100%) !important;
+}
+
+.bg-admissions {
+    background: linear-gradient(135deg, var(--logo-primary, #6f42c1) 0%, var(--logo-secondary, #f9ad59) 100%) !important;
+}
+
+.bg-dean {
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%) !important;
+}
+
+.bg-primary {
+    background: linear-gradient(135deg, var(--logo-primary, #6f42c1) 0%, var(--logo-secondary, #f9ad59) 100%) !important;
+}
+
+/* Dashboard header sections */
+.dashboard-header.admin-section {
+    border-left: 4px solid var(--logo-primary, #1B2A4A);
+}
+
+.dashboard-header.finance-section {
+    border-left: 4px solid #11998e;
+}
+
+.dashboard-header.lecturer-section {
+    border-left: 4px solid #667eea;
+}
+
+.dashboard-header.hod-section {
+    border-left: 4px solid #ee0979;
+}
+
+.dashboard-header.admissions-section {
+    border-left: 4px solid var(--logo-primary, #2193b0);
+}
+
+.dashboard-header.dean-section {
+    border-left: 4px solid #1e3c72;
+}
+
+@media (max-width: 768px) {
+    .profile-card {
+        padding: 1rem;
+    }
+
+    .profile-image {
+        width: 80px;
+        height: 80px;
+    }
+
+    .stat-card h3 {
+        font-size: 1.35rem;
+    }
+
+    .stat-icon {
+        width: 45px;
+        height: 45px;
+    }
+
+    .stat-icon i {
+        font-size: 1.25rem !important;
+    }
+}
+
+/* Shared utility: hover lift effect for cards */
+.hover-lift,
+.hover-elevate {
+    transition: all 0.3s ease;
+}
+
+.hover-lift:hover,
+.hover-elevate:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Course item hover effect */
+.course-item {
+    transition: background-color 0.2s ease;
+}
+
+.course-item:hover {
+    background-color: rgba(0, 123, 255, 0.05) !important;
+}
+
+/* Scrollable course list with custom scrollbar */
+.courses-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.courses-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.courses-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.courses-list::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+.courses-list::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* Reusable UI Components extracted from short_courses.php */
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 6px;
+}
+
+.status-dot.active {
+    background: #10b981;
+}
+
+.status-dot.upcoming {
+    background: #f59e0b;
+}
+
+.status-dot.inactive {
+    background: #94a3b8;
+}
+
+.search-dropdown {
+    position: absolute;
+    z-index: 1050;
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    max-height: 250px;
+    overflow-y: auto;
+    width: 100%;
+}
+
+.search-dropdown .item {
+    padding: 10px 14px;
+    cursor: pointer;
+    border-bottom: 1px solid #f1f5f9;
+    transition: background 0.15s;
+}
+
+.search-dropdown .item:hover {
+    background: #f8f9ff;
+}
+
+.search-dropdown .item:last-child {
+    border-bottom: none;
+}
+
+.tab-content {
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+/* Payments & shared display helpers (used across admin pages) */
+.portal-dashboard .mode-tag {
+    display: inline-block;
+    padding: 0.2rem 0.5rem;
+    background: #eef2ff;
+    color: #3730a3;
+    border-radius: 0.35rem;
+    font-weight: 700;
+    font-size: 0.85rem;
+    text-transform: capitalize;
+}
+
+.portal-dashboard .fee-amount {
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.portal-dashboard .enroll-badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.35rem;
+    background: #f1f5f9;
+    color: #0f172a;
+    font-weight: 700;
+    font-size: 0.85rem;
+}
+
+/* Forms & Input Groups */
+.portal-dashboard .search-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 2.5rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    border: 1px solid #f0f0f0;
+    margin-bottom: 2rem;
+}
+
+.portal-dashboard .form-control-lg {
+    padding: 0.85rem 1.25rem;
+    border-radius: 10px;
+}
+
+.portal-dashboard .input-group-text {
+    background: transparent;
+    color: #64748b;
+}
+
+/* Base Primary Button Styles Override - brand navy, red on hover (matches sidebar) */
+.portal-dashboard .btn-primary {
+    background: linear-gradient(135deg, var(--logo-primary, #1B2A4A) 0%, var(--logo-secondary, #0B1530) 100%);
+    border: none;
+    color: #fff;
+    transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+.portal-dashboard .btn-primary:hover,
+.portal-dashboard .btn-primary:focus {
+    background: linear-gradient(135deg, var(--accent-color, #C8102E) 0%, #9e0c23 100%);
+    color: #fff;
+    box-shadow: 0 6px 18px rgba(200, 16, 46, 0.3);
+}
+
+/* Dashboard responsive hardening
+   These rules protect shared dashboard layouts from clipped text, squeezed
+   action buttons, and mobile table traps across staff modules. */
+.portal-dashboard {
+    max-width: 100%;
+    min-width: 0;
+}
+
+.portal-dashboard,
+.portal-dashboard .row,
+.portal-dashboard [class*="col-"],
+.portal-dashboard .card,
+.portal-dashboard .card-body,
+.portal-dashboard .data-table-card,
+.portal-dashboard .admin-card,
+.portal-dashboard .profile-card {
+    min-width: 0;
+}
+
+.portal-dashboard .dashboard-header .row,
+.portal-dashboard .dashboard-header [class*="col-"],
+.portal-dashboard .dashboard-header .d-flex {
+    min-width: 0;
+}
+
+.portal-dashboard .dashboard-header .dashboard-title,
+.portal-dashboard .dashboard-header p,
+.portal-dashboard .card-title,
+.portal-dashboard .stat-card h3,
+.portal-dashboard .stat-card p,
+.portal-dashboard .admin-stat-value,
+.portal-dashboard .admin-stat-label,
+.portal-dashboard .adm-stat-value,
+.portal-dashboard .adm-stat-label,
+.portal-dashboard .reg-stat-value,
+.portal-dashboard .reg-stat-label,
+.portal-dashboard .badge,
+.portal-dashboard td,
+.portal-dashboard th {
+    overflow-wrap: break-word;
+    word-break: normal;
+}
+
+.portal-dashboard .dashboard-header .header-actions,
+.portal-dashboard .dashboard-header .col-auto.d-flex,
+.portal-dashboard .dashboard-header .d-flex.gap-2,
+.portal-dashboard .dashboard-header .d-flex.gap-3 {
+    flex-wrap: wrap;
+}
+
+.portal-dashboard .stat-card,
+.portal-dashboard .admin-stat-card,
+.portal-dashboard .adm-stat-card,
+.portal-dashboard .reg-stat-card {
+    min-height: 100%;
+    overflow: hidden;
+}
+
+.portal-dashboard .stat-card,
+.portal-dashboard .admin-stat-card,
+.portal-dashboard .adm-stat-card,
+.portal-dashboard .reg-stat-card,
+.portal-dashboard .quick-actions-card,
+.portal-dashboard .data-table-card,
+.portal-dashboard .admin-card,
+.portal-dashboard .adm-card,
+.portal-dashboard .reg-card {
+    height: 100%;
+    min-width: 0;
+}
+
+.portal-dashboard .stat-card {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: space-between;
+}
+
+.portal-dashboard .stat-card > .d-flex,
+.portal-dashboard .stat-card .admin-stat-body,
+.portal-dashboard .admin-stat-body,
+.portal-dashboard .adm-stat-body,
+.portal-dashboard .reg-stat-body {
+    width: 100%;
+    min-width: 0;
+}
+
+.portal-dashboard .stat-card > .d-flex {
+    gap: 0.85rem;
+}
+
+.portal-dashboard .stat-card > .d-flex > .stat-icon {
+    flex: 0 0 56px;
+    width: 56px;
+    height: 56px;
+    margin-right: 0 !important;
+}
+
+.portal-dashboard .stat-card > .d-flex > .stat-icon + div {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: calc(100% - 64px);
+}
+
+.portal-dashboard .stat-card .stat-icon,
+.portal-dashboard .admin-stat-icon,
+.portal-dashboard .adm-stat-icon,
+.portal-dashboard .reg-stat-icon {
+    flex: 0 0 auto;
+}
+
+.portal-dashboard .quick-action-item,
+.portal-dashboard .adm-action-item,
+.portal-dashboard .reg-action-item {
+    min-width: 0;
+    min-height: 44px;
+    color: inherit;
+}
+
+.portal-dashboard .quick-action-item .qa-details,
+.portal-dashboard .quick-action-item > div:not(.qa-icon-wrap),
+.portal-dashboard .adm-action-item > div:not(.adm-ai-icon),
+.portal-dashboard .reg-action-item > div:not(.reg-ai-icon) {
+    min-width: 0;
+}
+
+.portal-dashboard .qa-title,
+.portal-dashboard .qa-desc,
+.portal-dashboard .adm-ai-title,
+.portal-dashboard .adm-ai-desc,
+.portal-dashboard .reg-ai-title,
+.portal-dashboard .reg-ai-desc {
+    overflow-wrap: break-word;
+    word-break: normal;
+}
+
+.portal-dashboard .card-header,
+.portal-dashboard .admin-card-header,
+.portal-dashboard .adm-card-header,
+.portal-dashboard .reg-card-header {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+.portal-dashboard .card-header h1,
+.portal-dashboard .card-header h2,
+.portal-dashboard .card-header h3,
+.portal-dashboard .card-header h4,
+.portal-dashboard .card-header h5,
+.portal-dashboard .card-header h6,
+.portal-dashboard .admin-card-header h1,
+.portal-dashboard .admin-card-header h2,
+.portal-dashboard .admin-card-header h3,
+.portal-dashboard .admin-card-header h4,
+.portal-dashboard .admin-card-header h5,
+.portal-dashboard .admin-card-header h6,
+.portal-dashboard .adm-card-header h1,
+.portal-dashboard .adm-card-header h2,
+.portal-dashboard .adm-card-header h3,
+.portal-dashboard .adm-card-header h4,
+.portal-dashboard .adm-card-header h5,
+.portal-dashboard .adm-card-header h6,
+.portal-dashboard .reg-card-header h1,
+.portal-dashboard .reg-card-header h2,
+.portal-dashboard .reg-card-header h3,
+.portal-dashboard .reg-card-header h4,
+.portal-dashboard .reg-card-header h5,
+.portal-dashboard .reg-card-header h6 {
+    min-width: 0;
+    overflow-wrap: break-word;
+    word-break: normal;
+}
+
+.portal-dashboard .profile-card .btn,
+.portal-dashboard .stat-card .btn,
+.portal-dashboard .data-table-card .btn,
+.portal-dashboard .quick-actions-card .btn {
+    min-height: 40px;
+}
+
+.portal-dashboard .profile-card {
+    overflow: hidden;
+}
+
+.portal-dashboard .profile-card .row,
+.portal-dashboard .profile-card [class*="col-"] {
+    min-width: 0;
+}
+
+.portal-dashboard .info-table {
+    table-layout: fixed;
+    width: 100%;
+}
+
+.portal-dashboard .info-table th,
+.portal-dashboard .info-table td {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.portal-dashboard .alert.d-flex {
+    min-width: 0;
+}
+
+.portal-dashboard .admin-stat-link,
+.portal-dashboard .adm-stat-link,
+.portal-dashboard .reg-stat-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
+    padding: 0.35rem 0;
+}
+
+.portal-dashboard .profile-image-container .btn {
+    min-width: 40px;
+    min-height: 40px;
+}
+
+.portal-dashboard .table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.portal-dashboard .table-responsive > .table {
+    margin-bottom: 0;
+}
+
+.portal-dashboard .dataTables_wrapper {
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+@media (max-width: 991.98px) {
+    .portal-dashboard.container-fluid,
+    .portal-dashboard .container-fluid {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+    }
+
+    .portal-dashboard .dashboard-header .row {
+        row-gap: 0.85rem;
+    }
+
+    .portal-dashboard .dashboard-header .col-auto {
+        width: 100%;
+    }
+
+    .portal-dashboard .dashboard-header .col-auto.d-flex,
+    .portal-dashboard .dashboard-header .header-actions,
+    .portal-dashboard .dashboard-header .d-flex.gap-2,
+    .portal-dashboard .dashboard-header .d-flex.gap-3 {
+        justify-content: flex-start !important;
+        width: 100%;
+    }
+
+    .portal-dashboard .alert.d-flex {
+        align-items: flex-start !important;
+        flex-wrap: wrap;
+    }
+
+    .portal-dashboard .alert .btn.ms-auto {
+        margin-left: 0 !important;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .portal-dashboard.container-fluid,
+    .portal-dashboard .container-fluid {
+        padding-left: 0.85rem !important;
+        padding-right: 0.85rem !important;
+    }
+
+    .portal-dashboard .dashboard-header {
+        padding: 1rem !important;
+        border-radius: 0.65rem;
+    }
+
+    .portal-dashboard .dashboard-header .dashboard-title {
+        line-height: 1.25;
+    }
+
+    .portal-dashboard .dashboard-header .btn,
+    .portal-dashboard .header-actions .btn {
+        flex: 1 1 160px;
+        justify-content: center;
+        min-height: 40px;
+        white-space: normal;
+    }
+
+    .portal-dashboard .stat-card,
+    .portal-dashboard .admin-stat-card,
+    .portal-dashboard .adm-stat-card,
+    .portal-dashboard .reg-stat-card {
+        padding: 1rem !important;
+        gap: 0.65rem;
+    }
+
+    .portal-dashboard .admin-stat-value,
+    .portal-dashboard .adm-stat-value,
+    .portal-dashboard .reg-stat-value {
+        font-size: 1.45rem !important;
+    }
+
+    .portal-dashboard .stat-card > .d-flex {
+        align-items: flex-start !important;
+        gap: 0.75rem;
+    }
+
+    .portal-dashboard .stat-card > .d-flex > .stat-icon {
+        flex-basis: 44px;
+        width: 44px;
+        height: 44px;
+    }
+
+    .portal-dashboard .stat-card > .d-flex > .stat-icon + div {
+        max-width: calc(100% - 52px);
+    }
+
+    .portal-dashboard .profile-card {
+        padding: 1rem !important;
+    }
+
+    .portal-dashboard .profile-card .table-responsive,
+    .portal-dashboard .data-table-card .table-responsive,
+    .portal-dashboard .table-responsive {
+        max-height: none !important;
+        overflow-x: auto;
+        overflow-y: visible;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .portal-dashboard .info-table,
+    .portal-dashboard .info-table tbody,
+    .portal-dashboard .info-table tr,
+    .portal-dashboard .info-table th,
+    .portal-dashboard .info-table td {
+        display: block;
+        width: 100% !important;
+    }
+
+    .portal-dashboard .info-table tr {
+        padding: 0.65rem 0;
+        border-bottom: 1px solid #edf2f7;
+    }
+
+    .portal-dashboard .info-table tr:last-child {
+        border-bottom: 0;
+    }
+
+    .portal-dashboard .info-table th,
+    .portal-dashboard .info-table td {
+        padding: 0.15rem 0 !important;
+    }
+
+    .portal-dashboard .quick-action-item,
+    .portal-dashboard .adm-action-item,
+    .portal-dashboard .reg-action-item {
+        align-items: flex-start !important;
+    }
+
+    .portal-dashboard .quick-action-item > i.ms-auto,
+    .portal-dashboard .adm-action-item > i.ms-auto,
+    .portal-dashboard .reg-action-item > i.ms-auto {
+        margin-top: 0.35rem;
+    }
+
+    .portal-dashboard .alert .btn.ms-auto {
+        width: 100%;
+    }
+}
+
+@media (max-width: 1199.98px) {
+    .portal-dashboard .table-mobile-stack {
+        overflow: visible !important;
+    }
+
+    .portal-dashboard .table-mobile-stack table,
+    .portal-dashboard .table-mobile-stack thead,
+    .portal-dashboard .table-mobile-stack tbody,
+    .portal-dashboard .table-mobile-stack tr,
+    .portal-dashboard .table-mobile-stack th,
+    .portal-dashboard .table-mobile-stack td {
+        display: block;
+        width: 100% !important;
+    }
+
+    .portal-dashboard .table-mobile-stack thead {
+        display: none;
+    }
+
+    .portal-dashboard .table-mobile-stack tr {
+        border: 1px solid #e2e8f0;
+        border-radius: 0.65rem;
+        padding: 0.65rem;
+        margin-bottom: 0.75rem;
+        background: #fff;
+    }
+
+    .portal-dashboard .table-mobile-stack td {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.35rem 0 !important;
+        border: 0 !important;
+        text-align: right;
+        overflow-wrap: anywhere;
+    }
+
+    .portal-dashboard .table-mobile-stack td::before {
+        content: attr(data-label);
+        flex: 0 0 42%;
+        color: #64748b;
+        font-weight: 700;
+        text-align: left;
+        text-transform: uppercase;
+        font-size: 0.7rem;
+        letter-spacing: 0.04em;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .portal-dashboard.container-fluid,
+    .portal-dashboard .container-fluid {
+        padding-left: 0.75rem !important;
+        padding-right: 0.75rem !important;
+    }
+
+    .portal-dashboard .dashboard-header .btn,
+    .portal-dashboard .header-actions .btn {
+        flex-basis: 100%;
+    }
+
+    .portal-dashboard .admin-stat-icon,
+    .portal-dashboard .adm-stat-icon,
+    .portal-dashboard .reg-stat-icon {
+        width: 44px !important;
+        height: 44px !important;
+        font-size: 1.1rem !important;
+    }
+
+    .portal-dashboard .card-body,
+    .portal-dashboard .admin-card-body,
+    .portal-dashboard .adm-card-body,
+    .portal-dashboard .reg-card-body {
+        padding: 0.85rem !important;
+    }
+
+    .portal-dashboard .table-mobile-stack {
+        overflow: visible !important;
+    }
+
+    .portal-dashboard .table-mobile-stack table,
+    .portal-dashboard .table-mobile-stack thead,
+    .portal-dashboard .table-mobile-stack tbody,
+    .portal-dashboard .table-mobile-stack tr,
+    .portal-dashboard .table-mobile-stack th,
+    .portal-dashboard .table-mobile-stack td {
+        display: block;
+        width: 100% !important;
+    }
+
+    .portal-dashboard .table-mobile-stack thead {
+        display: none;
+    }
+
+    .portal-dashboard .table-mobile-stack tr {
+        border: 1px solid #e2e8f0;
+        border-radius: 0.65rem;
+        padding: 0.65rem;
+        margin-bottom: 0.75rem;
+        background: #fff;
+    }
+
+    .portal-dashboard .table-mobile-stack td {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.35rem 0 !important;
+        border: 0 !important;
+        text-align: right;
+        overflow-wrap: anywhere;
+    }
+
+    .portal-dashboard .table-mobile-stack td::before {
+        content: attr(data-label);
+        flex: 0 0 42%;
+        color: #64748b;
+        font-weight: 700;
+        text-align: left;
+        text-transform: uppercase;
+        font-size: 0.7rem;
+        letter-spacing: 0.04em;
+    }
+}
+
+/* Premium polish alignment.
+   Keep these low-specificity enough for module overrides, but align legacy
+   dashboard pieces with the shared wuc-premium token layer when it is loaded. */
+.portal-dashboard .dashboard-header,
+.portal-dashboard .quick-actions-card,
+.portal-dashboard .data-table-card,
+.portal-dashboard .profile-card,
+.portal-dashboard .stat-card {
+    border-color: var(--wuc-border, #e2e8f0);
+}
+
+.portal-dashboard .dashboard-header,
+.portal-dashboard .quick-actions-card,
+.portal-dashboard .data-table-card,
+.portal-dashboard .profile-card {
+    box-shadow: var(--wuc-shadow-sm, 0 2px 12px rgba(0, 0, 0, 0.07));
+}
+
+.portal-dashboard .dashboard-header:hover,
+.portal-dashboard .quick-actions-card:hover,
+.portal-dashboard .data-table-card:hover,
+.portal-dashboard .profile-card:hover {
+    box-shadow: var(--wuc-shadow-md, 0 6px 24px rgba(80, 60, 180, 0.10));
+}
+
+.portal-dashboard .action-btn-card {
+    border: 1px solid transparent;
+}
+
+.portal-dashboard .action-btn-card:hover {
+    border-color: rgba(111, 66, 193, 0.22);
+}
+
+.portal-dashboard .dashboard-header .text-muted {
+    color: var(--wuc-ink-soft, #64748b) !important;
+}
+

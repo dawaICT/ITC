@@ -1,0 +1,54 @@
+/* typography-override.css
+   Global typography overrides to reduce default font sizes across the portal
+*/
+
+/* Reduce browser default (16px -> 14px) for a slightly smaller baseline */
+html {
+    font-size: 14px;
+}
+
+/* Base body sizing and a comfortable line-height */
+body {
+    font-size: 0.875rem; /* ~14px */
+    line-height: 1.35;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Sidebar and unified navigation: slightly smaller text for compactness */
+nav.sidebar,
+.sidebar,
+.has-unified-sidebar .sidebar,
+.unified-sidebar,
+.ui-portal {
+    font-size: 13px;
+}
+
+.sidebar .nav-section-title {
+    font-size: 0.9rem;
+}
+.sidebar .nav-item {
+    font-size: 0.9rem;
+}
+.sidebar .nav-item i {
+    font-size: 0.95rem;
+}
+.sidebar .sidebar-footer .user-name {
+    font-size: 0.9rem;
+}
+.sidebar .sidebar-footer .user-role {
+    font-size: 0.8rem;
+}
+
+/* Reduce common UI elements slightly to keep proportions */
+table, .form-control, .btn, .card, .list-group-item {
+    font-size: 0.95rem;
+}
+
+/* Headings scaled down modestly */
+h1 { font-size: 1.6rem; }
+h2 { font-size: 1.4rem; }
+h3 { font-size: 1.2rem; }
+
+/* Avoid overly large spacing from prior rules */
+* { box-sizing: border-box; }

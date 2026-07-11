@@ -1,0 +1,77 @@
+Starting database schema updates...
+Processing table: semester_registration
+'academic_year' already exists in semester_registration.
+'year_of_study' already exists in semester_registration.
+Processing table: student_payments
+'academic_year' already exists in student_payments.
+'year_of_study' already exists in student_payments.
+Updating constraints for semester_registration...
+'unique_period_v2' already exists.
+
+--- Verification ---
+--- Table: semester_registration ---
+id (int(11))
+student_id (varchar(50))
+program_code (varchar(50))
+academic_year (varchar(20))
+semester (varchar(1))
+year_of_study (varchar(4))
+student_type (enum('Regular','Repeat','Transfer'))
+has_failed_courses (tinyint(1))
+failed_courses (text)
+financial_status (enum('Clear','Pending','Blocked'))
+registration_date (timestamp)
+created_at (timestamp)
+updated_at (timestamp)
+repeat_semester (tinyint(1))
+add_failed_to_cart (tinyint(1))
+
+--- Table: student_payments ---
+payment_id (int(11))
+Sid (varchar(20))
+amount_paid (decimal(10,2))
+balance (decimal(10,2))
+channel (varchar(50))
+payment_date (datetime)
+academic_period_id (int(11))
+academic_year (varchar(20))
+year_of_study (varchar(10))
+semester_term (varchar(20))
+payment_status (enum('pending','completed','failed'))
+reference_number (varchar(50))
+description (text)
+created_at (datetime)
+updated_at (datetime)
+invoice (varchar(100))
+narration (text)
+Year (varchar(10))
+dte_time (datetime)
+
+--- Indexes for semester_registration ---
+PRIMARY -> id (Unique: Yes)
+semester_reg_unique -> student_id (Unique: Yes)
+semester_reg_unique -> program_code (Unique: Yes)
+semester_reg_unique -> semester (Unique: Yes)
+semester_reg_unique -> year_of_study (Unique: Yes)
+unique_period_v2 -> student_id (Unique: Yes)
+unique_period_v2 -> program_code (Unique: Yes)
+unique_period_v2 -> academic_year (Unique: Yes)
+unique_period_v2 -> semester (Unique: Yes)
+student_id -> student_id (Unique: No)
+program_code -> program_code (Unique: No)
+idx_semester_reg_year -> year_of_study (Unique: No)
+idx_semester_reg_semester -> semester (Unique: No)
+idx_semester_reg_student_type -> student_type (Unique: No)
+idx_semester_reg_financial_status -> financial_status (Unique: No)
+
+--- Running additional SQL migrations if present ---
+Found fix_add_deptName.sql, executing...
+fix_add_deptName.sql executed successfully.
+Found create_elearning_structure.sql, executing...
+create_elearning_structure.sql executed successfully.
+Found fix_elearning_studentid_type.sql, executing...
+fix_elearning_studentid_type.sql executed successfully.
+Found seed_elearning_sample.sql, executing...
+seed_elearning_sample.sql executed successfully.
+
+Database updates completed successfully.

@@ -1,0 +1,1012 @@
+/* Admin Dashboard Styles - Common Components */
+:root {
+    --primary-color: #4CAF50;
+    --primary-light: rgba(76, 175, 80, 0.1);
+    --primary-hover: #3d8b40;
+    --success-color: #4CAF50;
+    --warning-color: #FFC107;
+    --danger-color: #F44336;
+    --info-color: #2196F3;
+    --secondary-color: #6c757d;
+    --primary-purple: #6f42c1;
+    --sidebar-width: 260px;
+    --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    --card-shadow-hover: 0 8px 20px rgba(0, 0, 0, 0.09);
+    --finance-color: #FF5722;
+    --content-max-width: 1200px;
+    --sidebar-gap: 40px;
+}
+
+/* Layout Adjustments for Dashboard */
+.admin-dashboard {
+    padding: 1rem 1.5rem; /* mirrors Bootstrap px-4 */
+    zoom: 1;
+}
+
+/* Dashboard Header Section */
+.dashboard-header {
+    padding: 1.25rem;
+    background: rgba(255, 255, 255, 0.98);
+    border-radius: 12px;
+    box-shadow: var(--card-shadow);
+    margin-bottom: 1.5rem;
+    border-left: 4px solid var(--primary-color);
+}
+
+/* Alternative header styles for different sections */
+.dashboard-header.finance-section { border-left-color: var(--success-color); }
+.dashboard-header.student-section { border-left-color: var(--info-color); }
+.dashboard-header.admin-section { border-left-color: var(--primary-purple); }
+.dashboard-header.settings-section { border-left-color: var(--secondary-color); }
+
+.dashboard-title {
+    font-size: 1.35rem;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 0.5rem;
+}
+
+/* Card Styling */
+.admin-card {
+    transition: all 0.3s ease;
+    border-radius: 12px;
+    box-shadow: var(--card-shadow);
+    background: white;
+}
+
+.admin-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--card-shadow-hover);
+}
+
+/* Cards with specific purposes */
+.selector-card,
+.filter-card,
+.data-card,
+.chart-card,
+.table-card,
+.form-card {
+    transition: all 0.3s ease;
+}
+
+.selector-card:hover,
+.filter-card:hover,
+.data-card:hover,
+.chart-card:hover,
+.table-card:hover,
+.form-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--card-shadow-hover);
+}
+
+/* Progress Indicators */
+.progress-container .progress {
+    height: 1.25rem;
+    border-radius: 0.625rem;
+    background-color: #e9ecef;
+}
+
+.progress-container .progress-bar {
+    border-radius: 0.625rem;
+    background: linear-gradient(90deg, var(--primary-color) 0%, var(--primary-hover) 100%);
+    transition: width 1s ease;
+    overflow: hidden;
+    position: relative;
+}
+
+/* Colored progress bars */
+.progress-container .progress-bar.success-progress { background: linear-gradient(90deg, var(--success-color) 0%, #66BB6A 100%); }
+.progress-container .progress-bar.info-progress { background: linear-gradient(90deg, var(--info-color) 0%, #42A5F5 100%); }
+.progress-container .progress-bar.warning-progress { background: linear-gradient(90deg, var(--warning-color) 0%, #FFCA28 100%); }
+.progress-container .progress-bar.danger-progress { background: linear-gradient(90deg, var(--danger-color) 0%, #EF5350 100%); }
+.progress-container .progress-bar.purple-progress { background: linear-gradient(90deg, var(--primary-purple) 0%, #9575CD 100%); }
+.progress-container .progress-bar.finance-progress { background: linear-gradient(90deg, var(--success-color) 0%, #66BB6A 100%); }
+
+.progress-container .progress-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, 
+        rgba(255, 255, 255, 0) 0%, 
+        rgba(255, 255, 255, 0.2) 50%, 
+        rgba(255, 255, 255, 0) 100%);
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+/* Stat Cards */
+.stat-card {
+    border-radius: 16px;
+    padding: 1.5rem;
+    background: white;
+    box-shadow: var(--card-shadow);
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--card-shadow-hover);
+}
+
+.stat-icon {
+    width: 4rem;
+    height: 4rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    margin-right: 1rem;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+/* Icon backgrounds with gradients */
+.stat-icon.bg-success {
+    background: linear-gradient(135deg, var(--success-color) 0%, #66BB6A 100%);
+}
+
+.stat-icon.bg-danger {
+    background: linear-gradient(135deg, var(--danger-color) 0%, #EF5350 100%);
+}
+
+.stat-icon.bg-primary, .stat-icon.bg-info {
+    background: linear-gradient(135deg, var(--info-color) 0%, #42A5F5 100%);
+}
+
+.stat-icon.bg-warning {
+    background: linear-gradient(135deg, var(--warning-color) 0%, #FFCA28 100%);
+}
+
+.stat-icon.bg-purple {
+    background: linear-gradient(135deg, var(--primary-purple) 0%, #9575CD 100%);
+}
+
+.stat-icon.bg-secondary {
+    background: linear-gradient(135deg, var(--secondary-color) 0%, #90A4AE 100%);
+}
+
+.stat-icon.bg-finance {
+    background: linear-gradient(135deg, var(--success-color) 0%, #66BB6A 100%);
+}
+
+.stat-card h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    font-family: 'Nunito', sans-serif;
+}
+
+.stat-card small {
+    font-size: 0.85rem;
+}
+
+/* Profile Image Styling */
+.profile-image-container {
+    display: inline-block;
+    position: relative;
+    margin: 0 auto;
+}
+
+.profile-image {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.profile-image-container .btn {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--primary-color);
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    transition: all 0.2s ease;
+}
+
+.profile-image-container .btn:hover {
+    background-color: var(--primary-hover);
+    transform: scale(1.1);
+}
+
+/* Chart Section */
+.chart-container {
+    transition: all 0.3s ease;
+    height: 100%;
+}
+
+.chart-container:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--card-shadow-hover);
+}
+
+/* Card headers for different sections */
+.card-header {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    background: white;
+}
+
+.card-header.finance-header { 
+    background: rgba(76, 175, 80, 0.05);
+    border-bottom: 1px solid rgba(76, 175, 80, 0.1);
+}
+.card-header.finance-header h5 { color: #2E7D32; }
+
+.card-header.student-header { 
+    background: rgba(33, 150, 243, 0.05);
+    border-bottom: 1px solid rgba(33, 150, 243, 0.1);
+}
+.card-header.student-header h5 { color: #0D47A1; }
+
+.card-header.admin-header { 
+    background: rgba(111, 66, 193, 0.05);
+    border-bottom: 1px solid rgba(111, 66, 193, 0.1);
+}
+.card-header.admin-header h5 { color: #4527A0; }
+
+/* Table Styling */
+.data-table-container {
+    transition: all 0.3s ease;
+}
+
+.data-table-container:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--card-shadow-hover);
+}
+
+.data-table-container .table th {
+    background-color: #f9f9f9;
+    color: #333;
+    font-weight: 600;
+    border-bottom: 2px solid #e3e6f0;
+}
+
+.data-table-container .table td {
+    vertical-align: middle;
+}
+
+.data-table-container .table tr:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* Table themes */
+.data-table-container.finance-table .table tr:hover { background-color: rgba(76, 175, 80, 0.03); }
+.data-table-container.student-table .table tr:hover { background-color: rgba(33, 150, 243, 0.03); }
+.data-table-container.admin-table .table tr:hover { background-color: rgba(111, 66, 193, 0.03); }
+
+/* Badge Styling */
+.badge.bg-success {
+    background-color: var(--success-color) !important;
+}
+
+.badge.bg-warning {
+    background-color: var(--warning-color) !important;
+}
+
+.badge.bg-danger {
+    background-color: var(--danger-color) !important;
+}
+
+.badge.bg-info {
+    background-color: var(--info-color) !important;
+}
+
+.badge.bg-secondary {
+    background-color: var(--secondary-color) !important;
+}
+
+.badge.bg-purple {
+    background-color: var(--primary-purple) !important;
+}
+
+.badge.bg-finance {
+    background-color: var(--success-color) !important;
+}
+
+/* Modal styling */
+.modal-content {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+}
+
+.modal-header {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* Modal themes */
+.modal-header.finance-modal {
+    background: linear-gradient(to right, rgba(76, 175, 80, 0.1), rgba(76, 175, 80, 0.02));
+    border-bottom: 1px solid rgba(76, 175, 80, 0.1);
+}
+.modal-header.finance-modal .modal-title { color: #2E7D32; }
+
+.modal-header.student-modal {
+    background: linear-gradient(to right, rgba(33, 150, 243, 0.1), rgba(33, 150, 243, 0.02));
+    border-bottom: 1px solid rgba(33, 150, 243, 0.1);
+}
+.modal-header.student-modal .modal-title { color: #0D47A1; }
+
+.modal-header.admin-modal {
+    background: linear-gradient(to right, rgba(111, 66, 193, 0.1), rgba(111, 66, 193, 0.02));
+    border-bottom: 1px solid rgba(111, 66, 193, 0.1);
+}
+.modal-header.admin-modal .modal-title { color: #4527A0; }
+
+/* Responsive Adjustments */
+@media (max-width: 1200px) {
+    .stat-card {
+        padding: 1.25rem;
+    }
+    
+    .stat-icon {
+        width: 3.5rem;
+        height: 3.5rem;
+    }
+    
+    .stat-card h3 {
+        font-size: 1.5rem;
+    }
+}
+
+@media (max-width: 992px) {
+    .dashboard-header {
+        padding: 1rem;
+    }
+    
+    .dashboard-title {
+        font-size: 1.5rem;
+    }
+    
+    .chart-container, .data-table-container {
+        margin-bottom: 1.5rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .stat-card {
+        margin-bottom: 1rem;
+    }
+    
+    .stat-icon {
+        width: 3rem;
+        height: 3rem;
+    }
+    
+    .stat-card h3 {
+        font-size: 1.25rem;
+    }
+    
+    .profile-image {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .profile-image-container .btn {
+        width: 16px;
+        height: 16px;
+        font-size: 0.7rem;
+    }
+    
+    .table-responsive {
+        max-height: none;
+        overflow-x: auto;
+        overflow-y: visible;
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+/* Integration with Sidebar */
+@media (min-width: 992px) {
+    .container-fluid {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    /* NOTE: margin-left is handled by .main-wrapper via nav_unified.php inline styles */
+    /* Admin dashboard content should NOT have its own margin-left to avoid double offset */
+    .admin-dashboard {
+        --available-width: 100%;
+        width: 100%;
+        margin-left: 0;
+        margin-right: 0;
+    }
+
+    /* Prevent double-offset from legacy rules on inner containers */
+    .admin-dashboard .w3-container,
+    .admin-dashboard .container {
+        margin-left: 0 !important;
+    }
+
+    /* main-wrapper margin is set by nav_unified.php inline styles - don't override here */
+}
+
+/* Reset sidebar offset on smaller screens */
+@media (max-width: 991.98px) {
+    .admin-dashboard {
+        margin-left: 0;
+        margin-right: 0;
+    }
+}
+
+/* Accounts: Receivables page */
+.portal-dashboard.accounts-page.receivables-page .receivables-header-row {
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.portal-dashboard.accounts-page.receivables-page .receivables-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.portal-dashboard.accounts-page.receivables-page .receivables-actions .btn {
+    white-space: nowrap;
+}
+
+.portal-dashboard.accounts-page.receivables-page .receivables-filter-actions {
+    flex-wrap: wrap;
+}
+
+.portal-dashboard.accounts-page.receivables-page .receivables-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.portal-dashboard.accounts-page.receivables-page #myTable {
+    min-width: 1120px;
+}
+
+.portal-dashboard.accounts-page.receivables-page .receivables-row-actions {
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.portal-dashboard.accounts-page.receivables-page .receivables-branding img {
+    max-width: 100%;
+    height: auto;
+}
+
+@media (max-width: 991.98px) {
+    .portal-dashboard.accounts-page.receivables-page .receivables-actions {
+        justify-content: flex-start;
+    }
+
+    .portal-dashboard.accounts-page.receivables-page #myTable {
+        min-width: 980px;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .portal-dashboard.accounts-page.receivables-page .receivables-header-row h5 {
+        width: 100%;
+    }
+
+    .portal-dashboard.accounts-page.receivables-page .receivables-actions {
+        width: 100%;
+    }
+
+    .portal-dashboard.accounts-page.receivables-page .receivables-actions .btn {
+        flex: 1 1 100%;
+    }
+
+    .portal-dashboard.accounts-page.receivables-page .receivables-actions .form-check {
+        width: 100%;
+        margin-left: 0 !important;
+    }
+
+    .portal-dashboard.accounts-page.receivables-page .receivables-actions small {
+        width: 100%;
+        margin-left: 0 !important;
+    }
+
+    .portal-dashboard.accounts-page.receivables-page #myTable {
+        min-width: 900px;
+    }
+}
+
+/* Accounts: Update bank payment page */
+.portal-dashboard.accounts-page.update-bank-page .update-bank-header-row {
+    gap: 0.75rem;
+}
+
+.portal-dashboard.accounts-page.update-bank-page .update-bank-actions {
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.portal-dashboard.accounts-page.update-bank-page .update-bank-actions .btn {
+    white-space: nowrap;
+}
+
+.portal-dashboard.accounts-page.update-bank-page .update-bank-search-grid > [class*="col-"],
+.portal-dashboard.accounts-page.update-bank-page .update-bank-result-form > [class*="col-"] {
+    min-width: 0;
+}
+
+.portal-dashboard.accounts-page.update-bank-page .update-bank-result-card .card-header h5 {
+    line-height: 1.35;
+    word-break: break-word;
+}
+
+@media (max-width: 991.98px) {
+    .portal-dashboard.accounts-page.update-bank-page .update-bank-actions {
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .portal-dashboard.accounts-page.update-bank-page .update-bank-header-row h5 {
+        width: 100%;
+    }
+
+    .portal-dashboard.accounts-page.update-bank-page .update-bank-actions {
+        width: 100%;
+    }
+
+    .portal-dashboard.accounts-page.update-bank-page .update-bank-actions .btn {
+        flex: 1 1 100%;
+    }
+
+    .portal-dashboard.accounts-page.update-bank-page .update-bank-actions .form-check,
+    .portal-dashboard.accounts-page.update-bank-page .update-bank-actions small {
+        width: 100%;
+        margin-left: 0 !important;
+    }
+
+    .portal-dashboard.accounts-page.update-bank-page .update-bank-search-submit .btn,
+    .portal-dashboard.accounts-page.update-bank-page .update-bank-result-submit .btn {
+        width: 100%;
+    }
+}
+
+/* Accounts: Age receivables page */
+.portal-dashboard.accounts-page.age-receivables-page .age-recv-content-row > [class*="col-"] {
+    min-width: 0;
+}
+
+.portal-dashboard.accounts-page.age-receivables-page .age-recv-branding img {
+    max-width: 100%;
+    height: auto;
+}
+
+.portal-dashboard.accounts-page.age-receivables-page .age-recv-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.portal-dashboard.accounts-page.age-receivables-page #myTable {
+    min-width: 760px;
+}
+
+.portal-dashboard.accounts-page.age-receivables-page .age-recv-total {
+    border: 1px solid #d1fae5;
+    background: #ecfdf5;
+    color: #065f46;
+    border-radius: 0.5rem;
+    padding: 0.65rem 0.8rem;
+}
+
+.portal-dashboard.accounts-page.age-receivables-page .age-recv-actions-row {
+    align-items: center;
+}
+
+@media (max-width: 767.98px) {
+    .portal-dashboard.accounts-page.age-receivables-page .age-recv-actions-row .text-end {
+        text-align: left !important;
+    }
+
+    .portal-dashboard.accounts-page.age-receivables-page .age-recv-actions-row .btn {
+        width: 100%;
+    }
+}
+
+/* Accounts: Program fees page */
+.portal-dashboard.accounts-page.program-fees-page .fee-accordion-hidden,
+.portal-dashboard.accounts-page.program-fees-page .no-data-hidden {
+    display: none;
+}
+
+.portal-dashboard.accounts-page.program-fees-page .data-table-card > .card-header {
+    background: #ffffff;
+    color: #1f2937;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.portal-dashboard.accounts-page.program-fees-page .data-table-card > .card-header h5 {
+    color: #166534;
+    font-weight: 700;
+}
+
+.portal-dashboard.accounts-page.program-fees-page .dashboard-header .btn {
+    white-space: nowrap;
+}
+
+.portal-dashboard.accounts-page.program-fees-page .row.g-3 > [class*="col-"] .card {
+    border: 1px solid #e5e7eb !important;
+    border-radius: 0.75rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.portal-dashboard.accounts-page.program-fees-page .row.g-3 > [class*="col-"] .card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--card-shadow-hover);
+}
+
+.portal-dashboard.accounts-page.program-fees-page #loadingSpinner {
+    min-height: 220px;
+}
+
+.portal-dashboard.accounts-page.program-fees-page #feeStructureAccordion .accordion-item {
+    border: 1px solid #dbe5ef !important;
+    border-radius: 0.65rem !important;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.portal-dashboard.accounts-page.program-fees-page #feeStructureAccordion .accordion-button {
+    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+    color: #0f172a;
+    font-weight: 600;
+    box-shadow: none !important;
+}
+
+.portal-dashboard.accounts-page.program-fees-page #feeStructureAccordion .accordion-button:not(.collapsed) {
+    background: linear-gradient(180deg, #ecfdf5 0%, #dcfce7 100%);
+    color: #14532d;
+}
+
+.portal-dashboard.accounts-page.program-fees-page #feeStructureAccordion .accordion-button::after {
+    filter: none;
+}
+
+.portal-dashboard.accounts-page.program-fees-page #feeStructureAccordion .accordion-body {
+    background: #ffffff;
+}
+
+.portal-dashboard.accounts-page.program-fees-page .fee-col-index {
+    width: 60px;
+}
+
+.portal-dashboard.accounts-page.program-fees-page .fee-col-actions {
+    width: 120px;
+}
+
+.portal-dashboard.accounts-page.program-fees-page .clickable-filter-pill {
+    cursor: pointer;
+}
+
+.portal-dashboard.accounts-page.program-fees-page .program-fees-body td {
+    vertical-align: middle;
+}
+
+.portal-dashboard.accounts-page.program-fees-page .program-fees-body td.text-center .btn-group {
+    flex-wrap: nowrap;
+}
+
+@media (max-width: 991.98px) {
+    .portal-dashboard.accounts-page.program-fees-page .dashboard-header .col-auto {
+        width: 100%;
+    }
+
+    .portal-dashboard.accounts-page.program-fees-page .dashboard-header .col-auto .d-flex {
+        width: 100%;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .portal-dashboard.accounts-page.program-fees-page #feeStructureAccordion .accordion-button .d-flex {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .portal-dashboard.accounts-page.program-fees-page #feeStructureAccordion .accordion-button .small {
+        width: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+    }
+
+    .portal-dashboard.accounts-page.program-fees-page #feeStructureAccordion .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .portal-dashboard.accounts-page.program-fees-page #feeStructureAccordion table {
+        min-width: 760px;
+    }
+
+    .portal-dashboard.accounts-page.program-fees-page .fee-col-actions {
+        width: 140px;
+    }
+}
+
+/* Accounts: Balance statement page */
+.portal-dashboard.accounts-page.balance-statement-page .page-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 0.25rem;
+}
+
+.portal-dashboard.accounts-page.balance-statement-page .page-subtitle {
+    color: #64748b;
+    font-size: 0.9rem;
+}
+
+.portal-dashboard.accounts-page.balance-statement-page .search-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.portal-dashboard.accounts-page.balance-statement-page .search-box input {
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 0.5rem 1rem;
+}
+
+.portal-dashboard.accounts-page.balance-statement-page .search-box .btn-primary {
+    background: #3b82f6;
+    border: none;
+    padding: 0.5rem 1.5rem;
+    border-radius: 6px;
+}
+
+.portal-dashboard.accounts-page.balance-statement-page .search-box .btn-primary:hover {
+    background: #2563eb;
+}
+
+.portal-dashboard.accounts-page.balance-statement-page .data-table {
+    width: 100%;
+    background: #fff;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+    margin-bottom: 1rem;
+}
+
+.portal-dashboard.accounts-page.balance-statement-page .data-table thead {
+    background: #f8fafc;
+}
+
+.portal-dashboard.accounts-page.balance-statement-page .data-table th {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-weight: 500;
+    color: #475569;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.portal-dashboard.accounts-page.balance-statement-page .data-table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #f1f5f9;
+    color: #334155;
+    font-size: 0.9rem;
+}
+
+.portal-dashboard.accounts-page.balance-statement-page .data-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.portal-dashboard.accounts-page.balance-statement-page .data-table tbody tr:hover {
+    background: #f8fafc;
+}
+
+.portal-dashboard.accounts-page.balance-statement-page .data-table tfoot {
+    background: #f8fafc;
+    font-weight: 600;
+}
+
+.portal-dashboard.accounts-page.balance-statement-page .amount {
+    font-weight: 500;
+}
+
+.portal-dashboard.accounts-page.balance-statement-page .amount.paid {
+    color: #10b981;
+}
+
+.portal-dashboard.accounts-page.balance-statement-page .amount.due {
+    color: #ef4444;
+}
+
+.portal-dashboard.accounts-page.balance-statement-page .btn-print {
+    background: #f59e0b;
+    border: none;
+    color: #fff;
+    padding: 0.5rem 1.5rem;
+    border-radius: 6px;
+}
+
+.portal-dashboard.accounts-page.balance-statement-page .btn-print:hover {
+    background: #d97706;
+    color: #fff;
+}
+
+.portal-dashboard.accounts-page.balance-statement-page .btn-back {
+    background: #64748b;
+    border: none;
+    color: #fff;
+    padding: 0.5rem 1.5rem;
+    border-radius: 6px;
+}
+
+.portal-dashboard.accounts-page.balance-statement-page .btn-back:hover {
+    background: #475569;
+    color: #fff;
+}
+
+.portal-dashboard.accounts-page.balance-statement-page .print-header {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.portal-dashboard.accounts-page.balance-statement-page .print-header img {
+    max-width: 100px;
+    max-height: 72px;
+    width: auto;
+    height: auto;
+    margin: 0 auto 0.5rem;
+    display: block;
+}
+
+.portal-dashboard.accounts-page.balance-statement-page .print-header h4 {
+    margin-bottom: 0.25rem;
+    color: #1e293b;
+}
+
+.portal-dashboard.accounts-page.balance-statement-page .print-header h5 {
+    color: #64748b;
+    font-size: 1rem;
+}
+
+.portal-dashboard.accounts-page.balance-statement-page .balance-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Accounts: Bank transaction page */
+.portal-dashboard.accounts-page.bank-transaction-page .table-container {
+    max-height: 65vh;
+    overflow: auto;
+}
+
+.portal-dashboard.accounts-page.bank-transaction-page .table-sticky thead th {
+    position: sticky;
+    top: 0;
+    background: #fff;
+    z-index: 2;
+}
+
+.portal-dashboard.accounts-page.bank-transaction-page #transactionTable {
+    min-width: 900px;
+}
+
+/* Accounts: Unpaid balance page */
+@media print {
+    .portal-dashboard.accounts-page.unpaid-balance-page .no-print {
+        display: none !important;
+    }
+
+    .portal-dashboard.accounts-page.unpaid-balance-page .print-only {
+        display: block !important;
+    }
+}
+
+/* Accounts: Add/Edit fee pages */
+.portal-dashboard.accounts-page.edit-fee-page .edit-fee-header {
+    padding: 1.25rem;
+    background: rgba(255, 255, 255, 0.98);
+    border-radius: 12px;
+    box-shadow: var(--card-shadow);
+    border-left: 4px solid var(--success-color);
+}
+
+.portal-dashboard.accounts-page.edit-fee-page .edit-fee-header h1 {
+    margin-bottom: 0.25rem;
+}
+
+.portal-dashboard.accounts-page.add-fee-page .card-body form > [class*="col-"],
+.portal-dashboard.accounts-page.edit-fee-page .card-body form > [class*="col-"],
+.portal-dashboard.accounts-page.bank-payment-page .card-body form > [class*="col-"],
+.portal-dashboard.accounts-page.payments-returning-page .card-body form > [class*="col-"],
+.portal-dashboard.accounts-page.invoice-account-page .card-body form > [class*="col-"] {
+    min-width: 0;
+}
+
+.portal-dashboard.accounts-page.invoice-account-page .alert h4 {
+    word-break: break-word;
+}
+
+@media print {
+    .portal-dashboard.accounts-page.balance-statement-page .search-box,
+    .portal-dashboard.accounts-page.balance-statement-page .btn-print,
+    .portal-dashboard.accounts-page.balance-statement-page .btn-back {
+        display: none !important;
+    }
+
+    .portal-dashboard.accounts-page.balance-statement-page .data-table {
+        border: 1px solid #000;
+    }
+
+    .portal-dashboard.accounts-page.bank-transaction-page .no-print,
+    .portal-dashboard.accounts-page.bank-transaction-page .dashboard-header .header-actions,
+    nav,
+    .sidebar,
+    .pagination {
+        display: none !important;
+    }
+
+    .portal-dashboard.accounts-page.bank-transaction-page .table-container {
+        max-height: none;
+        overflow: visible;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .portal-dashboard.accounts-page.balance-statement-page .data-table {
+        min-width: 840px;
+        font-size: 0.8rem;
+    }
+
+    .portal-dashboard.accounts-page.balance-statement-page .data-table th,
+    .portal-dashboard.accounts-page.balance-statement-page .data-table td {
+        padding: 0.5rem;
+    }
+
+    .portal-dashboard.accounts-page.balance-statement-page .search-box .btn {
+        width: 100%;
+        margin-left: 0 !important;
+    }
+
+    .portal-dashboard.accounts-page.bank-transaction-page .table-container {
+        max-height: none;
+    }
+
+    .portal-dashboard.accounts-page.unpaid-balance-page #myTable {
+        min-width: 1100px;
+    }
+
+    .portal-dashboard.accounts-page.add-fee-page .col-12.d-flex,
+    .portal-dashboard.accounts-page.edit-fee-page .mt-4.d-flex {
+        flex-direction: column;
+        align-items: stretch !important;
+    }
+
+    .portal-dashboard.accounts-page.add-fee-page .col-12.d-flex .btn,
+    .portal-dashboard.accounts-page.edit-fee-page .mt-4.d-flex .btn,
+    .portal-dashboard.accounts-page.bank-payment-page .text-end .btn,
+    .portal-dashboard.accounts-page.payments-returning-page .text-end .btn {
+        width: 100%;
+    }
+
+    .portal-dashboard.accounts-page.edit-fee-page .edit-fee-header {
+        padding: 1rem;
+    }
+}

@@ -1,0 +1,348 @@
+/**
+ * WUC Portal - Student Pages Unified Styles
+ * 
+ * Design System Variables:
+ * - Primary Navy: #1B2A4A (ITC Logo)
+ * - Secondary Navy: #111c33
+ * - Light Navy BG: #eef1f5
+ * - Text Dark: #2c3e50
+ * - Border Color: rgba(27, 42, 74, 0.15)
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+    /* Primary Colors */
+    --wuc-primary: var(--sb-primary, #1B2A4A);
+    --wuc-primary-dark: var(--primary-dark, #111c33);
+    --wuc-primary-light: #2a3f6a;
+    --wuc-primary-bg: #eef1f5;
+    
+    /* Neutral Colors */
+    --wuc-text-dark: #2c3e50;
+    --wuc-text-muted: #6c757d;
+    --wuc-border: rgba(27, 42, 74, 0.15);
+    --wuc-bg-light: #f8f9fa;
+    --wuc-bg-white: #ffffff;
+    
+    /* Status Colors */
+    --wuc-success: #28a745;
+    --wuc-warning: #ffc107;
+    --wuc-danger: #dc3545;
+    --wuc-info: #17a2b8;
+    
+    /* Layout */
+    --wuc-sidebar-width: 250px;
+    --wuc-border-radius: 12px;
+    --wuc-border-radius-sm: 8px;
+    --wuc-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    --wuc-shadow-hover: 0 6px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* Base Styles */
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background-color: var(--wuc-bg-light);
+    color: var(--wuc-text-dark);
+    line-height: 1.6;
+}
+
+/* Content Wrapper - accounts for sidebar */
+.content-wrapper {
+    margin-left: var(--wuc-sidebar-width);
+    padding: 2rem;
+    min-height: 100vh;
+}
+
+@media (max-width: 992px) {
+    .content-wrapper {
+        margin-left: 0;
+        padding: 1rem;
+    }
+}
+
+/* Cards */
+.card {
+    background: var(--wuc-bg-white);
+    border: 1px solid var(--wuc-border);
+    border-radius: var(--wuc-border-radius);
+    box-shadow: var(--wuc-shadow);
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+}
+
+.card:hover {
+    box-shadow: var(--wuc-shadow-hover);
+}
+
+.card-header {
+    background: var(--wuc-primary-bg);
+    border-bottom: 1px solid var(--wuc-border);
+    padding: 1rem 1.25rem;
+}
+
+.card-title {
+    color: var(--wuc-primary);
+    font-weight: 600;
+    margin-bottom: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.card-body {
+    padding: 1.25rem;
+}
+
+/* Page Headers */
+.page-header {
+    background: var(--wuc-bg-white);
+    border: 1px solid var(--wuc-border);
+    border-radius: var(--wuc-border-radius);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--wuc-shadow);
+}
+
+.page-title {
+    color: var(--wuc-text-dark);
+    font-weight: 700;
+    font-size: 1.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.page-subtitle {
+    color: var(--wuc-text-muted);
+    font-size: 0.95rem;
+}
+
+/* Buttons */
+.btn {
+    border-radius: 30px;
+    padding: 0.5rem 1.5rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn-primary {
+    background-color: var(--wuc-primary);
+    border-color: var(--wuc-primary);
+}
+
+.btn-primary:hover {
+    background-color: var(--wuc-primary-dark);
+    border-color: var(--wuc-primary-dark);
+}
+
+.btn-outline-primary {
+    color: var(--wuc-primary);
+    border-color: var(--wuc-primary);
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--wuc-primary);
+    color: white;
+}
+
+/* Form Controls */
+.form-label {
+    font-weight: 500;
+    color: var(--wuc-text-dark);
+    margin-bottom: 0.5rem;
+}
+
+.form-control,
+.form-select {
+    border-radius: var(--wuc-border-radius-sm);
+    border: 1px solid #dee2e6;
+    padding: 0.625rem 0.875rem;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--wuc-primary);
+    box-shadow: 0 0 0 0.25rem rgba(27, 42, 74, 0.25);
+}
+
+/* Tables */
+.table {
+    margin-bottom: 0;
+}
+
+.table thead {
+    background-color: var(--wuc-primary);
+    color: white;
+}
+
+.table thead th {
+    border: none;
+    padding: 0.875rem 1rem;
+    font-weight: 600;
+}
+
+.table tbody td {
+    padding: 0.75rem 1rem;
+    vertical-align: middle;
+}
+
+.table-hover tbody tr:hover {
+    background-color: var(--wuc-primary-bg);
+}
+
+/* Badges */
+.badge {
+    font-weight: 500;
+    padding: 0.35em 0.75em;
+    border-radius: 20px;
+}
+
+.badge-primary,
+.bg-primary {
+    background-color: var(--wuc-primary) !important;
+}
+
+/* Alerts */
+.alert {
+    border-radius: var(--wuc-border-radius-sm);
+    border: none;
+}
+
+.alert-success {
+    background-color: rgba(40, 167, 69, 0.1);
+    color: var(--wuc-success);
+}
+
+.alert-warning {
+    background-color: rgba(255, 193, 7, 0.15);
+    color: #856404;
+}
+
+.alert-danger {
+    background-color: rgba(220, 53, 69, 0.1);
+    color: var(--wuc-danger);
+}
+
+.alert-info {
+    background-color: rgba(23, 162, 184, 0.1);
+    color: var(--wuc-info);
+}
+
+/* Progress Bars */
+.progress {
+    height: 8px;
+    border-radius: 4px;
+    background-color: #e9ecef;
+}
+
+.progress-bar {
+    background-color: var(--wuc-primary);
+    border-radius: 4px;
+}
+
+/* Fee Cards */
+.fee-card {
+    background: var(--wuc-primary-bg);
+    border: 1px dashed var(--wuc-primary);
+    border-radius: var(--wuc-border-radius);
+}
+
+.fee-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+}
+
+.fee-item.total {
+    border-top: 2px solid var(--wuc-border);
+    padding-top: 1rem;
+    margin-top: 0.5rem;
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--wuc-primary);
+}
+
+/* Utility Classes */
+.text-primary {
+    color: var(--wuc-primary) !important;
+}
+
+.bg-primary-light {
+    background-color: var(--wuc-primary-bg) !important;
+}
+
+.border-primary {
+    border-color: var(--wuc-primary) !important;
+}
+
+/* Legacy Section Styles (preserved for compatibility) */
+#section {
+    border: 1px solid var(--wuc-border);
+    padding: 1rem;
+    width: 300px;
+    border-radius: var(--wuc-border-radius-sm);
+    background: var(--wuc-bg-white);
+}
+
+#section img {
+    width: 100%;
+    height: auto;
+    border-radius: var(--wuc-border-radius-sm);
+}
+
+#section button {
+    width: 100%;
+}
+
+/* Sticky Sidebar Content */
+.sticky-top {
+    top: 20px;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fadeIn {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* Loading States */
+.loading {
+    position: relative;
+    pointer-events: none;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Responsive Typography */
+@media (max-width: 768px) {
+    .page-title {
+        font-size: 1.25rem;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+    
+    .btn {
+        padding: 0.5rem 1rem;
+    }
+}

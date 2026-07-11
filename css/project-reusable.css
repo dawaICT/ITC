@@ -1,0 +1,567 @@
+/* Reusable admin UI helpers shared across pages.
+   Scoped to BOTH dashboard containers: .admin-dashboard (legacy, 1 page) and
+   .portal-dashboard (used by ~196 pages). Previously these were .admin-dashboard
+   only, so the 196 portal-dashboard pages never received them and each redefined
+   the components inline with diverging colors. Keeping one source of truth here
+   makes staff avatars, gender tags and gender stat-icons consistent everywhere. */
+
+.admin-dashboard .staff-avatar,
+.portal-dashboard .staff-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: #fff;
+    background: linear-gradient(135deg, var(--brand-navy, #1B2A4A) 0%, var(--brand-red, #C8102E) 100%);
+    box-shadow: 0 4px 10px rgba(27, 42, 74, 0.2);
+}
+
+.admin-dashboard .gender-tag,
+.portal-dashboard .gender-tag {
+    font-size: 0.72rem;
+    padding: 3px 10px;
+    border-radius: 50px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    display: inline-block;
+}
+
+.admin-dashboard .gender-tag.male,
+.portal-dashboard .gender-tag.male {
+    background: #eff6ff;
+    color: #2563eb;
+}
+
+.admin-dashboard .gender-tag.female,
+.portal-dashboard .gender-tag.female {
+    background: #fdf2f8;
+    color: #be185d;
+}
+
+.admin-dashboard .gender-tag.unknown,
+.portal-dashboard .gender-tag.unknown {
+    background: #e9ecef;
+    color: #495057;
+}
+
+.admin-dashboard .stat-icon-male,
+.portal-dashboard .stat-icon-male {
+    background: linear-gradient(135deg, #0ea5e9, #0284c7);
+}
+
+.admin-dashboard .stat-icon-female,
+.portal-dashboard .stat-icon-female {
+    background: linear-gradient(135deg, #ec4899, #db2777);
+}
+
+.admin-dashboard .empty-state-icon,
+.portal-dashboard .empty-state-icon {
+    opacity: 0.2;
+}
+
+.table-full-width {
+    width: 100%;
+}
+
+.print-table-wrap {
+    padding: 20px;
+}
+
+body.print-table-wrap h1 {
+    margin-bottom: 20px;
+}
+
+body.print-table-wrap table {
+    font-size: 14px;
+}
+
+body.print-table-wrap .badge {
+    display: inline-block;
+    margin: 2px;
+}
+
+@media print {
+    body.print-table-wrap {
+        font-size: 12px;
+    }
+
+    body.print-table-wrap .badge {
+        border: 1px solid #ddd !important;
+        padding: 2px 6px !important;
+    }
+}
+
+/* Shared layout rules previously inline in /includes/header.php */
+:root {
+    --sidebar-width: 280px;
+}
+
+@media (min-width: 992px) {
+    .w3-container,
+    .container,
+    .container-fluid {
+        margin-left: var(--sidebar-width);
+        width: calc(100% - var(--sidebar-width));
+    }
+
+    .main-wrapper {
+        margin-left: var(--sidebar-width);
+        width: calc(100% - var(--sidebar-width));
+    }
+
+    body.has-unified-sidebar .main-wrapper .container,
+    body.has-unified-sidebar .main-wrapper .container-fluid,
+    body.has-unified-sidebar .main-wrapper .w3-container {
+        margin-left: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+}
+
+@media (max-width: 991.98px) {
+    .main-wrapper,
+    .w3-container,
+    .container,
+    .container-fluid {
+        width: 100%;
+        margin-left: 0;
+    }
+
+    body.sidebar-open .container-fluid,
+    body.sidebar-open .w3-container,
+    body.sidebar-open .main-wrapper {
+        opacity: 0.6;
+    }
+}
+
+.w3-navbar,
+.w3-navbar.w3-purple,
+.w3-navbar.bg-primary,
+.w3-dropdown-content {
+    display: none !important;
+}
+
+/* Unified nav utility classes */
+.quick-action-inline-form {
+    display: flex;
+    flex: 1 1 0;
+    min-width: 0;
+    margin: 0;
+}
+
+.quick-action-submit-btn {
+    width: 100%;
+    min-height: 44px;
+    border: none;
+    cursor: pointer;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    font-family: inherit;
+    font-size: inherit;
+}
+
+.quick-actions .quick-action-btn {
+    min-height: 44px;
+}
+
+/* Global admin table consistency (covers pages with and without .admin-dashboard) */
+.main-content .table,
+.main-wrapper .table,
+body .container .table,
+body .container-fluid .table {
+    --bs-table-bg: #fff;
+    border-color: #e2e8f0;
+}
+
+.main-content table.table > :not(caption) > * > *,
+.main-wrapper table.table > :not(caption) > * > *,
+body .container table.table > :not(caption) > * > *,
+body .container-fluid table.table > :not(caption) > * > * {
+    padding: 0.75rem 1rem;
+    vertical-align: middle;
+}
+
+.main-content .table thead th,
+.main-wrapper .table thead th,
+body .container .table thead th,
+body .container-fluid .table thead th {
+    background: #f8f9fa;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #475569;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.main-content .table tbody td,
+.main-wrapper .table tbody td,
+body .container .table tbody td,
+body .container-fluid .table tbody td {
+    font-size: 0.925rem;
+    color: #334155;
+}
+
+.main-content .table-hover > tbody > tr:hover > *,
+.main-wrapper .table-hover > tbody > tr:hover > *,
+body .container .table-hover > tbody > tr:hover > *,
+body .container-fluid .table-hover > tbody > tr:hover > * {
+    background: #f8fafc;
+}
+
+/* DataTables controls consistency */
+.dataTables_wrapper .dataTables_length select,
+.dataTables_wrapper .dataTables_filter input {
+    border: 1px solid #cbd5e1;
+    border-radius: 0.5rem;
+    padding: 0.35rem 0.6rem;
+    background: #fff;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+    border-radius: 0.4rem !important;
+}
+
+/* Processed applications page */
+.processed-app-page .table-secondary.opacity-75 {
+    opacity: 0.75;
+}
+
+.processed-app-page .avatar-circle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--brand-navy, #1B2A4A) 0%, var(--brand-red, #C8102E) 100%);
+    color: #fff;
+    font-weight: 600;
+    font-size: 14px;
+    flex-shrink: 0;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+}
+
+.processed-app-page .gender-pill {
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.processed-app-page .gender-pill.male {
+    background: #e7f1ff;
+    color: #0d6efd;
+}
+
+.processed-app-page .gender-pill.female {
+    background: #fff0f6;
+    color: #d63384;
+}
+
+.processed-app-page .status-dot {
+    height: 8px;
+    width: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 5px;
+}
+
+.processed-app-page .status-dot.accepted {
+    background-color: #198754;
+}
+
+.processed-app-page .status-dot.pending {
+    background-color: #ffc107;
+}
+
+.processed-app-page .status-dot.rejected {
+    background-color: #dc3545;
+}
+
+.processed-app-page .status-dot.default {
+    background-color: #6c757d;
+}
+
+.processed-app-page .program-badge {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #333;
+}
+
+.processed-app-page .duplicate-badge {
+    font-size: 0.65rem;
+}
+
+.processed-app-page .contact-icon-fixed {
+    width: 14px;
+}
+
+.processed-app-page .program-mode-tag {
+    display: inline-block;
+    margin-left: 0.5rem;
+    padding: 0 0.5rem;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+}
+
+/* ============================================================
+   ADMIN LISTING-PAGE DESIGN SYSTEM (single source of truth)
+   ------------------------------------------------------------
+   Components shared by every admin record-listing page
+   (manage_admitted_students.php, students_by_admin.php, staff.php,
+   lecturers.php, programs.php, applicants.php, …). Defined here —
+   and loaded on every page via includes/nav_unified.php — so pages
+   no longer redeclare the same rules in their own inline <style>.
+   Add a new listing page? Use these classes and it just works.
+   ============================================================ */
+
+/* Person/record avatar: brand-purple rounded square with initials.
+   Scoped to the dashboard wrappers so it overrides the older circular
+   assets/css/tables.css .avatar-circle by specificity, giving one look. */
+.admin-dashboard .avatar-circle,
+.portal-dashboard .avatar-circle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #6f42c1 0%, #4e2a84 100%);
+    color: #fff;
+    font-weight: 700;
+    font-size: 14px;
+    flex-shrink: 0;
+    box-shadow: 0 4px 10px rgba(111, 66, 193, 0.2);
+}
+
+/* Gender badge fills. The "blue"/"pink" -subtle variants are NOT part of
+   Bootstrap 5.3 (only the theme colours get -subtle utilities), so these
+   pills were rendering with no fill everywhere they were used. Defining
+   them once here fixes the gender pills on every listing page at once.
+   Pair with: bg-blue-subtle + text-primary, bg-pink-subtle + text-danger. */
+.bg-blue-subtle { background-color: #e7f1ff !important; }
+.bg-pink-subtle { background-color: #fce7f0 !important; }
+
+/* Compact uppercase table headers used by the listing tables. */
+.admin-dashboard .small-header th,
+.portal-dashboard .small-header th {
+    font-size: 0.7rem;
+    letter-spacing: 0.5px;
+}
+
+/* ============================================================
+   UNIFIED PORTAL TABLE AND DATATABLE DESIGN
+   ============================================================ */
+
+/* 1. Base Table Styling Overrides */
+.portal-dashboard .table,
+.admin-dashboard .table {
+    width: 100% !important;
+}
+
+.portal-dashboard .table th,
+.portal-dashboard .table td,
+.admin-dashboard .table th,
+.admin-dashboard .table td {
+    vertical-align: middle !important;
+}
+
+.portal-dashboard .table thead th,
+.admin-dashboard .table thead th {
+    background-color: var(--bg-light, #f8f9fa) !important;
+    color: var(--text-primary, #2c2c2c) !important;
+    font-weight: 600 !important;
+    border-bottom: 2px solid var(--border-color, #dee2e6) !important;
+    padding: 0.75rem 1rem !important;
+    text-transform: none !important;
+    font-size: 0.9rem !important;
+}
+
+/* 2. Restyle Button Groups in Action Cells to be Independent Outline Buttons */
+.portal-dashboard .table td .btn-group,
+.admin-dashboard .table td .btn-group {
+    display: inline-flex !important;
+    gap: 0.25rem !important;
+    box-shadow: none !important;
+}
+.portal-dashboard .table td .btn-group .btn,
+.admin-dashboard .table td .btn-group .btn {
+    border-radius: 6px !important;
+    margin: 0 !important;
+    padding: 0.25rem 0.5rem !important;
+    font-size: 0.875rem !important;
+}
+
+.portal-dashboard .table td .btn-group .btn-info,
+.admin-dashboard .table td .btn-group .btn-info {
+    background-color: transparent !important;
+    border: 1px solid #0dcaf0 !important;
+    color: #0dcaf0 !important;
+}
+.portal-dashboard .table td .btn-group .btn-info:hover,
+.admin-dashboard .table td .btn-group .btn-info:hover {
+    background-color: #0dcaf0 !important;
+    color: #fff !important;
+}
+.portal-dashboard .table td .btn-group .btn-primary,
+.admin-dashboard .table td .btn-group .btn-primary {
+    background-color: transparent !important;
+    border: 1px solid #6f42c1 !important;
+    color: #6f42c1 !important;
+}
+.portal-dashboard .table td .btn-group .btn-primary:hover,
+.admin-dashboard .table td .btn-group .btn-primary:hover {
+    background-color: #6f42c1 !important;
+    color: #fff !important;
+}
+.portal-dashboard .table td .btn-group .btn-danger,
+.admin-dashboard .table td .btn-group .btn-danger {
+    background-color: transparent !important;
+    border: 1px solid #dc3545 !important;
+    color: #dc3545 !important;
+}
+.portal-dashboard .table td .btn-group .btn-danger:hover,
+.admin-dashboard .table td .btn-group .btn-danger:hover {
+    background-color: #dc3545 !important;
+    color: #fff !important;
+}
+
+/* 3. Header Action Buttons - Restyle Print/Filter to Outline Secondary */
+.portal-dashboard .header-actions .btn-danger,
+.admin-dashboard .header-actions .btn-danger,
+.portal-dashboard .card-header .btn-danger,
+.admin-dashboard .card-header .btn-danger {
+    background-color: transparent !important;
+    border: 1px solid #6c757d !important;
+    color: #6c757d !important;
+}
+.portal-dashboard .header-actions .btn-danger:hover,
+.admin-dashboard .header-actions .btn-danger:hover,
+.portal-dashboard .card-header .btn-danger:hover,
+.admin-dashboard .card-header .btn-danger:hover {
+    background-color: #6c757d !important;
+    color: #fff !important;
+}
+.portal-dashboard .header-actions .btn-secondary,
+.admin-dashboard .header-actions .btn-secondary,
+.portal-dashboard .card-header .btn-secondary,
+.admin-dashboard .card-header .btn-secondary {
+    background-color: transparent !important;
+    border: 1px solid #6c757d !important;
+    color: #6c757d !important;
+}
+.portal-dashboard .header-actions .btn-secondary:hover,
+.admin-dashboard .header-actions .btn-secondary:hover,
+.portal-dashboard .card-header .btn-secondary:hover,
+.admin-dashboard .card-header .btn-secondary:hover {
+    background-color: #6c757d !important;
+    color: #fff !important;
+}
+
+/* 4. Global DataTables Layout Grid */
+.portal-dashboard .dataTables_wrapper.wuc-grid-layout,
+.admin-dashboard .dataTables_wrapper.wuc-grid-layout {
+    display: grid !important;
+    grid-template-areas:
+        "length filter"
+        "table table"
+        "info paginate" !important;
+    grid-template-columns: 1fr 1fr !important;
+    align-items: center !important;
+    gap: 1rem !important;
+}
+.portal-dashboard .dataTables_wrapper.wuc-grid-layout .dataTables_length,
+.admin-dashboard .dataTables_wrapper.wuc-grid-layout .dataTables_length {
+    grid-area: length !important;
+    justify-self: start !important;
+    margin: 0 !important;
+}
+.portal-dashboard .dataTables_wrapper.wuc-grid-layout .dataTables_filter,
+.admin-dashboard .dataTables_wrapper.wuc-grid-layout .dataTables_filter {
+    grid-area: filter !important;
+    justify-self: end !important;
+    margin: 0 !important;
+}
+.portal-dashboard .dataTables_wrapper.wuc-grid-layout > table,
+.portal-dashboard .dataTables_wrapper.wuc-grid-layout > .table-responsive,
+.portal-dashboard .dataTables_wrapper.wuc-grid-layout > .dataTables_scroll,
+.admin-dashboard .dataTables_wrapper.wuc-grid-layout > table,
+.admin-dashboard .dataTables_wrapper.wuc-grid-layout > .table-responsive,
+.admin-dashboard .dataTables_wrapper.wuc-grid-layout > .dataTables_scroll {
+    grid-area: table !important;
+    width: 100% !important;
+}
+.portal-dashboard .dataTables_wrapper.wuc-grid-layout .dataTables_info,
+.admin-dashboard .dataTables_wrapper.wuc-grid-layout .dataTables_info {
+    grid-area: info !important;
+    justify-self: start !important;
+    color: var(--text-secondary, #6c757d) !important;
+    font-size: 0.85rem !important;
+    padding: 0.5rem 0 !important;
+}
+.portal-dashboard .dataTables_wrapper.wuc-grid-layout .dataTables_paginate,
+.admin-dashboard .dataTables_wrapper.wuc-grid-layout .dataTables_paginate {
+    grid-area: paginate !important;
+    justify-self: end !important;
+    padding: 0.5rem 0 !important;
+}
+
+/* 5. DataTables Length Dropdown and Search Inputs */
+.portal-dashboard .dataTables_length select,
+.admin-dashboard .dataTables_length select {
+    border: 1px solid var(--border-color, #dee2e6) !important;
+    border-radius: 8px !important;
+    padding: 0.25rem 1.5rem 0.25rem 0.5rem !important;
+    font-size: 0.875rem !important;
+    color: var(--text-primary, #2c2c2c) !important;
+    background-color: var(--bg-white, #fff) !important;
+    outline: none !important;
+}
+.portal-dashboard .dataTables_filter input,
+.admin-dashboard .dataTables_filter input {
+    border: 1px solid var(--border-color, #dee2e6) !important;
+    border-radius: 8px !important;
+    padding: 0.375rem 0.75rem !important;
+    font-size: 0.875rem !important;
+    color: var(--text-primary, #2c2c2c) !important;
+    background-color: var(--bg-white, #fff) !important;
+    outline: none !important;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out !important;
+}
+.portal-dashboard .dataTables_filter input:focus,
+.admin-dashboard .dataTables_filter input:focus {
+    border-color: #6f42c1 !important;
+    box-shadow: 0 0 0 0.2rem rgba(111, 66, 193, 0.25) !important;
+}
+
+/* 6. Pagination Coloring */
+.portal-dashboard .pagination .page-item.active .page-link,
+.admin-dashboard .pagination .page-item.active .page-link {
+    background-color: #6f42c1 !important;
+    border-color: #6f42c1 !important;
+    color: #fff !important;
+}
+.portal-dashboard .pagination .page-link,
+.admin-dashboard .pagination .page-link {
+    color: #6f42c1 !important;
+}
+.portal-dashboard .pagination .page-link:hover,
+.admin-dashboard .pagination .page-link:hover {
+    color: #5a32a3 !important;
+    background-color: rgba(111, 66, 193, 0.05) !important;
+}
+.portal-dashboard .pagination .page-link:focus,
+.admin-dashboard .pagination .page-link:focus {
+    box-shadow: 0 0 0 0.2rem rgba(111, 66, 193, 0.25) !important;
+}
+

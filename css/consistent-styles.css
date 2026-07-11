@@ -1,0 +1,266 @@
+/* ===================================
+   WUC Portal - Consistent Styling Fixes
+   Version: 2.1
+   Description: Fixes for styling inconsistencies and standardization
+   =================================== */
+
+/* Import variables from main.css variables section */
+/* Note: All color and spacing variables are defined in main.css */
+
+/* ==== Standardized Spacing Utilities ==== */
+
+/* Margin utilities with consistent spacing scale */
+.ms-auto { margin-left: auto !important; }
+.me-auto { margin-right: auto !important; }
+.mx-auto { margin-left: auto !important; margin-right: auto !important; }
+.my-auto { margin-top: auto !important; margin-bottom: auto !important; }
+
+.gap-1 { gap: 0.5rem !important; }
+.gap-2 { gap: 1rem !important; }
+.gap-3 { gap: 1.5rem !important; }
+.gap-4 { gap: 2rem !important; }
+.gap-5 { gap: 3rem !important; }
+
+/* Padding utilities */
+.px-1 { padding-left: 0.5rem !important; padding-right: 0.5rem !important; }
+.px-2 { padding-left: 1rem !important; padding-right: 1rem !important; }
+.px-3 { padding-left: 1.5rem !important; padding-right: 1.5rem !important; }
+.px-4 { padding-left: 2rem !important; padding-right: 2rem !important; }
+.px-5 { padding-left: 3rem !important; padding-right: 3rem !important; }
+
+.py-1 { padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; }
+.py-2 { padding-top: 1rem !important; padding-bottom: 1rem !important; }
+.py-3 { padding-top: 1.5rem !important; padding-bottom: 1.5rem !important; }
+.py-4 { padding-top: 2rem !important; padding-bottom: 2rem !important; }
+.py-5 { padding-top: 3rem !important; padding-bottom: 3rem !important; }
+
+/* ==== Fixed Width Utilities ==== */
+.w-auto { width: auto !important; }
+.w-25 { width: 25% !important; }
+.w-50 { width: 50% !important; }
+.w-75 { width: 75% !important; }
+.w-100 { width: 100% !important; }
+.h-100 { height: 100% !important; }
+.h-auto { height: auto !important; }
+
+/* ==== Typography Classes ==== */
+.fw-300 { font-weight: 300 !important; }
+.fw-400 { font-weight: 400 !important; }
+.fw-500 { font-weight: 500 !important; }
+.fw-600 { font-weight: 600 !important; }
+.fw-700 { font-weight: 700 !important; }
+.fw-800 { font-weight: 800 !important; }
+.fw-bold { font-weight: 700 !important; }
+
+.fs-xs { font-size: 0.75rem !important; }
+.fs-sm { font-size: 0.875rem !important; }
+.fs-base { font-size: 1rem !important; }
+.fs-lg { font-size: 1.125rem !important; }
+.fs-xl { font-size: 1.25rem !important; }
+.fs-2xl { font-size: 1.5rem !important; }
+.fs-3xl { font-size: 1.875rem !important; }
+
+/* ==== Alignment Classes ==== */
+.align-top { vertical-align: top !important; }
+.align-middle { vertical-align: middle !important; }
+.align-bottom { vertical-align: bottom !important; }
+
+/* ==== Floats ==== */
+.float-start { float: left !important; }
+.float-end { float: right !important; }
+.float-none { float: none !important; }
+
+/* ==== Position Utilities ==== */
+.position-relative { position: relative !important; }
+.position-absolute { position: absolute !important; }
+.position-fixed { position: fixed !important; }
+.position-sticky { position: sticky !important; }
+
+.top-0 { top: 0 !important; }
+.end-0 { right: 0 !important; }
+.bottom-0 { bottom: 0 !important; }
+.start-0 { left: 0 !important; }
+
+/* ==== Overflow Utilities ==== */
+.overflow-auto { overflow: auto !important; }
+.overflow-hidden { overflow: hidden !important; }
+.overflow-visible { overflow: visible !important; }
+
+.overflow-x-auto { overflow-x: auto !important; }
+.overflow-x-hidden { overflow-x: hidden !important; }
+
+.overflow-y-auto { overflow-y: auto !important; }
+.overflow-y-hidden { overflow-y: hidden !important; }
+
+/* ==== Cursor Utilities ==== */
+.cursor-pointer { cursor: pointer !important; }
+.cursor-default { cursor: default !important; }
+.cursor-move { cursor: move !important; }
+.cursor-not-allowed { cursor: not-allowed !important; }
+
+/* ==== Opacity Utilities ==== */
+.opacity-0 { opacity: 0 !important; }
+.opacity-25 { opacity: 0.25 !important; }
+.opacity-50 { opacity: 0.5 !important; }
+.opacity-75 { opacity: 0.75 !important; }
+.opacity-100 { opacity: 1 !important; }
+
+/* ==== Border Utilities ==== */
+.border-0 { border: none !important; }
+.border { border: 1px solid var(--border-color) !important; }
+.border-top { border-top: 1px solid var(--border-color) !important; }
+.border-end { border-right: 1px solid var(--border-color) !important; }
+.border-bottom { border-bottom: 1px solid var(--border-color) !important; }
+.border-start { border-left: 1px solid var(--border-color) !important; }
+
+.border-1 { border-width: 1px !important; }
+.border-2 { border-width: 2px !important; }
+.border-3 { border-width: 3px !important; }
+.border-4 { border-width: 4px !important; }
+.border-5 { border-width: 5px !important; }
+
+.rounded-0 { border-radius: 0 !important; }
+.rounded-1 { border-radius: 0.25rem !important; }
+.rounded-2 { border-radius: 0.5rem !important; }
+.rounded { border-radius: var(--border-radius) !important; }
+.rounded-3 { border-radius: 0.75rem !important; }
+.rounded-4 { border-radius: 1rem !important; }
+.rounded-5 { border-radius: 1.25rem !important; }
+.rounded-circle { border-radius: 50% !important; }
+
+/* Rounded sides */
+.rounded-top { border-radius: var(--border-radius) var(--border-radius) 0 0 !important; }
+.rounded-end { border-radius: 0 var(--border-radius) var(--border-radius) 0 !important; }
+.rounded-bottom { border-radius: 0 0 var(--border-radius) var(--border-radius) !important; }
+.rounded-start { border-radius: var(--border-radius) 0 0 var(--border-radius) !important; }
+
+/* ==== Shadow Utilities ==== */
+.shadow-none { box-shadow: none !important; }
+.shadow-sm { box-shadow: var(--shadow-sm) !important; }
+.shadow { box-shadow: var(--shadow) !important; }
+.shadow-lg { box-shadow: var(--shadow-lg) !important; }
+
+/* ==== Background Utilities ==== */
+.bg-primary-light { background-color: var(--primary-purple-light) !important; }
+.bg-transparent { background-color: transparent !important; }
+
+/* ==== Text Decoration ==== */
+.text-decoration-none { text-decoration: none !important; }
+.text-decoration-underline { text-decoration: underline !important; }
+.text-decoration-line-through { text-decoration: line-through !important; }
+
+/* ==== Visibility ==== */
+.visible { visibility: visible !important; }
+.invisible { visibility: hidden !important; }
+
+/* ==== Whitespace ==== */
+.text-truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.text-wrap { white-space: normal !important; word-wrap: break-word !important; }
+.text-nowrap { white-space: nowrap !important; }
+
+/* ==== Line Height ==== */
+.lh-1 { line-height: 1 !important; }
+.lh-sm { line-height: 1.25 !important; }
+.lh-base { line-height: 1.6 !important; }
+.lh-lg { line-height: 2 !important; }
+
+/* ==== Letter Spacing ==== */
+.tracking-tight { letter-spacing: -0.02em !important; }
+.tracking-normal { letter-spacing: 0 !important; }
+.tracking-wide { letter-spacing: 0.02em !important; }
+
+/* ==== Print Styles ==== */
+@media print {
+    .no-print { display: none !important; }
+    .print-only { display: block !important; }
+    
+    body {
+        background-color: white;
+        color: black;
+    }
+    
+    a {
+        text-decoration: underline;
+    }
+    
+    .shadow, .shadow-sm, .shadow-lg {
+        box-shadow: none !important;
+    }
+}
+
+/* ==== Responsive Utilities ==== */
+@media (max-width: 1199.98px) {
+    .d-lg-none { display: none !important; }
+    .d-lg-block { display: block !important; }
+}
+
+@media (max-width: 991.98px) {
+    .d-md-none { display: none !important; }
+    .d-md-block { display: block !important; }
+}
+
+@media (max-width: 767.98px) {
+    .d-sm-none { display: none !important; }
+    .d-sm-block { display: block !important; }
+    
+    .p-sm-2 { padding: 1rem !important; }
+    .p-sm-3 { padding: 1.5rem !important; }
+    
+    .m-sm-2 { margin: 1rem !important; }
+    .m-sm-3 { margin: 1.5rem !important; }
+}
+
+@media (max-width: 575.98px) {
+    .d-xs-none { display: none !important; }
+    .d-xs-block { display: block !important; }
+    
+    .p-xs-1 { padding: 0.5rem !important; }
+    .p-xs-2 { padding: 1rem !important; }
+    
+    .m-xs-1 { margin: 0.5rem !important; }
+    .m-xs-2 { margin: 1rem !important; }
+}
+
+/* ==== Interaction Feedback ==== */
+.transition-all { transition: all var(--transition-speed) ease !important; }
+.transition-colors { transition: background-color, border-color, color var(--transition-speed) ease !important; }
+.transition-opacity { transition: opacity var(--transition-speed) ease !important; }
+.transition-transform { transition: transform var(--transition-speed) ease !important; }
+
+.hover\:shadow:hover { box-shadow: var(--shadow-lg) !important; }
+.hover\:scale-up:hover { transform: scale(1.05) !important; }
+.hover\:translate-y:hover { transform: translateY(-2px) !important; }
+
+/* ==== Disabled State ==== */
+.disabled,
+[disabled] {
+    opacity: 0.6 !important;
+    cursor: not-allowed !important;
+    pointer-events: none !important;
+}
+
+/* ==== Focus Styles for Accessibility ==== */
+:focus-visible {
+    outline: 2px solid var(--primary) !important;
+    outline-offset: 2px !important;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: 2px solid var(--primary) !important;
+    outline-offset: 2px !important;
+}
+
+/* ==== Additional Size Utilities ==== */
+.h-200px { height: 200px !important; }
+.w-50px { width: 50px !important; }
+.w-80px { width: 80px !important; }
+.w-40 { width: 40% !important; }
+
+/* ==== Additional Color Utilities ==== */
+.bg-light-purple { background-color: var(--primary-light) !important; }
+
+/* ==== Max-Width Utilities ==== */
+.mw-960 { max-width: 960px !important; }

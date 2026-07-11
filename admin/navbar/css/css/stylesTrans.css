@@ -1,0 +1,32 @@
+ 
+@import "https://fonts.googleapis.com/css?family=Poppins:300,400,500,600,700";
+
+body {
+    background-color: lightgray;
+}
+body a{
+    color: white;
+    font-size: 16px;
+    padding-top: 50px;
+    padding-bottom: 50px;
+}
+
+body p{
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
+fieldset {
+    font-family: Bookman Old Style;
+}
+
+#watermark{
+    position:absolute;
+    z-index:0;
+    opacity: 0.1;
+    top: 350px;
+    right: 200px;
+    left: 170px;
+    width:600px; 
+    height:550px;
+}

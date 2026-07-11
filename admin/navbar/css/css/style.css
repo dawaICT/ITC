@@ -1,0 +1,8 @@
+@import "https://fonts.googleapis.com/css?family=Poppins:300,400,500,600,700";
+
+body a{
+    color: white;
+    font-size: 18px;
+    padding-top: 50px;
+    padding-bottom: 50px;
+}

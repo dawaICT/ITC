@@ -1,0 +1,808 @@
+/* ============================================================================
+   WUC PORTAL — PREMIUM THEME LAYER
+   ----------------------------------------------------------------------------
+   Loaded LAST (after every base/module stylesheet) by:
+     • includes/nav_unified.php        (all staff modules)
+     • students/includes/navbar.php    (student portal)
+     • the public login / password pages
+   One file, design-token driven. It upgrades the existing class vocabulary
+   (.portal-dashboard, .stat-card, .dashboard-header, .card, .table, Bootstrap
+   buttons/forms/alerts/modals) — it does NOT introduce new markup requirements,
+   so every existing page is lifted automatically.
+   ========================================================================== */
+
+/* ── 1. Design tokens ────────────────────────────────────────────────────── */
+:root {
+    /* Brand */
+    --wuc-primary: #6f42c1;
+    --wuc-primary-600: #5a32a3;
+    --wuc-primary-700: #4a2b9c;
+    --wuc-primary-soft: #f3eefc;
+    --wuc-primary-ring: rgba(111, 66, 193, 0.22);
+    --wuc-grad: linear-gradient(135deg, #6f42c1 0%, #5a32a3 60%, #4a2b9c 100%);
+
+    /* Surfaces & ink */
+    --wuc-bg: #f6f7fb;
+    --wuc-surface: #ffffff;
+    --wuc-surface-2: #fbfaff;
+    --wuc-border: #e7e6f2;
+    --wuc-ink: #1e2235;
+    --wuc-ink-soft: #5b6076;
+    --wuc-ink-faint: #9aa0b5;
+
+    /* Status */
+    --wuc-success: #16a34a;
+    --wuc-warning: #d97706;
+    --wuc-danger: #dc2626;
+    --wuc-info: #0ea5e9;
+
+    /* Depth (layered, soft — premium feel) */
+    --wuc-shadow-xs: 0 1px 2px rgba(30, 27, 75, 0.05);
+    --wuc-shadow-sm: 0 2px 8px rgba(30, 27, 75, 0.06), 0 1px 2px rgba(30, 27, 75, 0.04);
+    --wuc-shadow-md: 0 6px 24px rgba(80, 60, 180, 0.10), 0 2px 6px rgba(30, 27, 75, 0.05);
+    --wuc-shadow-lg: 0 16px 48px rgba(80, 60, 180, 0.14), 0 4px 12px rgba(30, 27, 75, 0.06);
+
+    /* Shape & motion */
+    --wuc-radius-sm: 8px;
+    --wuc-radius: 12px;
+    --wuc-radius-lg: 16px;
+    --wuc-ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --wuc-t-fast: 160ms var(--wuc-ease);
+    --wuc-t: 240ms var(--wuc-ease);
+}
+
+/* ── 2. Page foundation ─────────────────────────────────────────────────── */
+body.portal-dashboard,
+.portal-dashboard {
+    background-color: var(--wuc-bg);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+}
+
+/* Gentle page entrance */
+@keyframes wucPageIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: none; }
+}
+.portal-dashboard { animation: wucPageIn 320ms var(--wuc-ease) both; }
+
+/* Refined scrollbars (WebKit + Firefox) */
+* { scrollbar-width: thin; scrollbar-color: #cfc8e8 transparent; }
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+    background: #cfc8e8;
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover { background-color: #b4a8dd; }
+
+/* Text selection in brand color */
+::selection { background: var(--wuc-primary); color: #fff; }
+
+/* Keyboard-only focus ring — crisp and accessible, no mouse noise */
+:focus { outline: none; }
+:focus-visible {
+    outline: 3px solid var(--wuc-primary-ring);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+/* ── 3. Cards & panels ──────────────────────────────────────────────────── */
+.portal-dashboard .card,
+.portal-dashboard .data-table-card,
+.portal-dashboard .dashboard-header {
+    border: 1px solid var(--wuc-border);
+    border-radius: var(--wuc-radius);
+    box-shadow: var(--wuc-shadow-sm);
+    transition: box-shadow var(--wuc-t), transform var(--wuc-t), border-color var(--wuc-t);
+    background-clip: padding-box;
+}
+
+.portal-dashboard .card:hover,
+.portal-dashboard .data-table-card:hover {
+    box-shadow: var(--wuc-shadow-md);
+    border-color: #ded9f0;
+}
+
+.portal-dashboard .card .card-header,
+.portal-dashboard .data-table-card .card-header {
+    background: var(--wuc-surface);
+    border-bottom: 1px solid var(--wuc-border);
+    border-radius: var(--wuc-radius) var(--wuc-radius) 0 0;
+}
+
+/* Section headers get a precise brand accent */
+.portal-dashboard .dashboard-header {
+    position: relative;
+    overflow: hidden;
+}
+.portal-dashboard .dashboard-header::after {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 3px;
+    background: var(--wuc-grad);
+    opacity: 0.85;
+}
+
+/* Stat cards — lift, gradient icon chips, tabular numerals */
+.portal-dashboard .stat-card {
+    border: 1px solid var(--wuc-border);
+    border-radius: var(--wuc-radius);
+    box-shadow: var(--wuc-shadow-sm);
+    transition: transform var(--wuc-t), box-shadow var(--wuc-t);
+    will-change: transform;
+}
+.portal-dashboard .stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--wuc-shadow-lg);
+}
+.portal-dashboard .stat-card .stat-icon {
+    border-radius: 14px;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35), var(--wuc-shadow-xs);
+    transition: transform var(--wuc-t);
+}
+.portal-dashboard .stat-card:hover .stat-icon { transform: scale(1.06) rotate(-3deg); }
+.portal-dashboard .stat-card .stat-value {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+}
+
+/* ── 4. Buttons ─────────────────────────────────────────────────────────── */
+.portal-dashboard .btn,
+.login-page .btn-login {
+    border-radius: 10px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    transition: transform var(--wuc-t-fast), box-shadow var(--wuc-t-fast),
+                background-color var(--wuc-t-fast), border-color var(--wuc-t-fast),
+                filter var(--wuc-t-fast);
+}
+.portal-dashboard .btn:hover { transform: translateY(-1px); }
+.portal-dashboard .btn:active { transform: translateY(0) scale(0.985); }
+
+.portal-dashboard .btn-primary {
+    background-image: var(--wuc-grad);
+    border: none;
+    box-shadow: 0 4px 14px rgba(111, 66, 193, 0.32);
+}
+.portal-dashboard .btn-primary:hover,
+.portal-dashboard .btn-primary:focus {
+    background-image: var(--wuc-grad);
+    filter: brightness(1.06);
+    box-shadow: 0 6px 20px rgba(111, 66, 193, 0.42);
+}
+.portal-dashboard .btn-outline-primary {
+    color: var(--wuc-primary);
+    border-color: var(--wuc-primary);
+}
+.portal-dashboard .btn-outline-primary:hover {
+    background: var(--wuc-primary);
+    border-color: var(--wuc-primary);
+    box-shadow: 0 4px 14px rgba(111, 66, 193, 0.32);
+}
+
+/* Submit-in-flight state (applied by wuc-premium.js) */
+.btn.wuc-loading {
+    pointer-events: none;
+    position: relative;
+    color: transparent !important;
+}
+.btn.wuc-loading::after {
+    content: "";
+    position: absolute;
+    width: 1.05em; height: 1.05em;
+    top: calc(50% - 0.525em); left: calc(50% - 0.525em);
+    border: 2px solid rgba(255, 255, 255, 0.45);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: wucSpin 700ms linear infinite;
+}
+.btn-outline-primary.wuc-loading::after,
+.btn-light.wuc-loading::after,
+.btn-link.wuc-loading::after {
+    border-color: rgba(111, 66, 193, 0.35);
+    border-top-color: var(--wuc-primary);
+}
+@keyframes wucSpin { to { transform: rotate(360deg); } }
+
+/* ── 5. Tables ──────────────────────────────────────────────────────────── */
+.portal-dashboard .table {
+    --bs-table-hover-bg: var(--wuc-primary-soft);
+    border-color: var(--wuc-border);
+    margin-bottom: 0;
+}
+.portal-dashboard .table thead th {
+    background: linear-gradient(180deg, #faf9fe 0%, #f3f1fb 100%);
+    color: var(--wuc-ink-soft);
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border-bottom: 2px solid #e3def3;
+    white-space: nowrap;
+}
+.portal-dashboard .table tbody tr {
+    transition: background-color var(--wuc-t-fast), box-shadow var(--wuc-t-fast);
+}
+.portal-dashboard .table-hover tbody tr:hover {
+    box-shadow: inset 3px 0 0 var(--wuc-primary);
+}
+.portal-dashboard .table td, .portal-dashboard .table th { vertical-align: middle; }
+
+/* Sticky header inside scrollable wrappers */
+.portal-dashboard .table-responsive {
+    border-radius: var(--wuc-radius-sm);
+    -webkit-overflow-scrolling: touch;
+}
+.portal-dashboard .table-responsive thead th { position: sticky; top: 0; z-index: 2; }
+
+/* ── 6. Forms ───────────────────────────────────────────────────────────── */
+.portal-dashboard .form-control,
+.portal-dashboard .form-select {
+    border-radius: 10px;
+    border-color: var(--wuc-border);
+    transition: border-color var(--wuc-t-fast), box-shadow var(--wuc-t-fast), background-color var(--wuc-t-fast);
+}
+.portal-dashboard .form-control:hover,
+.portal-dashboard .form-select:hover { border-color: #cfc6ea; }
+.portal-dashboard .form-control:focus,
+.portal-dashboard .form-select:focus {
+    border-color: var(--wuc-primary);
+    box-shadow: 0 0 0 0.25rem var(--wuc-primary-ring);
+}
+.portal-dashboard .form-label { font-weight: 600; color: var(--wuc-ink-soft); }
+.portal-dashboard .input-group-text {
+    border-radius: 10px 0 0 10px;
+    background: var(--wuc-surface-2);
+    border-color: var(--wuc-border);
+    color: var(--wuc-ink-faint);
+}
+
+/* Caps-lock hint chip (injected by wuc-premium.js on password fields) */
+.wuc-capslock-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.35rem;
+    padding: 0.18rem 0.55rem;
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: #92400e;
+    background: #fef3c7;
+    border: 1px solid #fde68a;
+    border-radius: 999px;
+    animation: wucPageIn 180ms var(--wuc-ease) both;
+}
+
+/* ── 7. Badges, alerts, modals, dropdowns, pagination ──────────────────── */
+.portal-dashboard .badge {
+    border-radius: 999px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    padding: 0.4em 0.75em;
+}
+
+.portal-dashboard .alert {
+    border: 1px solid var(--wuc-border);
+    border-left-width: 4px;
+    border-radius: var(--wuc-radius-sm);
+    box-shadow: var(--wuc-shadow-xs);
+}
+.portal-dashboard .alert-success { border-left-color: var(--wuc-success); }
+.portal-dashboard .alert-danger  { border-left-color: var(--wuc-danger); }
+.portal-dashboard .alert-warning { border-left-color: var(--wuc-warning); }
+.portal-dashboard .alert-info    { border-left-color: var(--wuc-info); }
+
+.portal-dashboard .modal-content {
+    border: none;
+    border-radius: var(--wuc-radius-lg);
+    box-shadow: var(--wuc-shadow-lg);
+    overflow: hidden;
+}
+.modal-backdrop.show { opacity: 0.45; }
+.portal-dashboard .modal-header { border-bottom-color: var(--wuc-border); }
+.portal-dashboard .modal-footer { border-top-color: var(--wuc-border); }
+
+.portal-dashboard .dropdown-menu {
+    border: 1px solid var(--wuc-border);
+    border-radius: var(--wuc-radius-sm);
+    box-shadow: var(--wuc-shadow-md);
+    padding: 0.4rem;
+}
+.portal-dashboard .dropdown-item { border-radius: 6px; transition: background-color var(--wuc-t-fast); }
+.portal-dashboard .dropdown-item:hover { background: var(--wuc-primary-soft); color: var(--wuc-primary-700); }
+
+.portal-dashboard .page-link {
+    border-radius: 8px !important;
+    margin: 0 2px;
+    border-color: var(--wuc-border);
+    color: var(--wuc-primary);
+    transition: background-color var(--wuc-t-fast), color var(--wuc-t-fast);
+}
+.portal-dashboard .page-item.active .page-link {
+    background-image: var(--wuc-grad);
+    border-color: transparent;
+}
+
+/* Empty states */
+.portal-dashboard .empty-state {
+    color: var(--wuc-ink-faint);
+    text-align: center;
+    padding: 2.25rem 1rem;
+}
+.portal-dashboard .empty-state i {
+    font-size: 2rem;
+    display: block;
+    margin-bottom: 0.6rem;
+    opacity: 0.55;
+}
+
+/* ── 8. Skeleton shimmer (for async panels) ─────────────────────────────── */
+.wuc-skeleton {
+    position: relative;
+    overflow: hidden;
+    background: #eceaf6;
+    border-radius: var(--wuc-radius-sm);
+    min-height: 1em;
+}
+.wuc-skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.65), transparent);
+    animation: wucShimmer 1.4s infinite;
+}
+@keyframes wucShimmer { to { transform: translateX(100%); } }
+
+/* ── 9. Scroll-reveal (applied by wuc-premium.js) ───────────────────────── */
+.wuc-reveal {
+    opacity: 0;
+    transform: translateY(14px);
+    transition: opacity 480ms var(--wuc-ease), transform 480ms var(--wuc-ease);
+}
+.wuc-reveal.wuc-in { opacity: 1; transform: none; }
+
+/* Toast stack */
+.wuc-toast-stack {
+    position: fixed;
+    right: 1rem;
+    bottom: 1rem;
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-width: min(360px, calc(100vw - 2rem));
+}
+.wuc-toast {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 0.8rem 1rem;
+    background: var(--wuc-ink);
+    color: #fff;
+    border-radius: var(--wuc-radius-sm);
+    box-shadow: var(--wuc-shadow-lg);
+    font-size: 0.88rem;
+    animation: wucToastIn 260ms var(--wuc-ease) both;
+}
+.wuc-toast.success { background: #14532d; }
+.wuc-toast.danger  { background: #7f1d1d; }
+.wuc-toast.leaving { opacity: 0; transform: translateY(8px); transition: all 240ms var(--wuc-ease); }
+@keyframes wucToastIn {
+    from { opacity: 0; transform: translateY(12px) scale(0.98); }
+    to   { opacity: 1; transform: none; }
+}
+
+/* ── 10. Login & password pages (public surface) ────────────────────────── */
+.login-page .login-card {
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 24px 80px rgba(10, 6, 40, 0.55);
+    backdrop-filter: blur(14px) saturate(1.2);
+    -webkit-backdrop-filter: blur(14px) saturate(1.2);
+    animation: wucPageIn 420ms var(--wuc-ease) both;
+}
+.login-page .form-group .input-wrap input {
+    transition: border-color var(--wuc-t-fast), box-shadow var(--wuc-t-fast);
+}
+.login-page .form-group .input-wrap input:focus {
+    border-color: var(--wuc-primary);
+    box-shadow: 0 0 0 0.25rem var(--wuc-primary-ring);
+}
+.login-page .btn-login:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 28px rgba(111, 66, 193, 0.5);
+}
+.login-page .btn-login:active { transform: translateY(0) scale(0.985); }
+.login-page .stat-chip { transition: transform var(--wuc-t), box-shadow var(--wuc-t); }
+.login-page .stat-chip:hover { transform: translateY(-3px); }
+.login-page .alert { animation: wucPageIn 260ms var(--wuc-ease) both; }
+
+/* ── 11. Responsiveness hardening ───────────────────────────────────────── */
+@media (max-width: 991.98px) {
+    .portal-dashboard .dashboard-header { padding: 1rem 1.1rem; }
+    .portal-dashboard .stat-card { padding: 1.1rem; }
+}
+@media (max-width: 575.98px) {
+    .portal-dashboard h1, .portal-dashboard .dashboard-title { font-size: 1.35rem; }
+    .portal-dashboard .card-body, .portal-dashboard .card .card-body { padding: 1rem; }
+    .portal-dashboard .btn { padding-left: 0.85rem; padding-right: 0.85rem; }
+    .portal-dashboard .table { font-size: 0.85rem; }
+    .portal-dashboard .header-actions { flex-wrap: wrap; }
+    .wuc-toast-stack { right: 0.5rem; bottom: 0.5rem; }
+}
+
+/* Tap targets on touch devices */
+@media (pointer: coarse) {
+    .portal-dashboard .btn,
+    .portal-dashboard .form-control,
+    .portal-dashboard .form-select { min-height: 44px; }
+}
+
+/* ── 12. Accessibility & print ──────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+    .wuc-reveal { opacity: 1; transform: none; }
+}
+
+@media print {
+    .portal-dashboard { background: #fff; }
+    .portal-dashboard .card,
+    .portal-dashboard .stat-card,
+    .portal-dashboard .dashboard-header { box-shadow: none; border-color: #ccc; }
+    .wuc-toast-stack, .wuc-capslock-hint { display: none !important; }
+}
+
+/* ── 13. Premium polish pass (2026-07-01) ────────────────────────────────
+   Additive refinements only: no markup assumptions, no access-flow changes. */
+.portal-dashboard {
+    color: var(--wuc-ink);
+}
+
+.portal-dashboard .container-fluid,
+.portal-dashboard.container-fluid {
+    width: min(100%, 1440px);
+}
+
+.portal-dashboard .dashboard-header {
+    border-radius: var(--wuc-radius-lg);
+    box-shadow: var(--wuc-shadow-md);
+}
+
+.portal-dashboard .dashboard-title,
+.portal-dashboard h1.dashboard-title {
+    letter-spacing: -0.035em;
+}
+
+.portal-dashboard .card,
+.portal-dashboard .quick-actions-card,
+.portal-dashboard .profile-card,
+.portal-dashboard .data-table-card,
+.portal-dashboard .module-card {
+    border-radius: var(--wuc-radius-lg);
+}
+
+.portal-dashboard .card,
+.portal-dashboard .quick-actions-card,
+.portal-dashboard .profile-card {
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.91)),
+        var(--wuc-surface);
+}
+
+.portal-dashboard .card:hover,
+.portal-dashboard .quick-actions-card:hover,
+.portal-dashboard .profile-card:hover,
+.portal-dashboard .module-card:hover {
+    border-color: rgba(111, 66, 193, 0.24);
+}
+
+.portal-dashboard .stat-card,
+.portal-dashboard .action-btn-card,
+.portal-dashboard .module-card {
+    isolation: isolate;
+    overflow: hidden;
+    position: relative;
+}
+
+.portal-dashboard .stat-card::before,
+.portal-dashboard .action-btn-card::before,
+.portal-dashboard .module-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    height: 3px;
+    background: var(--wuc-grad);
+    opacity: 0;
+    transition: opacity var(--wuc-t-fast);
+    z-index: -1;
+}
+
+.portal-dashboard .stat-card:hover::before,
+.portal-dashboard .action-btn-card:hover::before,
+.portal-dashboard .module-card:hover::before {
+    opacity: 0.85;
+}
+
+.portal-dashboard .stat-label,
+.portal-dashboard .card-hdr h3,
+.portal-dashboard .quick-actions-card .card-header h5 {
+    letter-spacing: -0.01em;
+}
+
+.portal-dashboard .table-responsive {
+    border: 1px solid var(--wuc-border);
+    background: var(--wuc-surface);
+    box-shadow: var(--wuc-shadow-xs);
+}
+
+.portal-dashboard .table tbody tr:nth-child(even) {
+    --bs-table-bg: rgba(111, 66, 193, 0.018);
+}
+
+.portal-dashboard .empty-state {
+    border: 1px dashed rgba(111, 66, 193, 0.25);
+    border-radius: var(--wuc-radius);
+    background: linear-gradient(180deg, #fff, var(--wuc-surface-2));
+}
+
+.portal-dashboard .empty-state i {
+    color: var(--wuc-primary);
+}
+
+.portal-dashboard .form-control,
+.portal-dashboard .form-select,
+.portal-dashboard .input-group-text {
+    min-height: 42px;
+}
+
+.portal-dashboard .btn {
+    box-shadow: none;
+}
+
+.portal-dashboard .btn-light,
+.portal-dashboard .btn-outline-secondary {
+    border-color: rgba(111, 66, 193, 0.18);
+}
+
+.portal-dashboard .btn-light:hover,
+.portal-dashboard .btn-outline-secondary:hover {
+    border-color: rgba(111, 66, 193, 0.35);
+    box-shadow: var(--wuc-shadow-sm);
+}
+
+.staff-dashboard-page {
+    background:
+        radial-gradient(circle at top left, rgba(111, 66, 193, 0.10), transparent 34rem),
+        radial-gradient(circle at bottom right, rgba(200, 16, 46, 0.08), transparent 30rem),
+        var(--wuc-bg);
+}
+
+.staff-dashboard-page .staff-shell {
+    animation: wucPageIn 320ms var(--wuc-ease) both;
+}
+
+.staff-dashboard-page .staff-brand {
+    padding: 0.45rem 0.85rem;
+    border: 1px solid rgba(111, 66, 193, 0.16);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.74);
+    box-shadow: var(--wuc-shadow-xs);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.staff-dashboard-page .module-link {
+    outline: none;
+}
+
+.staff-dashboard-page .module-link:focus-visible .module-card {
+    box-shadow: 0 0 0 0.25rem var(--wuc-primary-ring), var(--wuc-shadow-md) !important;
+}
+
+@media (max-width: 575.98px) {
+    .portal-dashboard .dashboard-header .row,
+    .portal-dashboard .dashboard-header > .d-flex {
+        gap: 1rem;
+    }
+
+    .portal-dashboard .dashboard-header .col-auto,
+    .portal-dashboard .header-actions {
+        width: 100%;
+    }
+}
+
+/* Shared logo alignment contract.
+   Use the frame for visual centering and the image class to preserve aspect ratio. */
+.wuc-logo-frame,
+.logo-container,
+.top-brand,
+.card-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.wuc-logo-img,
+.wuc-logo-frame img,
+.top-brand img,
+.card-logo img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    object-fit: contain;
+    object-position: center center;
+}
+
+.wuc-logo-frame img.report-logo,
+.wuc-logo-img.report-logo {
+    max-height: 72px;
+    width: auto;
+    margin: 0 auto;
+}
+
+/* Document letterheads — stack logo above titles, centred on screen and print */
+.ca-header-container,
+.transcript-header-container,
+.report-header,
+.receipt-header,
+.letterhead,
+.report-print-header,
+.wuc-print-letterhead,
+.print-header {
+    text-align: center;
+}
+
+.ca-header-container .wuc-logo-frame,
+.transcript-header-container .wuc-logo-frame,
+.report-header .wuc-logo-frame,
+.receipt-header .wuc-logo-frame,
+.header .wuc-logo-frame,
+.letterhead .wuc-logo-frame,
+.letterhead .logo-row {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.letterhead .institution-block {
+    text-align: center;
+}
+
+/* Global img{display:block} breaks text-align:center — centre letterhead logos */
+.ca-header-container img,
+.transcript-header-container img,
+.report-header img,
+.receipt-header img,
+.letterhead img,
+.print-header img,
+.receivables-branding img,
+.age-recv-branding img,
+.card-body.text-center > img,
+.text-center.mb-3 > img,
+.text-center.mb-4 > img,
+.text-center img.report-logo,
+.text-center img.wuc-logo-img,
+.text-center img.admin-slip-logo,
+.text-center img[alt*="Logo" i],
+.text-center img[alt*="logo" i],
+.text-center img[class*="logo"]:not(.logo) {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.sidebar .logo-container {
+    width: 100%;
+    min-width: 0;
+    text-align: center;
+}
+
+.sidebar .logo-container .logo,
+.sidebar img.logo {
+    display: block;
+    width: min(var(--sidebar-logo-width, 220px), 100%) !important;
+    height: auto !important;
+    max-height: var(--sidebar-logo-size, 70px) !important;
+    margin: 0 auto !important;
+    object-fit: contain !important;
+    object-position: center center !important;
+}
+
+/* ── 14. Shared consistency layer (2026-07-02) ───────────────────────────
+   Portal-wide component normalization. Loaded last, so it harmonizes the many
+   module stylesheets without new markup. Kept additive: only spacing, depth,
+   states and the shared flash component are defined here. */
+
+/* Shared flash / alert component (from includes/flash_alerts.php) */
+.wuc-flash-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin: 0 0 1rem 0;
+}
+.wuc-flash-host {
+    padding-top: 1rem;
+    padding-bottom: 0;
+}
+.wuc-flash-alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.35rem;
+    border: 1px solid var(--wuc-border);
+    border-left-width: 4px;
+    border-radius: var(--wuc-radius-sm, 8px);
+    padding: 0.85rem 1rem;
+    margin: 0;
+    font-size: 0.9rem;
+    animation: wucPageIn 220ms var(--wuc-ease) both;
+}
+.wuc-flash-alert .wuc-flash-text { flex: 1; min-width: 0; }
+.wuc-flash-alert.alert-success { border-left-color: var(--wuc-success); }
+.wuc-flash-alert.alert-danger  { border-left-color: var(--wuc-danger); }
+.wuc-flash-alert.alert-warning { border-left-color: var(--wuc-warning); }
+.wuc-flash-alert.alert-info    { border-left-color: var(--wuc-info); }
+
+/* Alerts — consistent shape/weight everywhere (not just .portal-dashboard) */
+.main-content .alert,
+.content-wrapper .alert,
+.dash-content .alert {
+    border-radius: var(--wuc-radius-sm, 8px);
+    border-left-width: 4px;
+}
+
+/* Cards — uniform radius/border/depth across modules */
+.main-content .card,
+.content-wrapper .card,
+.dash-content .card {
+    border-radius: var(--wuc-radius, 12px);
+    border: 1px solid var(--wuc-border);
+    box-shadow: var(--wuc-shadow-sm);
+}
+
+/* Buttons — consistent radius/weight so every module matches */
+.main-content .btn,
+.content-wrapper .btn,
+.dash-content .btn {
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+/* Tables — shared header treatment + row hover accent */
+.main-content .table thead th,
+.content-wrapper .table thead th,
+.dash-content .table thead th {
+    background: linear-gradient(180deg, #faf9fe 0%, #f3f1fb 100%);
+    color: var(--wuc-ink-soft);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+.main-content .table-hover tbody tr:hover,
+.content-wrapper .table-hover tbody tr:hover,
+.dash-content .table-hover tbody tr:hover {
+    box-shadow: inset 3px 0 0 var(--wuc-primary);
+}
+
+/* Forms — shared focus ring so inputs feel identical portal-wide */
+.main-content .form-control:focus,
+.main-content .form-select:focus,
+.content-wrapper .form-control:focus,
+.content-wrapper .form-select:focus,
+.dash-content .form-control:focus,
+.dash-content .form-select:focus {
+    border-color: var(--wuc-primary);
+    box-shadow: 0 0 0 0.25rem var(--wuc-primary-ring);
+}
+
+/* Modals — consistent corner radius and soft depth */
+.modal-content {
+    border-radius: var(--wuc-radius-lg, 16px);
+    box-shadow: var(--wuc-shadow-lg);
+}

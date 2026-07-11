@@ -1,0 +1,926 @@
+/* Unified Sidebar — WUC Portal
+   "Midnight Navy" dark theme with ITC red brand accent.
+   Used directly across all modules via @import (admin, accounts,
+   admissions, students, lecturers). */
+
+:root {
+    /* ITC Logo Brand */
+    --sb-primary: #1B2A4A;       /* Logo Navy */
+    --sb-accent: #C8102E;        /* Logo Red */
+
+    /* Dark sidebar palette */
+    --sb-bg-1: #0B1530;          /* Deepest navy */
+    --sb-bg-2: #14213D;          /* Mid navy */
+    --sb-bg-3: #1B2A4A;          /* Brand navy */
+    --sb-surface: rgba(255, 255, 255, 0.04);
+    --sb-surface-hover: rgba(255, 255, 255, 0.07);
+    --sb-surface-active: rgba(200, 16, 46, 0.12);
+    --sb-divider: rgba(255, 255, 255, 0.08);
+
+    /* Accent variants */
+    --sb-accent-soft: rgba(200, 16, 46, 0.18);
+    --sb-accent-glow: rgba(200, 16, 46, 0.45);
+    --secondary-light: #e0253f;
+    --secondary-dark: #9e0c23;
+
+    /* Derived (kept for back-compat with legacy selectors) */
+    --primary-color: var(--sb-primary);
+    --primary-light: #2a3f6a;
+    --primary-dark: #0b1530;
+    --secondary-color: var(--sb-accent);
+    --accent-color: var(--sb-accent);
+    --accent-light: var(--secondary-light);
+    --accent-dark: var(--secondary-dark);
+
+    /* Light-mode tokens still used by some pages */
+    --bg-white: #ffffff;
+    --bg-light: #f8f9fa;
+    --bg-secondary: #f1f3f4;
+    --bg-primary-light: rgba(27, 42, 74, 0.05);
+    --border-color: #e2e8f0;
+    --border-light: #f1f5f9;
+    --border-primary: rgba(27, 42, 74, 0.2);
+
+    /* Sidebar text */
+    --sb-text: #E6ECF7;           /* Primary text on dark */
+    --sb-text-dim: #A6B0C7;       /* Secondary text */
+    --sb-text-muted: #7C8AA8;     /* Section titles */
+    --text-on-primary: #ffffff;
+
+    /* Status */
+    --success-color: #34d399;
+    --warning-color: #fbbf24;
+    --danger-color: #f87171;
+
+    /* Sizing */
+    --sidebar-width: 280px;
+    --border-radius: 10px;
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.18);
+    --shadow-md: 0 6px 18px rgba(0, 0, 0, 0.25);
+    --shadow-lg: 0 18px 40px rgba(0, 0, 0, 0.35);
+
+    /* Timing */
+    --transition-speed: 0.28s;
+    --transition-fast: 0.15s;
+
+    /* Logo */
+    --sidebar-logo-size: 70px;
+    --sidebar-logo-width: 220px;
+}
+
+/* Global typography defaults for modules using the unified sidebar */
+body {
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   Sidebar shell
+   ───────────────────────────────────────────────────────────────────── */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: var(--sidebar-width);
+    max-width: calc(100vw - 24px);
+    background:
+        radial-gradient(120% 60% at 0% 0%, rgba(200, 16, 46, 0.10) 0%, transparent 55%),
+        radial-gradient(80% 50% at 100% 100%, rgba(46, 89, 175, 0.18) 0%, transparent 60%),
+        linear-gradient(180deg, var(--sb-bg-2) 0%, var(--sb-bg-1) 100%);
+    color: var(--sb-text);
+    box-shadow:
+        inset -1px 0 0 rgba(255, 255, 255, 0.04),
+        4px 0 24px rgba(0, 0, 0, 0.35);
+    transition: transform var(--transition-speed) ease;
+    z-index: 1000;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    animation: sidebar-slide-in 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Vertical accent rail glued to the right edge */
+.sidebar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 2px;
+    height: 100%;
+    background: linear-gradient(180deg,
+        transparent 0%,
+        var(--sb-accent-glow) 20%,
+        rgba(200, 16, 46, 0.15) 50%,
+        var(--sb-accent-glow) 80%,
+        transparent 100%);
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   Header / logo
+   ───────────────────────────────────────────────────────────────────── */
+.sidebar-header {
+    padding: 1.5rem 1rem 1.25rem;
+    background:
+        radial-gradient(120% 80% at 50% 0%, rgba(200, 16, 46, 0.22) 0%, transparent 60%),
+        linear-gradient(135deg, var(--sb-bg-3) 0%, var(--sb-bg-1) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    flex-shrink: 0;
+    overflow: hidden;
+    border-bottom: 1px solid var(--sb-divider);
+}
+
+.sidebar-header::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.04) 50%, transparent 100%);
+    pointer-events: none;
+}
+
+/* Soft bottom hairline glow under the header */
+.sidebar-header::after {
+    content: '';
+    position: absolute;
+    left: 12%;
+    right: 12%;
+    bottom: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--sb-accent-glow), transparent);
+    pointer-events: none;
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    min-width: 0;
+    text-align: center;
+}
+
+.logo {
+    width: var(--sidebar-logo-width);
+    height: auto;
+    max-height: var(--sidebar-logo-size);
+    object-fit: contain;
+    object-position: center center;
+    display: block;
+    border-radius: 8px;
+    margin: 0 auto;
+    background-color: rgba(255, 255, 255, 0.97);
+    padding: 6px 10px;
+    box-shadow:
+        0 4px 16px rgba(0, 0, 0, 0.35),
+        0 0 0 1px rgba(255, 255, 255, 0.08);
+    transition: transform var(--transition-fast) ease, box-shadow var(--transition-speed) ease;
+}
+
+.logo:hover {
+    transform: scale(1.04);
+    box-shadow:
+        0 8px 24px rgba(0, 0, 0, 0.45),
+        0 0 0 1px var(--sb-accent-glow);
+}
+
+.logo-text {
+    color: #fff;
+    font-size: 1.5rem;
+    line-height: var(--sidebar-logo-size);
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    text-transform: uppercase;
+    margin: 0;
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   Content / sections
+   ───────────────────────────────────────────────────────────────────── */
+.sidebar-content {
+    flex: 1;
+    min-height: 0;
+    padding: 1rem 0 1.5rem;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: transparent;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+}
+
+.nav-section {
+    margin-bottom: 1.25rem;
+    position: relative;
+}
+
+.nav-section-title {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--sb-text-muted);
+    padding: 0.75rem 1.5rem 0.5rem;
+    letter-spacing: 1.4px;
+    margin-bottom: 0.25rem;
+    border-bottom: none;
+    background: transparent;
+    position: relative;
+}
+
+.nav-section-title::before {
+    content: '';
+    position: absolute;
+    left: 1.5rem;
+    bottom: 0.15rem;
+    width: 22px;
+    height: 2px;
+    background: linear-gradient(90deg, var(--sb-accent), transparent);
+    border-radius: 2px;
+    opacity: 0.7;
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   Nav items
+   ───────────────────────────────────────────────────────────────────── */
+.nav-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1.25rem;
+    margin: 0.15rem 0.65rem;
+    color: var(--sb-text-dim);
+    text-decoration: none !important;
+    transition:
+        background var(--transition-speed) ease,
+        color var(--transition-speed) ease,
+        transform var(--transition-fast) ease,
+        box-shadow var(--transition-speed) ease;
+    border-left: 3px solid transparent;
+    position: relative;
+    font-weight: 500;
+    border-radius: 8px;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+/* Hover sheen that sweeps across the item */
+.nav-item::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.06) 50%,
+        transparent 100%);
+    transform: translateX(-100%);
+    transition: transform 0.55s ease;
+    pointer-events: none;
+}
+
+.nav-item:hover {
+    background: var(--sb-surface-hover);
+    color: #ffffff;
+    text-decoration: none !important;
+    border-left-color: var(--sb-accent);
+    transform: translateX(3px);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+
+.nav-item:hover::before {
+    transform: translateX(100%);
+}
+
+.nav-item.active {
+    background:
+        linear-gradient(90deg, var(--sb-accent-soft) 0%, rgba(200, 16, 46, 0.04) 70%, transparent 100%);
+    color: #ffffff;
+    text-decoration: none !important;
+    border-left-color: var(--sb-accent);
+    font-weight: 600;
+    box-shadow:
+        inset 0 0 0 1px rgba(200, 16, 46, 0.18),
+        0 6px 18px rgba(200, 16, 46, 0.18);
+}
+
+.nav-item:focus {
+    text-decoration: none !important;
+    outline: none;
+    background: var(--sb-surface-hover);
+    color: #ffffff;
+    border-left-color: var(--sb-accent);
+    box-shadow: 0 0 0 2px rgba(200, 16, 46, 0.35);
+}
+
+/* Right-edge marker on active */
+.nav-item.active::after {
+    content: '';
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 6px;
+    height: 6px;
+    background: var(--sb-accent);
+    border-radius: 50%;
+    box-shadow: 0 0 10px var(--sb-accent-glow);
+}
+
+.nav-item i {
+    margin-right: 0.875rem;
+    font-size: 1.05rem;
+    width: 22px;
+    text-align: center;
+    transition: transform var(--transition-fast) ease, color var(--transition-speed) ease, text-shadow var(--transition-speed) ease;
+    color: var(--sb-text-muted);
+}
+
+.nav-item:hover i,
+.nav-item.active i {
+    color: var(--sb-accent);
+    transform: scale(1.12);
+    text-shadow: 0 0 12px var(--sb-accent-glow);
+}
+
+.nav-item span {
+    font-size: 0.875rem;
+    flex: 1;
+    letter-spacing: 0.2px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   Footer / user info
+   ───────────────────────────────────────────────────────────────────── */
+.sidebar-footer {
+    padding: 1rem 1rem 1.1rem;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0%, rgba(0, 0, 0, 0.25) 100%);
+    border-top: 1px solid var(--sb-divider);
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+    flex-shrink: 0;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+
+.sidebar-footer::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 8%;
+    right: 8%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--sb-accent-glow), transparent);
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.875rem;
+    padding: 0.65rem 0.75rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--border-radius);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    transition: background var(--transition-speed) ease, border-color var(--transition-speed) ease;
+}
+
+.user-info:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(200, 16, 46, 0.3);
+}
+
+.user-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--sb-accent) 0%, var(--secondary-dark) 100%);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    margin-right: 0.75rem;
+    font-size: 0.9rem;
+    box-shadow:
+        0 4px 12px rgba(200, 16, 46, 0.35),
+        0 0 0 2px rgba(255, 255, 255, 0.1);
+    transition: transform var(--transition-fast) ease;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.user-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.user-avatar:hover {
+    transform: scale(1.06);
+}
+
+.user-details {
+    overflow: hidden;
+    flex: 1;
+    min-width: 0;
+}
+
+.user-name {
+    font-weight: 600;
+    color: #ffffff;
+    font-size: 0.875rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 0.125rem;
+    line-height: 1.2;
+}
+
+.user-role {
+    font-size: 0.7rem;
+    color: var(--sb-text-dim);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+}
+
+/* Quick action buttons */
+.quick-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.quick-action-btn {
+    flex: 1;
+    padding: 0.625rem 0.5rem;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--sb-text);
+    text-decoration: none;
+    text-align: center;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    transition: all var(--transition-speed) ease;
+    position: relative;
+    overflow: hidden;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+}
+
+.quick-action-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.12), transparent);
+    transition: left 0.55s ease;
+}
+
+.quick-action-btn:hover {
+    background: var(--sb-accent);
+    border-color: var(--sb-accent);
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 18px rgba(200, 16, 46, 0.4);
+}
+
+.quick-action-btn:hover::before {
+    left: 100%;
+}
+
+.quick-action-btn i {
+    font-size: 0.95rem;
+    transition: transform var(--transition-fast) ease;
+}
+
+.quick-action-btn:hover i {
+    transform: scale(1.1);
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   Mobile toggle
+   ───────────────────────────────────────────────────────────────────── */
+.sidebar-toggle {
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--border-radius);
+    background: linear-gradient(135deg, var(--sb-bg-3) 0%, var(--sb-bg-1) 100%);
+    color: #fff;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    cursor: pointer;
+    z-index: 1001;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(200, 16, 46, 0.15);
+    transition: all var(--transition-speed) ease;
+    font-size: 1.125rem;
+}
+
+.sidebar-toggle:hover {
+    background: linear-gradient(135deg, var(--sb-accent) 0%, var(--secondary-dark) 100%);
+    transform: scale(1.05);
+    box-shadow: 0 10px 24px rgba(200, 16, 46, 0.45);
+}
+
+.sidebar-toggle:active {
+    transform: scale(0.95);
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   Layout offset for main content
+   ───────────────────────────────────────────────────────────────────── */
+@media (min-width: 992px) {
+    body.has-unified-sidebar .main-wrapper {
+        margin-left: var(--sidebar-width);
+        width: calc(100% - var(--sidebar-width));
+        max-width: calc(100vw - var(--sidebar-width));
+        transition: margin var(--transition-speed) ease, width var(--transition-speed) ease;
+    }
+
+    body.has-unified-sidebar .main-wrapper .main-content,
+    body.has-unified-sidebar .main-wrapper .container-fluid,
+    body.has-unified-sidebar .main-wrapper .admin-dashboard,
+    body.has-unified-sidebar .container-fluid,
+    body.has-unified-sidebar .w3-container {
+        margin-left: 0 !important;
+        width: 100%;
+        max-width: 100%;
+    }
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   School logo watermark for the main content area
+   Applied to staff/admin pages (has-unified-sidebar) AND student pages
+   (bg-light) so every signed-in user sees the same ITC backdrop.
+   Pinned to the viewport (position: fixed on the pseudo) so it stays
+   put while content scrolls. Uses favicon.png — a clean square crop of
+   just the "itc" mark. (Previously used LOGO_large.jpg, a wide banner with
+   legible ministry text; at any opacity a readable text banner floating
+   mid-page reads as a rendering glitch, not a watermark.)
+   ───────────────────────────────────────────────────────────────────── */
+body.has-unified-sidebar,
+body.bg-light {
+    background:
+        radial-gradient(ellipse 80% 60% at 80% 25%, rgba(27, 42, 74, 0.045) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 15% 85%, rgba(200, 16, 46, 0.035) 0%, transparent 60%),
+        #f1f3f7;
+}
+
+body.has-unified-sidebar::after,
+body.bg-light::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: var(--sidebar-width);
+    right: 0;
+    bottom: 0;
+    background-image: url('/wucportal/images/favicon.png');
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-size: clamp(220px, 30vmin, 360px);
+    opacity: 0.06;
+    filter: grayscale(45%) contrast(0.95);
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Containers must be transparent so the watermark shows through.
+   !important is intentional — several module stylesheets set an opaque
+   page bg on these wrappers and would otherwise cover the watermark.
+   Student-side wrappers (.dash-content, .content-wrapper, .portal-dashboard)
+   are included so the watermark also bleeds through on student pages. */
+body.has-unified-sidebar .main-wrapper,
+body.has-unified-sidebar .main-content,
+body.has-unified-sidebar .admin-dashboard,
+body.bg-light .dash-content,
+body.bg-light .content-wrapper,
+body.bg-light .portal-dashboard {
+    background-color: transparent !important;
+    position: relative;
+    z-index: 1;
+}
+
+@media (max-width: 991.98px) {
+    body.has-unified-sidebar::after,
+    body.bg-light::after {
+        left: 0;
+    }
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   Responsive
+   ───────────────────────────────────────────────────────────────────── */
+@media (max-width: 991.98px) {
+    .sidebar {
+        width: min(var(--sidebar-width), calc(100vw - 24px));
+        animation: none;
+        transform: translateX(-100%);
+        box-shadow: none;
+    }
+
+    .sidebar.show {
+        transform: translateX(0);
+        box-shadow: 5px 0 30px rgba(0, 0, 0, 0.5);
+    }
+
+    .sidebar-toggle {
+        display: flex;
+    }
+
+    .container-fluid,
+    .w3-container,
+    .main-wrapper {
+        width: 100%;
+        max-width: 100%;
+        margin-left: 0;
+    }
+
+    body.sidebar-open {
+        overflow: hidden;
+    }
+
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   Scrollbar
+   ───────────────────────────────────────────────────────────────────── */
+.sidebar::-webkit-scrollbar,
+.sidebar-content::-webkit-scrollbar,
+.sidebar-menu::-webkit-scrollbar {
+    width: 6px;
+}
+
+.sidebar::-webkit-scrollbar-track,
+.sidebar-content::-webkit-scrollbar-track,
+.sidebar-menu::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 3px;
+}
+
+.sidebar::-webkit-scrollbar-thumb,
+.sidebar-content::-webkit-scrollbar-thumb,
+.sidebar-menu::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, var(--secondary-light), var(--sb-accent));
+    border-radius: 3px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover,
+.sidebar-content::-webkit-scrollbar-thumb:hover,
+.sidebar-menu::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, var(--sb-accent), var(--secondary-dark));
+    box-shadow: 0 0 8px var(--sb-accent-glow);
+}
+
+.sidebar::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+.sidebar-content {
+    scrollbar-width: thin;
+    scrollbar-color: var(--sb-accent) rgba(0, 0, 0, 0.25);
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   Animations
+   ───────────────────────────────────────────────────────────────────── */
+@keyframes sidebar-slide-in {
+    0% {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Soft glow pulse on the active item indicator */
+@keyframes nav-active-glow {
+    0%, 100% {
+        box-shadow: 0 0 8px var(--sb-accent-glow);
+        opacity: 0.95;
+    }
+    50% {
+        box-shadow: 0 0 16px var(--sb-accent-glow);
+        opacity: 1;
+    }
+}
+
+.nav-item.active::after {
+    animation: nav-active-glow 2.4s ease-in-out infinite;
+}
+
+/* Premium polish pass: sharper hierarchy without changing menu markup. */
+.sidebar {
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.sidebar-content {
+    padding-top: 1.1rem;
+}
+
+.nav-section {
+    margin-bottom: 1rem;
+}
+
+.nav-section + .nav-section {
+    padding-top: 0.35rem;
+}
+
+.nav-section-title {
+    color: rgba(230, 236, 247, 0.66);
+}
+
+.nav-item {
+    min-height: 44px;
+    backdrop-filter: saturate(1.05);
+    -webkit-backdrop-filter: saturate(1.05);
+}
+
+.nav-item:hover,
+.nav-item:focus {
+    background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.035));
+}
+
+.nav-item.active {
+    background:
+        linear-gradient(90deg, rgba(200, 16, 46, 0.24) 0%, rgba(200, 16, 46, 0.11) 56%, rgba(255, 255, 255, 0.035) 100%);
+}
+
+.nav-item.active::before {
+    transform: translateX(100%);
+    opacity: 0.7;
+}
+
+.nav-item span {
+    min-width: 0;
+}
+
+.user-info {
+    backdrop-filter: blur(10px) saturate(1.15);
+    -webkit-backdrop-filter: blur(10px) saturate(1.15);
+}
+
+.quick-action-btn:focus-visible {
+    outline: 3px solid rgba(200, 16, 46, 0.35);
+    outline-offset: 2px;
+}
+
+.sidebar-toggle {
+    backdrop-filter: blur(10px) saturate(1.15);
+    -webkit-backdrop-filter: blur(10px) saturate(1.15);
+}
+
+/* Shimmer loading state */
+.sidebar-loading {
+    position: relative;
+    overflow: hidden;
+}
+
+.sidebar-loading::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+    animation: sidebar-shimmer 1.5s infinite;
+}
+
+@keyframes sidebar-shimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+/* Mobile backdrop helper (legacy) */
+.sidebar-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    z-index: 999;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity var(--transition-speed) ease, visibility var(--transition-speed) ease;
+}
+
+.sidebar-backdrop.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+@media (min-width: 992px) {
+    .sidebar-toggle,
+    .sidebar-backdrop {
+        display: none;
+    }
+}
+
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+    .sidebar,
+    .nav-item,
+    .nav-item::before,
+    .nav-item.active::after,
+    .quick-action-btn,
+    .quick-action-btn::before,
+    .logo,
+    .sidebar-toggle,
+    .user-avatar {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   Collapsible nav sections
+   Progressive enhancement applied by js/sidebar-collapsible.js. The
+   .is-collapsible / .collapsed classes, the .nav-section-items wrapper and
+   the .nav-section-caret icon are all injected at runtime — without JS the
+   sections render fully expanded exactly as before. Only categories with two
+   or more links become collapsible; single-link sections stay static.
+   ───────────────────────────────────────────────────────────────────── */
+.nav-section.is-collapsible > .nav-section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    transition: color var(--transition-fast) ease;
+}
+
+.nav-section.is-collapsible > .nav-section-title:hover {
+    color: var(--sb-text);
+}
+
+.nav-section.is-collapsible > .nav-section-title:focus-visible {
+    outline: 2px solid var(--sb-accent-glow);
+    outline-offset: 2px;
+    border-radius: 6px;
+}
+
+/* Caret sits at the far right of the category header and flips when closed. */
+.nav-section-caret {
+    margin-left: auto;
+    flex-shrink: 0;
+    font-size: 0.7rem;
+    line-height: 1;
+    color: var(--sb-text-muted);
+    transition: transform var(--transition-speed) ease;
+}
+
+.nav-section.is-collapsible.collapsed > .nav-section-title .nav-section-caret {
+    transform: rotate(-90deg);
+}
+
+/* Animated container for the category's links. 80rem is well above the
+   tallest real section (~10 items ≈ 30rem) so expanded content never clips. */
+.nav-section-items {
+    max-height: 80rem;
+    overflow: hidden;
+    opacity: 1;
+    transition: max-height var(--transition-speed) ease, opacity var(--transition-fast) ease;
+}
+
+.nav-section.is-collapsible.collapsed > .nav-section-items {
+    max-height: 0;
+    opacity: 0;
+    pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .nav-section-items,
+    .nav-section-caret {
+        transition: none !important;
+    }
+}

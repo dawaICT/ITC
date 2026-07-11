@@ -1,0 +1,52 @@
+/* Dean Dashboard Specific Styles
+   Module-specific overrides only - layout handled by unified nav */
+
+/* Dean color variables */
+:root {
+    --dean-primary: #1e3c72;
+    --dean-secondary: #2a5298;
+    --dean-accent: #3b5998;
+}
+
+/* Dean-specific background gradient for stats */
+.bg-dean {
+    background: linear-gradient(135deg, var(--dean-primary) 0%, var(--dean-secondary) 100%) !important;
+}
+
+/* Dashboard header styling for dean section */
+.dashboard-header.dean-section {
+    border-left: 4px solid var(--dean-primary);
+}
+
+/* Dean dashboard header with gradient */
+.dean-section .dashboard-title {
+    color: var(--dean-primary);
+}
+
+/* Stats cards - dean specific hover effect */
+.admin-dashboard .stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(30, 60, 114, 0.15);
+}
+
+/* Dean-specific card header accent */
+.dean-section + .row .card-header,
+.admin-dashboard .card-header.dean-accent {
+    border-left: 4px solid var(--dean-primary);
+}
+
+/* Quick access cards dean theming */
+.quick-access-card .bg-dean {
+    background: linear-gradient(135deg, var(--dean-primary) 0%, var(--dean-secondary) 100%) !important;
+}
+
+/* Stat icon dean colors */
+.stat-icon.bg-dean {
+    background: linear-gradient(135deg, var(--dean-primary) 0%, var(--dean-secondary) 100%) !important;
+    box-shadow: 0 4px 15px rgba(30, 60, 114, 0.3);
+}
+
+/* Profile card accent for dean */
+.profile-card .badge.bg-dean {
+    background: linear-gradient(135deg, var(--dean-primary) 0%, var(--dean-secondary) 100%) !important;
+}

@@ -1,0 +1,422 @@
+/* =========================================================================
+   wuc-print.css  —  Global print layer for the WUC / ITC portal
+   -------------------------------------------------------------------------
+   Loaded LAST on every page (after wuc-premium.css) via a media="print"
+   <link>, so every rule here applies ONLY when printing and overrides any
+   earlier print rules. Goals:
+
+     1. Every page prints on A4 (portrait) with sane margins.
+     2. Only the report / document content is printed — navigation, sidebars,
+        top bars, action buttons, footers, search boxes, toasts and DataTables
+        paging chrome are hidden ("targeted, not everything").
+     3. A logo + institution letterhead appears at the top of the printout.
+        Pages that already render their own letterhead opt out; otherwise
+        js/wuc-premium.js injects a hidden .wuc-print-letterhead that this
+        stylesheet reveals on print.
+
+   Page-level overrides: add the class .no-auto-print (on <body>) to suppress
+   the auto letterhead, or .print-target on the single element you want to
+   print to hide everything else on that page.
+   ========================================================================= */
+
+@page {
+    size: A4 portrait;
+    margin: 12mm;
+}
+
+/* The auto-injected letterhead is hidden on screen (inline style) and shown
+   here only when printing. */
+.wuc-print-letterhead { display: none; }
+
+/* ----- everything below applies on paper only ------------------------- */
+
+/* Kill shadows/animations that waste ink and confuse layout */
+*,
+*::before,
+*::after {
+    box-shadow: none !important;
+    text-shadow: none !important;
+    animation: none !important;
+    transition: none !important;
+}
+
+html, body {
+    background: #fff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    color: #000 !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    overflow: visible !important;
+    float: none !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+
+/* ---- Hide page chrome: nav, sidebars, top bars, buttons, footers ----- */
+.sidebar, .admin-sidebar, .lecturer-sidebar, .students-sidebar,
+.accounts-sidebar, .unified-sidebar, #sidebar, .side-nav,
+.navbar, nav, .topbar, .top-bar, .navbar-toggler, .menu-toggle,
+.dashboard-header, .page-header,
+.d-print-none, .no-print, .header-actions, .action-bar, .action-buttons,
+.report-filters, form.report-filter, .filter-card, .filters,
+footer, .footer, .site-footer, .dashboard-footer,
+button, .btn, .btn-group, .dropdown-menu,
+.breadcrumb, .alert-dismissible .btn-close,
+.dataTables_paginate, .dataTables_info,
+.dataTables_length, .dataTables_filter, .dt-buttons,
+.report-search, #studentSearch, .search-bar, .searchbox,
+.wuc-toast-stack, .wuc-toast, .wuc-capslock-hint, .toast-container,
+.back-to-top, .scroll-top {
+    display: none !important;
+}
+
+/* Reveal print-only blocks */
+.wuc-print-letterhead,
+.report-print-header,
+.print-only,
+.d-print-block,
+.print-show {
+    display: block !important;
+}
+
+/* ---- Reset portal/sidebar layout offsets so content starts at margin -- */
+body.has-unified-sidebar,
+body.sidebar-open,
+.main-wrapper, .content-wrapper, .main-content, .page-content,
+.admin-dashboard, .portal-dashboard, .accounts-page,
+.hod-page, .students-page, .lecturer-page, .dashboard-content {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    left: auto !important;
+    right: auto !important;
+    transform: none !important;
+    position: static !important;
+}
+
+.container, .container-fluid, .container-sm, .container-md,
+.container-lg, .container-xl, .container-xxl {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+}
+
+/* Strip card chrome */
+.data-table-card, .card, .stat-card, .panel {
+    box-shadow: none !important;
+    border: 0 !important;
+    background: #fff !important;
+    margin: 0 0 8px 0 !important;
+}
+.data-table-card .card-header,
+.card .card-header {
+    background: #fff !important;
+    border-bottom: 1px solid #ccc !important;
+    padding: 4px 0 !important;
+    color: #000 !important;
+}
+.data-table-card .card-body,
+.card .card-body { padding: 4px 0 !important; }
+
+.table-responsive, .table-container, .dataTables_wrapper {
+    overflow: visible !important;
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+/* ---- Tables: readable on paper -------------------------------------- */
+table {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-collapse: collapse !important;
+    table-layout: auto !important;
+    font-size: 9.5pt !important;
+    color: #000 !important;
+}
+table th, table td {
+    border: 1px solid #444 !important;
+    padding: 3px 5px !important;
+    color: #000 !important;
+    vertical-align: top !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    word-break: normal !important;
+}
+table thead th {
+    background: #e9ecef !important;
+    color: #000 !important;
+    font-weight: 700 !important;
+}
+.badge {
+    color: #000 !important;
+    background: transparent !important;
+    border: 1px solid #555 !important;
+    padding: 1px 4px !important;
+    font-weight: 600 !important;
+}
+.progress { display: none !important; }
+
+/* ---- Page-break behaviour ------------------------------------------- */
+tr, .stat-card { page-break-inside: avoid; }
+.data-table-card, .card, .report-section, .summary-card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+}
+thead { display: table-header-group; }
+tfoot { display: table-footer-group; }
+a[href]:after { content: ""; }
+
+/* ---- .print-target: print ONLY this element on the page -------------
+   When a page sets <body class="has-print-target"> and marks the single
+   document region with .print-target, everything else is blanked via the
+   visibility trick (keeps the target's own layout intact) and the target is
+   pulled to the top-left of the page so it prints alone with the letterhead. */
+body.has-print-target,
+body.has-print-target * {
+    visibility: hidden !important;
+}
+body.has-print-target .wuc-print-letterhead,
+body.has-print-target .wuc-print-letterhead *,
+body.has-print-target .print-target,
+body.has-print-target .print-target * {
+    visibility: visible !important;
+}
+body.has-print-target .print-target {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100% !important;
+}
+
+/* ---- Auto-injected / shared letterhead layout ----------------------- */
+.wuc-print-letterhead,
+.report-print-header {
+    text-align: center;
+    margin: 0 0 14px 0;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #000;
+    break-after: avoid;
+    page-break-after: avoid;
+}
+
+.wuc-print-logo-frame {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-width: 0;
+    min-height: 78px;
+    margin: 0 auto 8px;
+    text-align: center;
+}
+
+.wuc-print-logo-frame img,
+img.report-logo {
+    display: block;
+    max-width: 100%;
+    height: 72px;
+    width: auto;
+    max-height: 72px;
+    margin: 0 auto;
+    object-fit: contain;
+    object-position: center center;
+}
+
+/* Centre logos in page-level letterheads when printing */
+.receipt-header img,
+.report-header img,
+.ca-header-container img,
+.transcript-header-container img,
+.letterhead img,
+.header img.wuc-logo-img {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.wuc-print-letterhead .logo-row,
+.report-print-header .logo-row {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.wuc-print-letterhead .logo-row > *,
+.report-print-header .logo-row > * {
+    display: block;
+}
+
+.wuc-print-letterhead .institution-block,
+.report-print-header .institution-block {
+    text-align: center;
+    padding-left: 0;
+    margin-top: 4px;
+}
+.wuc-print-letterhead .institution-name,
+.report-print-header .institution-name {
+    font-weight: 700;
+    font-size: 16pt;
+    text-transform: uppercase;
+    line-height: 1.1;
+    color: #000;
+}
+.wuc-print-letterhead .institution-tag,
+.report-print-header .institution-tag {
+    font-size: 9.5pt;
+    color: #444;
+    font-weight: 400;
+    margin-top: 2px;
+}
+.wuc-print-letterhead .report-title,
+.report-print-header .report-title {
+    font-size: 14pt;
+    font-weight: 700;
+    margin-top: 12px;
+    text-transform: uppercase;
+    color: #000;
+}
+.wuc-print-letterhead .report-meta,
+.report-print-header .report-meta {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 18px;
+    margin-top: 10px;
+    font-size: 10pt;
+    color: #222;
+}
+.wuc-print-letterhead .report-meta strong,
+.report-print-header .report-meta strong {
+    font-weight: 600;
+    margin-right: 4px;
+}
+
+/* =========================================================================
+   Single Page Document print optimizations:
+   Forces documents (like receipts, admission letters, statements of results,
+   invoices) to fit fully on exactly one page of A4 paper.
+   ========================================================================= */
+@media print {
+    body.single-page-document {
+        margin: 0 !important;
+        padding: 0 !important;
+        font-size: 9.5pt !important;
+        line-height: 1.35 !important;
+        box-sizing: border-box !important;
+        background: #fff !important;
+        page-break-after: avoid !important;
+        break-after: avoid !important;
+    }
+    body.single-page-document .wuc-a4-fit-scaled {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+    body.single-page-document .wuc-a4-sheet,
+    body.single-page-document .report-container,
+    body.single-page-document .receipt-container,
+    body.single-page-document .sheet {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+    body.single-page-document .main-content,
+    body.single-page-document .content-wrapper,
+    body.single-page-document .main-wrapper,
+    body.single-page-document .container,
+    body.single-page-document .container-fluid,
+    body.single-page-document .card,
+    body.single-page-document .card-body,
+    body.single-page-document .invoice-container,
+    body.single-page-document .letter-container,
+    body.single-page-document .report-container {
+        margin: 0 !important;
+        padding: 0 !important;
+        border: none !important;
+        box-shadow: none !important;
+        background: transparent !important;
+        max-height: 100vh !important;
+    }
+    body.single-page-document h1,
+    body.single-page-document .h1,
+    body.single-page-document h2,
+    body.single-page-document .h2,
+    body.single-page-document h3,
+    body.single-page-document .h3 {
+        font-size: 14pt !important;
+        margin-top: 5px !important;
+        margin-bottom: 5px !important;
+    }
+    body.single-page-document h4,
+    body.single-page-document .h4,
+    body.single-page-document h5,
+    body.single-page-document .h5 {
+        font-size: 11pt !important;
+        margin-top: 4px !important;
+        margin-bottom: 4px !important;
+    }
+    body.single-page-document p,
+    body.single-page-document li {
+        margin-bottom: 4px !important;
+        font-size: 9.5pt !important;
+    }
+    body.single-page-document table {
+        font-size: 9pt !important;
+        margin-bottom: 8px !important;
+    }
+    body.single-page-document table th,
+    body.single-page-document table td {
+        padding: 4px 6px !important;
+    }
+    body.single-page-document .wuc-print-letterhead,
+    body.single-page-document .report-print-header,
+    body.single-page-document .receipt-header,
+    body.single-page-document .header {
+        margin-bottom: 10px !important;
+        padding-bottom: 8px !important;
+    }
+    body.single-page-document .wuc-print-letterhead img.report-logo,
+    body.single-page-document .report-print-header img.report-logo,
+    body.single-page-document .wuc-print-logo-frame img,
+    body.single-page-document .logo,
+    body.single-page-document .receipt-header img {
+        height: 48px !important;
+        width: auto !important;
+        max-height: 48px !important;
+        margin-bottom: 4px !important;
+    }
+
+    body.single-page-document .wuc-print-logo-frame {
+        width: 100% !important;
+        min-width: 0 !important;
+        height: auto !important;
+        min-height: 52px !important;
+    }
+    body.single-page-document .wuc-print-letterhead .institution-name,
+    body.single-page-document .report-print-header .institution-name,
+    body.single-page-document .university-name {
+        font-size: 13pt !important;
+    }
+    body.single-page-document .wuc-print-letterhead .report-title,
+    body.single-page-document .report-print-header .report-title,
+    body.single-page-document .letter-title,
+    body.single-page-document .receipt-number {
+        font-size: 11pt !important;
+        margin-top: 4px !important;
+        padding: 4px 10px !important;
+    }
+    body.single-page-document .signature-section {
+        margin-top: 15px !important;
+    }
+    body.single-page-document .signature-line {
+        margin-top: 25px !important;
+    }
+}
+

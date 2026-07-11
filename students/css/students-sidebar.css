@@ -1,0 +1,216 @@
+/* Students Sidebar Styles
+   Import the unified portal sidebar styling.
+   This file imports the shared styles and adds only module-specific overrides if needed. */
+
+@import url('/wucportal/css/unified-sidebar.css');
+
+/* Context-aware sizing for logo and text - same as admin */
+:root {
+    --sidebar-logo-size: 70px;
+    --sidebar-width: 280px;
+    --student-mobile-sidebar-width: clamp(220px, 72vw, 260px);
+}
+
+/* Ensure sidebar uses unified typography */
+.sidebar {
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif;
+}
+
+.sidebar .user-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(111, 66, 193, 0.25), 0 0 0 2px rgba(255, 255, 255, 0.12);
+}
+
+.sidebar .user-avatar img {
+    border-radius: 0;
+}
+
+/* Logo sizing consistent with admin sidebar */
+.sidebar .logo {
+    width: min(var(--sidebar-logo-width, 220px), 100%);
+    height: auto;
+    max-height: var(--sidebar-logo-size);
+    border-radius: 12px;
+    margin: 0 auto;
+    background-color: #ffffff;
+    padding: 6px 10px;
+    display: block;
+    object-fit: contain;
+    object-position: center center;
+    border: 2px solid rgba(255, 255, 255, 0.95);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28), 0 0 0 3px rgba(255, 255, 255, 0.18);
+    transition: all 0.25s ease;
+}
+
+.sidebar .logo:hover {
+    transform: scale(1.05) rotate(2deg);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.34), 0 0 0 4px rgba(255, 255, 255, 0.24);
+}
+
+.sidebar .logo-text {
+    color: #fff;
+    font-size: 1.22rem;
+    line-height: var(--sidebar-logo-size);
+    font-weight: 700;
+    letter-spacing: 0;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    text-transform: uppercase;
+}
+
+/* Logo container alignment for abbreviated name */
+.sidebar .logo-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.65rem;
+}
+
+/* Reduced padding for compact header */
+.sidebar .sidebar-header {
+    padding: 0.85rem 0.9rem;
+}
+
+.sidebar .nav-item,
+.sidebar .nav-link {
+    font-size: 1rem;
+}
+
+.sidebar-toggle {
+    z-index: 1065;
+}
+
+@media (max-width: 991.98px) {
+    .sidebar {
+        z-index: 1055;
+        width: min(var(--sidebar-width), calc(100vw - 40px));
+        max-width: calc(100vw - 40px);
+        transform: translateX(-105%);
+    }
+
+    .sidebar.show {
+        transform: translateX(0);
+        box-shadow: 5px 0 25px rgba(15, 23, 42, 0.25);
+    }
+
+    .sidebar-toggle {
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+        position: fixed;
+        top: 0.85rem;
+        left: 0.85rem;
+        width: 42px;
+        height: 42px;
+        z-index: 1065;
+    }
+
+    .sidebar .nav-item {
+        padding: 0.72rem 1rem;
+        margin-left: 0.35rem;
+        margin-right: 0.35rem;
+    }
+
+    .sidebar .nav-item i {
+        width: 18px;
+        margin-right: 0.7rem;
+        font-size: 0.98rem;
+    }
+
+    .sidebar .nav-item span {
+        font-size: 1rem;
+    }
+
+    .sidebar .sidebar-content {
+        padding-top: 0.7rem;
+        padding-bottom: 0.9rem;
+    }
+
+    .sidebar .sidebar-footer {
+        padding: 0.8rem 0.9rem;
+    }
+
+    body.student-portal.sidebar-open {
+        overflow: hidden;
+    }
+
+    .sidebar-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 1050;
+        background: rgba(15, 23, 42, 0.45);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease;
+    }
+
+    .sidebar-backdrop.show {
+        opacity: 1;
+        pointer-events: auto;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .sidebar {
+        width: var(--student-mobile-sidebar-width);
+        max-width: calc(100vw - 44px);
+    }
+
+    .sidebar .sidebar-header {
+        padding: 0.75rem;
+    }
+
+    .sidebar .logo {
+        width: 42px;
+        height: 42px;
+        padding: 5px;
+    }
+
+    .sidebar .logo-text {
+        font-size: 1rem;
+        line-height: 42px;
+        letter-spacing: 0;
+    }
+
+    .sidebar .logo-container {
+        gap: 0.5rem;
+    }
+
+    .sidebar .nav-section {
+        margin-bottom: 0.85rem;
+    }
+
+    .sidebar .nav-section-title {
+        padding: 0.45rem 1rem 0.55rem;
+        font-size: 0.78rem;
+    }
+
+    .sidebar .user-info {
+        padding: 0.65rem;
+        margin-bottom: 0.8rem;
+    }
+
+    .sidebar .user-avatar {
+        width: 36px;
+        height: 36px;
+        margin-right: 0.65rem;
+    }
+
+    .sidebar .user-name {
+        font-size: 0.95rem;
+    }
+
+    .sidebar .user-role {
+        font-size: 0.82rem;
+    }
+}
+
+@media (min-width: 992px) {
+    .sidebar-toggle,
+    .sidebar-backdrop {
+        display: none !important;
+    }
+}
+
+

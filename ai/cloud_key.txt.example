@@ -1,0 +1,16 @@
+# WUC Portal — Cloud AI API key
+#
+# 1. Get a FREE API key (no credit card) from one of these providers:
+#      - Groq        https://console.groq.com/keys        (default, fastest free tier)
+#      - OpenRouter  https://openrouter.ai/keys           (e.g. for free Qwen models)
+#      - Together    https://api.together.xyz/settings/api-keys
+#
+# 2. Copy this file to:   ai/cloud_key.txt
+#      (the portal reads ai/cloud_key.txt, NOT this .example file)
+#
+# 3. Replace the line below with your key (the first non-comment line is used):
+
+gsk_PASTE_YOUR_GROQ_KEY_HERE
+
+# Optional overrides (or set these as environment variables instead):
+#   WUC_AI_CLOUD_PROVIDER=openrouter-qwen
