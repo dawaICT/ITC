@@ -158,6 +158,7 @@ $baseMenuSections = $isNonAcademicHosSection ? array(
 			array('href' => 'online_class_reports.php', 'icon' => 'fas fa-video', 'label' => 'Online Classes', 'active_on' => 'online_class_reports.php'),
 			array('href' => 'calendar.php', 'icon' => 'fas fa-calendar-alt', 'label' => 'Calendar', 'active_on' => 'calendar.php'),
 			array('href' => 'timetable_settings.php', 'icon' => 'fas fa-clock', 'label' => 'Timetable Settings', 'active_on' => 'timetable_settings.php'),
+			array('href' => 'teaching_planner.php', 'icon' => 'fas fa-file-signature', 'label' => 'Teaching Planner', 'active_on' => 'teaching_planner.php'),
 			array('href' => 'quality_assurance.php', 'icon' => 'fas fa-award', 'label' => 'QA Reports', 'active_on' => 'quality_assurance.php'),
 		),
 	),

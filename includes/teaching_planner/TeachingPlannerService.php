@@ -128,7 +128,8 @@ final class TeachingPlannerService
         $assignment = $preview['assignment'];
         $schedule = $preview['schedule'];
         $settings = $preview['settings'];
-        $this->db->begin_transaction();
+        $ownsTransaction = !$this->inTransaction();
+        if ($ownsTransaction) $this->db->begin_transaction();
         try {
             $sql = "SELECT id FROM teaching_plans WHERE lecturer_staff_id = ? AND course_offering_id = ? AND academic_year = ? AND academic_period = ? AND status IN ('draft','submitted','changes_requested','resubmitted','approved','in_use') FOR UPDATE";
             $stmt = $this->db->prepare($sql);
@@ -153,16 +154,16 @@ final class TeachingPlannerService
             $planned = (float)$schedule['planned_hours'];
             $available = (float)$schedule['available_hours'];
             $stmt = $this->db->prepare("INSERT INTO teaching_plans (document_number, lecturer_assignment_id, course_offering_id, lecturer_staff_id, program_code, class_group_id, academic_year, academic_period, period_start, period_end, template_version_id, syllabus_version_id, generation_settings, coverage_percent, planned_hours, available_hours, warnings, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->bind_param('siississssiissdddss', $documentNumber, $assignmentId, $offeringId, $staffId, $programCode, $classGroupId, $academicYear, $periodName, $settings['start_date'], $settings['end_date'], $templateVersionId, $syllabusVersionId, $settingsJson, $coverage, $planned, $available, $warningsJson, $staffId);
+            $stmt->bind_param('siississssiisdddss', $documentNumber, $assignmentId, $offeringId, $staffId, $programCode, $classGroupId, $academicYear, $periodName, $settings['start_date'], $settings['end_date'], $templateVersionId, $syllabusVersionId, $settingsJson, $coverage, $planned, $available, $warningsJson, $staffId);
             $stmt->execute();
             $planId = (int)$this->db->insert_id;
             $stmt->close();
             $this->insertItems($planId, $schedule['items']);
             tp_audit($this->db, $planId, 'plan.created', 'teaching_plan', (string)$planId, ['document_number' => $documentNumber, 'items' => count($schedule['items'])]);
-            $this->db->commit();
+            if ($ownsTransaction) $this->db->commit();
             return $planId;
         } catch (Throwable $e) {
-            $this->db->rollback();
+            if ($ownsTransaction) $this->db->rollback();
             throw $e;
         }
     }
@@ -246,7 +247,8 @@ final class TeachingPlannerService
         $params[] = $itemId;
         $params[] = $planId;
         $types .= 'ii';
-        $this->db->begin_transaction();
+        $ownsTransaction = !$this->inTransaction();
+        if ($ownsTransaction) $this->db->begin_transaction();
         try {
             $stmt = $this->db->prepare("UPDATE teaching_plan_items SET {$set} WHERE id = ? AND teaching_plan_id = ?");
             $stmt->bind_param($types, ...$params);
@@ -263,9 +265,9 @@ final class TeachingPlannerService
             }
             $stmt->close();
             tp_audit($this->db, $planId, 'item.updated', 'teaching_plan_item', (string)$itemId, array_keys($values));
-            $this->db->commit();
+            if ($ownsTransaction) $this->db->commit();
         } catch (Throwable $e) {
-            $this->db->rollback();
+            if ($ownsTransaction) $this->db->rollback();
             throw $e;
         }
     }
@@ -283,7 +285,8 @@ final class TeachingPlannerService
         if (!isset($map[$action])) {
             throw new RuntimeException('Unsupported workflow action.');
         }
-        $this->db->begin_transaction();
+        $ownsTransaction = !$this->inTransaction();
+        if ($ownsTransaction) $this->db->begin_transaction();
         try {
             $stmt = $this->db->prepare('SELECT * FROM teaching_plans WHERE id = ? FOR UPDATE');
             $stmt->bind_param('i', $planId);
@@ -335,16 +338,17 @@ final class TeachingPlannerService
             $stmt->close();
             tp_audit($this->db, $planId, 'workflow.' . $action, 'teaching_plan', (string)$planId, ['from' => $plan['status'], 'to' => $to]);
             $this->notifyTransition($plan, $to, $comment, $actorId);
-            $this->db->commit();
+            if ($ownsTransaction) $this->db->commit();
         } catch (Throwable $e) {
-            $this->db->rollback();
+            if ($ownsTransaction) $this->db->rollback();
             throw $e;
         }
     }
 
     public function createRevision(int $planId, string $staffId): int
     {
-        $this->db->begin_transaction();
+        $ownsTransaction = !$this->inTransaction();
+        if ($ownsTransaction) $this->db->begin_transaction();
         try {
             $stmt = $this->db->prepare('SELECT * FROM teaching_plans WHERE id = ? FOR UPDATE');
             $stmt->bind_param('i', $planId);
@@ -371,10 +375,10 @@ final class TeachingPlannerService
             $stmt->execute();
             $stmt->close();
             tp_audit($this->db, $newId, 'plan.revision_created', 'teaching_plan', (string)$newId, ['source_plan_id' => $planId, 'revision' => $revision]);
-            $this->db->commit();
+            if ($ownsTransaction) $this->db->commit();
             return $newId;
         } catch (Throwable $e) {
-            $this->db->rollback();
+            if ($ownsTransaction) $this->db->rollback();
             throw $e;
         }
     }
@@ -393,11 +397,9 @@ final class TeachingPlannerService
         if (!$template || $template['status'] !== 'active') {
             throw new RuntimeException('Select an active Lesson Plan template.');
         }
-        $stageTotal = array_sum(array_map(static fn(array $stage): int => (int)($stage['duration_minutes'] ?? 0), $stages));
-        if ($stageTotal !== (int)$item['duration_minutes']) {
-            throw new RuntimeException('Lesson stage durations must total exactly ' . (int)$item['duration_minutes'] . ' minutes. Current total: ' . $stageTotal . ' minutes.');
-        }
-        $this->db->begin_transaction();
+        $stageTotal = TeachingPlannerLessonPlanValidator::validateStageDurations((int)$item['duration_minutes'], $stages);
+        $ownsTransaction = !$this->inTransaction();
+        if ($ownsTransaction) $this->db->begin_transaction();
         try {
             $stmt = $this->db->prepare('SELECT COALESCE(MAX(revision_number), 0) + 1 AS next_revision FROM lesson_plans WHERE teaching_plan_item_id = ?');
             $stmt->bind_param('i', $itemId);
@@ -431,12 +433,37 @@ final class TeachingPlannerService
             }
             $stmt->close();
             tp_audit($this->db, (int)$item['teaching_plan_id'], 'lesson.created', 'lesson_plan', (string)$lessonId, ['item_id' => $itemId, 'stage_minutes' => $stageTotal]);
-            $this->db->commit();
+            if ($ownsTransaction) $this->db->commit();
             return $lessonId;
         } catch (Throwable $e) {
-            $this->db->rollback();
+            if ($ownsTransaction) $this->db->rollback();
             throw $e;
         }
+    }
+
+    public function suggestField(string $staffId, int $planId, int $itemId, string $field): string
+    {
+        $allowed = ['teaching_methods', 'lecturer_activities', 'learner_activities', 'assessment_method'];
+        if (!in_array($field, $allowed, true)) {
+            throw new RuntimeException('Suggestions are available only for supported enrichment fields.');
+        }
+        $stmt = $this->db->prepare("SELECT i.topic, i.subtopics, i.learning_outcomes, p.status, p.lecturer_staff_id
+                                    FROM teaching_plan_items i INNER JOIN teaching_plans p ON p.id = i.teaching_plan_id
+                                    WHERE i.id = ? AND p.id = ?");
+        $stmt->bind_param('ii', $itemId, $planId); $stmt->execute(); $item = $stmt->get_result()->fetch_assoc(); $stmt->close();
+        if (!$item || $item['lecturer_staff_id'] !== $staffId || !in_array($item['status'], ['draft','changes_requested'], true)) {
+            throw new RuntimeException('You are not authorized to request a suggestion for this plan row.');
+        }
+        $topic = trim((string)$item['topic']);
+        $outcome = trim((string)$item['learning_outcomes']);
+        $suggestions = [
+            'teaching_methods' => 'Use a short guided explanation, worked demonstration, targeted questioning and supervised learner practice for ' . $topic . '.',
+            'lecturer_activities' => 'Introduce the approved outcome, model the required process for ' . $topic . ', check understanding, observe practice and give corrective feedback.',
+            'learner_activities' => 'Recall prerequisite knowledge, observe the demonstration, discuss the approved outcome, complete guided practice and explain the result.',
+            'assessment_method' => 'Use outcome-aligned oral questions, observation of the practical or written task, and a short exit check: ' . ($outcome !== '' ? $outcome : $topic) . '.',
+        ];
+        tp_audit($this->db, $planId, 'suggestion.generated', 'teaching_plan_item', (string)$itemId, ['field' => $field, 'provider' => 'deterministic_fallback']);
+        return $suggestions[$field];
     }
 
     private function assignment(int $id, string $staffId): ?array
@@ -588,5 +615,13 @@ final class TeachingPlannerService
                 'action_url' => '/wucportal/lecturers/teaching_planner.php?view=' . (int)$plan['id'], 'dedupe_days' => 0,
             ]);
         }
+    }
+
+    private function inTransaction(): bool
+    {
+        $result = $this->db->query('SELECT @@in_transaction AS active_transaction');
+        $row = $result->fetch_assoc();
+        $result->free();
+        return (int)($row['active_transaction'] ?? 0) === 1;
     }
 }

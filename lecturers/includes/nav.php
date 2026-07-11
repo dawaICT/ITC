@@ -23,6 +23,7 @@ $academicMenuSections = [
             ['href' => '/wucportal/lecturers/index.php', 'icon' => 'fas fa-home', 'label' => 'Dashboard', 'active_on' => 'index.php'],
             ['href' => '/wucportal/lecturers/myCourses.php', 'icon' => 'fas fa-book', 'label' => 'My Courses', 'active_on' => 'myCourses.php'],
             ['href' => '/wucportal/lecturers/timetable.php', 'icon' => 'fas fa-calendar-alt', 'label' => 'My Timetable', 'active_on' => 'timetable.php'],
+            ['href' => '/wucportal/lecturers/teaching_planner.php', 'icon' => 'fas fa-file-signature', 'label' => 'Teaching Planner', 'active_on' => 'teaching_planner.php'],
             ['href' => '/wucportal/lecturers/myStudent.php', 'icon' => 'fas fa-user-graduate', 'label' => 'My Students', 'active_on' => 'myStudent.php'],
         ],
     ],

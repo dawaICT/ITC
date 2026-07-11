@@ -59,6 +59,9 @@ if ($canAcademics) {
     $academics_items[] = ['href' => $adminBase . 'course_prerequisites.php', 'icon' => 'fas fa-project-diagram', 'label' => 'Prerequisites', 'active_on' => 'course_prerequisites.php'];
     $academics_items[] = ['href' => $adminBase . 'ai_curriculum_analyzer.php', 'icon' => 'fas fa-wand-magic-sparkles', 'label' => 'AI Curriculum Analyzer', 'active_on' => 'ai_curriculum_analyzer.php'];
     $academics_items[] = ['href' => $adminBase . 'timetable_settings.php', 'icon' => 'fas fa-calendar-alt', 'label' => 'Timetable Settings', 'active_on' => 'timetable_settings.php'];
+    if (function_exists('isSystemsAdmin') && isSystemsAdmin()) {
+        $academics_items[] = ['href' => $adminBase . 'teaching_planner.php', 'icon' => 'fas fa-file-signature', 'label' => 'Teaching Planner', 'active_on' => 'teaching_planner.php'];
+    }
 }
 if (!empty($academics_items)) {
     $menu_sections[] = [

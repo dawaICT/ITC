@@ -135,7 +135,7 @@ final class TeachingPlannerExporter
             'academic_year' => $plan['academic_year'], 'academic_period' => $plan['academic_period'],
             'document_number' => $plan['document_number'], 'document_version' => (string)$plan['revision_number'],
             'approval_status' => strtoupper(str_replace('_', ' ', $plan['status'])),
-            'watermark' => in_array($plan['status'], ['approved', 'in_use'], true) ? '' : 'DRAFT',
+            'watermark' => in_array($plan['status'], ['approved', 'in_use'], true) ? '' : 'DRAFT', 'references' => '',
         ];
         $unresolved = [];
         for ($index = 0; $index < $zip->numFiles; $index++) {
