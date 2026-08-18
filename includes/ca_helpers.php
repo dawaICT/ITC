@@ -1097,6 +1097,26 @@ function ca_student_registered(mysqli $db, string $sid, string $courseCode, stri
         }
     }
 
+    // Check if student is actively assigned to a program that includes this course in its curriculum
+    if (ca_table_exists($db, 'student_program') && ca_table_exists($db, 'program_courses')) {
+        $progSql = "SELECT 1 FROM student_program sp
+                    INNER JOIN program_courses pc ON pc.program_code = sp.program_code
+                    WHERE sp.Sid COLLATE utf8mb4_general_ci = ?
+                      AND UPPER(pc.course_code) = UPPER(?)
+                      AND (sp.status IS NULL OR sp.status = '' OR LOWER(sp.status) = 'active')
+                    LIMIT 1";
+        if ($progStmt = $db->prepare($progSql)) {
+            $progStmt->bind_param('ss', $sid, $courseCode);
+            $progStmt->execute();
+            $progStmt->store_result();
+            $isProgCourse = $progStmt->num_rows > 0;
+            $progStmt->close();
+            if ($isProgCourse) {
+                return true;
+            }
+        }
+    }
+
     return false;
 }
 

@@ -358,7 +358,7 @@ if (!function_exists('student_ca_normalize_course_code')) {
 
 if (!function_exists('student_ca_published_status_clause')) {
   /**
-   * SQL fragment limiting CA rows to those visible to students (Published only).
+   * SQL fragment limiting CA rows to those visible to students (Published / Approved).
    */
     function student_ca_published_status_clause(mysqli $db, string $tableAlias = ''): string
     {
@@ -367,7 +367,7 @@ if (!function_exists('student_ca_published_status_clause')) {
             return '';
         }
         $col = ($tableAlias !== '' ? "`{$tableAlias}`." : '') . "`{$saCols['status']}`";
-        return " AND {$col} = 'Published'";
+        return " AND (LOWER({$col}) IN ('published', 'approved') OR {$col} IS NULL)";
     }
 }
 
@@ -378,16 +378,31 @@ if (!function_exists('student_ca_year_candidates')) {
     function student_ca_year_candidates(string $academicYear, string $yearOfStudy): array
     {
         $yearCandidates = [];
+        $academicYear = trim($academicYear);
         if ($academicYear !== '') {
             $yearCandidates[] = $academicYear;
-            if (preg_match('/\d{4}/', $academicYear, $yearMatch) && !in_array($yearMatch[0], $yearCandidates, true)) {
-                $yearCandidates[] = $yearMatch[0];
+            if (preg_match_all('/\d{4}/', $academicYear, $yearMatches)) {
+                foreach ($yearMatches[0] as $ym) {
+                    if (!in_array($ym, $yearCandidates, true)) {
+                        $yearCandidates[] = $ym;
+                    }
+                }
             }
         }
-        if ($yearOfStudy !== '' && !in_array($yearOfStudy, $yearCandidates, true)) {
-            $yearCandidates[] = $yearOfStudy;
+        $yearOfStudy = trim($yearOfStudy);
+        if ($yearOfStudy !== '') {
+            if (!in_array($yearOfStudy, $yearCandidates, true)) {
+                $yearCandidates[] = $yearOfStudy;
+            }
+            if (preg_match('/(\d+)/', $yearOfStudy, $ymNum) && !in_array($ymNum[1], $yearCandidates, true)) {
+                $yearCandidates[] = $ymNum[1];
+            }
         }
-        return $yearCandidates;
+        $calYear = date('Y');
+        if (!in_array($calYear, $yearCandidates, true)) {
+            $yearCandidates[] = $calYear;
+        }
+        return array_values($yearCandidates);
     }
 }
 
@@ -495,48 +510,56 @@ if (!function_exists('student_ca_load_short_course_records')) {
     function student_ca_load_short_course_records(mysqli $db, string $sid): array
     {
         $records = [];
-        if (!student_ca_table_exists($db, 'short_courses') || !student_ca_table_exists($db, 'short_course_enrollments')) {
+        if ($sid === '' || !student_ca_table_exists($db, 'short_courses')) {
+            return $records;
+        }
+
+        $enrolments = function_exists('sc_student_enrolments') ? sc_student_enrolments($db, $sid) : [];
+        if ($enrolments === []) {
             return $records;
         }
 
         $hasShortCourseAssessment = student_ca_table_exists($db, 'short_course_assessment');
-        $shortSql = "SELECT sc.id, sc.course_code, sc.course_name, sc.start_date, sc.end_date
-                     FROM short_course_enrollments sce
-                     INNER JOIN short_courses sc ON sc.id = sce.short_course_id
-                     WHERE sce.student_id COLLATE utf8mb4_general_ci = ?
-                       AND COALESCE(sce.status, 'enrolled') IN ('enrolled','active','completed')
-                     ORDER BY sc.course_code";
-        if (!$shortStmt = $db->prepare($shortSql)) {
-            return $records;
-        }
-        $shortStmt->bind_param('s', $sid);
-        $shortStmt->execute();
-        $shortRes = $shortStmt->get_result();
-        while ($short = $shortRes->fetch_object()) {
-            $caData = student_ca_empty_row();
-            if ($hasShortCourseAssessment && $caStmt = $db->prepare('SELECT A1, A2, T1, T2, Total_CA FROM short_course_assessment WHERE short_course_id = ? AND student_id = ? LIMIT 1')) {
-                $shortCourseId = (int)$short->id;
-                $caStmt->bind_param('is', $shortCourseId, $sid);
+
+        // Preload all CA records for this student from short_course_assessment
+        $caByScId = [];
+        $caByCode = [];
+        if ($hasShortCourseAssessment) {
+            $caSql = "SELECT short_course_id, course_code, A1, A2, T1, T2, Total_CA FROM short_course_assessment WHERE student_id COLLATE utf8mb4_general_ci = ?";
+            if ($caStmt = $db->prepare($caSql)) {
+                $caStmt->bind_param('s', $sid);
                 $caStmt->execute();
-                $caRow = $caStmt->get_result()->fetch_object();
-                if ($caRow) {
-                    $caData = $caRow;
+                $caRes = $caStmt->get_result();
+                while ($cRow = $caRes->fetch_object()) {
+                    if (!empty($cRow->short_course_id)) {
+                        $caByScId[(int)$cRow->short_course_id] = $cRow;
+                    }
+                    if (!empty($cRow->course_code)) {
+                        $caByCode[strtoupper(trim((string)$cRow->course_code))] = $cRow;
+                    }
                 }
                 $caStmt->close();
             }
+        }
+
+        foreach ($enrolments as $e) {
+            $scId = (int)($e['short_course_id'] ?? 0);
+            $cCode = strtoupper(trim((string)($e['course_code'] ?? '')));
+            $caData = $caByScId[$scId] ?? ($caByCode[$cCode] ?? student_ca_empty_row());
+
             $records[] = (object)[
-                'course_code' => $short->course_code,
-                'course_name' => $short->course_name,
-                'start_date' => $short->start_date,
-                'end_date' => $short->end_date,
-                'A1' => $caData->A1,
-                'A2' => $caData->A2,
-                'T1' => $caData->T1,
-                'T2' => $caData->T2,
-                'Total_CA' => $caData->Total_CA,
+                'course_code' => (string)($e['course_code'] ?? ''),
+                'course_name' => (string)($e['course_name'] ?? ''),
+                'start_date' => $e['start_date'] ?? null,
+                'end_date' => $e['end_date'] ?? null,
+                'A1' => student_ca_score_or_null($caData->A1 ?? null),
+                'A2' => student_ca_score_or_null($caData->A2 ?? null),
+                'T1' => student_ca_score_or_null($caData->T1 ?? null),
+                'T2' => student_ca_score_or_null($caData->T2 ?? null),
+                'Total_CA' => student_ca_score_or_null($caData->Total_CA ?? null),
             ];
         }
-        $shortStmt->close();
+
         return $records;
     }
 }

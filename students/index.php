@@ -231,12 +231,36 @@ $stats['courses'] = count($registeredCourseCodes);
 
 // Published results preview (own Sid only).
 $recentResults = [];
-if (student_dashboard_table_exists($db, 'semester_assessment')) {
+if (!empty($isShortCourse)) {
+    if (student_dashboard_table_exists($db, 'short_course_assessment')) {
+        if ($resStmt = $db->prepare(
+            "SELECT course_code, Total_CA, created_at AS published_at
+             FROM short_course_assessment
+             WHERE student_id COLLATE utf8mb4_general_ci = ? AND Total_CA IS NOT NULL
+             ORDER BY id DESC
+             LIMIT 5"
+        )) {
+            $resStmt->bind_param('s', $student_id);
+            $resStmt->execute();
+            $resRows = $resStmt->get_result();
+            while ($resRow = $resRows->fetch_assoc()) {
+                $recentResults[] = [
+                    'course_code' => (string)($resRow['course_code'] ?? ''),
+                    'total_ca' => (float)($resRow['Total_CA'] ?? 0),
+                    'published_at' => (string)($resRow['published_at'] ?? ''),
+                ];
+            }
+            $resStmt->close();
+        }
+    }
+} elseif (student_dashboard_table_exists($db, 'semester_assessment')) {
     if ($resStmt = $db->prepare(
         "SELECT Course_Code, Total_CA, status, published_at
          FROM semester_assessment
-         WHERE Sid = ? AND LOWER(status) = 'published'
-         ORDER BY COALESCE(published_at, submitted_at) DESC, Course_Code ASC
+         WHERE Sid COLLATE utf8mb4_general_ci = ?
+           AND (LOWER(status) IN ('published', 'approved') OR status IS NULL)
+           AND Total_CA IS NOT NULL
+         ORDER BY COALESCE(published_at, updated_at, created_at) DESC, Course_Code ASC
          LIMIT 5"
     )) {
         $resStmt->bind_param('s', $student_id);

@@ -764,7 +764,7 @@ if (!function_exists('wuc_academic_risk_analyze_student')) {
             $score += 10;
             $reasonKeys[] = 'failed_courses';
             $reasons[] = $usesExternalExams
-                ? (int)$failedCourses['failed_courses'] . ' active modules have internal CA below the support threshold.'
+                ? (int)$failedCourses['failed_courses'] . ' active modules have internal CA below the support threshold. External examination results determine the final outcome.'
                 : (int)$failedCourses['failed_courses'] . ' registered courses have results below the pass mark.';
         }
 

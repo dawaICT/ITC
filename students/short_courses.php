@@ -38,16 +38,22 @@ $accessDenied = (($viewId > 0 || $viewCode !== '') && $activeCourse === null);
 // never reach the short-course branch of continuousAssessment.php, so their
 // short-course marks are surfaced here instead.
 $caByCourseId = [];
+$caByCourseCode = [];
 if ($sid !== '' && $enrolments) {
     $tbl = $db->query("SHOW TABLES LIKE 'short_course_assessment'");
     $hasCaTable = $tbl && $tbl->num_rows > 0;
     if ($tbl) { $tbl->free(); }
-    if ($hasCaTable && ($caStmt = $db->prepare('SELECT short_course_id, A1, A2, T1, T2, Total_CA FROM short_course_assessment WHERE student_id = ?'))) {
+    if ($hasCaTable && ($caStmt = $db->prepare('SELECT short_course_id, course_code, A1, A2, T1, T2, Total_CA FROM short_course_assessment WHERE student_id COLLATE utf8mb4_general_ci = ?'))) {
         $caStmt->bind_param('s', $sid);
         $caStmt->execute();
         $caRes = $caStmt->get_result();
         while ($caRow = $caRes->fetch_assoc()) {
-            $caByCourseId[(int)$caRow['short_course_id']] = $caRow;
+            if (!empty($caRow['short_course_id'])) {
+                $caByCourseId[(int)$caRow['short_course_id']] = $caRow;
+            }
+            if (!empty($caRow['course_code'])) {
+                $caByCourseCode[strtoupper(trim((string)$caRow['course_code']))] = $caRow;
+            }
         }
         $caStmt->close();
     }
@@ -147,7 +153,10 @@ function sc_safe_module_html(?string $html): string {
             </div>
         </div>
 
-        <?php $caRow = $caByCourseId[(int)$activeCourse['short_course_id']] ?? null; ?>
+        <?php
+        $scActiveCode = strtoupper(trim((string)($activeCourse['course_code'] ?? '')));
+        $caRow = $caByCourseId[(int)$activeCourse['short_course_id']] ?? ($caByCourseCode[$scActiveCode] ?? null);
+        ?>
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-body">
                 <h6 class="mb-3"><i class="fas fa-chart-line text-primary me-2"></i>Continuous Assessment</h6>
@@ -224,7 +233,10 @@ function sc_safe_module_html(?string $html): string {
                         <div class="body">
                             <div class="mb-2">
                                 <?= sc_status_badge((string)$e['status']) ?>
-                                <?php $cardCa = $caByCourseId[(int)$e['short_course_id']] ?? null; ?>
+                                <?php
+                                $scCardCode = strtoupper(trim((string)($e['course_code'] ?? '')));
+                                $cardCa = $caByCourseId[(int)$e['short_course_id']] ?? ($caByCourseCode[$scCardCode] ?? null);
+                                ?>
                                 <?php if ($cardCa && $cardCa['Total_CA'] !== null && $cardCa['Total_CA'] !== ''): ?>
                                     <span class="badge bg-success-subtle text-success border ms-1" title="Total CA"><i class="fas fa-chart-line me-1"></i>CA <?= number_format((float)$cardCa['Total_CA'], 1) ?>%</span>
                                 <?php endif; ?>

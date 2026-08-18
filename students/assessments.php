@@ -1,7 +1,6 @@
 <?php
-
-error_reporting(0);
-
+require_once __DIR__ . '/includes/guard.php';
+require_once __DIR__ . '/includes/continuous_assessment_helpers.php';
 ?>
 <!DOCTYPE html>
 <html>
@@ -55,20 +54,29 @@ error_reporting(0);
 					$Year = (string)($_POST['Year'] ?? '');
 					$sessionSid = (string)($_SESSION['Sid'] ?? '');
 
-					// CA marks live in semester_assessment (via the `exams`
-					// compatibility view); students only see published results.
-					if ($sessionSid !== '' && $Year !== '' &&
-						($stmt = $db->prepare("SELECT Course_Code, A1, A2, A3, T1, T2, Total_CA, semester, `Year`
-							FROM exams
-							WHERE Sid = ? AND `Year` = ? AND LOWER(status) = 'published'
-							ORDER BY semester, Course_Code"))) {
-						$stmt->bind_param('ss', $sessionSid, $Year);
-						$stmt->execute();
-						$results = $stmt->get_result();
-						while ($row = $results->fetch_object()) {
-							$records[] = $row;
+					// CA marks live in semester_assessment (with exams fallback);
+					// students see published / approved results.
+					if ($sessionSid !== '' && $Year !== '') {
+						$sourceTable = student_ca_table_exists($db, 'semester_assessment') ? 'semester_assessment' : 'exams';
+						$yearCandidates = student_ca_year_candidates($Year, '1');
+						$yearPlaceholders = implode(',', array_fill(0, count($yearCandidates), '?'));
+						$sql = "SELECT Course_Code, A1, A2, A3, T1, T2, Total_CA, semester, `Year`
+							FROM `{$sourceTable}`
+							WHERE Sid COLLATE utf8mb4_general_ci = ?
+							  AND `Year` IN ({$yearPlaceholders})
+							  AND (LOWER(status) IN ('published', 'approved') OR status IS NULL)
+							ORDER BY semester, Course_Code";
+						if ($stmt = $db->prepare($sql)) {
+							$types = 's' . str_repeat('s', count($yearCandidates));
+							$params = array_merge([$sessionSid], $yearCandidates);
+							student_ca_bind($stmt, $types, $params);
+							$stmt->execute();
+							$results = $stmt->get_result();
+							while ($row = $results->fetch_object()) {
+								$records[] = $row;
+							}
+							$stmt->close();
 						}
-						$stmt->close();
 					}
 
 					if (!empty($records)) {

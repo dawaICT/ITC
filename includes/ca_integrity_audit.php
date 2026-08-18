@@ -89,7 +89,7 @@ function ca_integrity_audit(mysqli $db): array
          WHERE cr.Sid = sa.Sid AND cr.course_code = sa.Course_Code
            AND CAST(cr.academic_year AS CHAR) = sa.Year
            AND CAST(cr.semester AS CHAR) = sa.semester
-           AND (cr.is_active = 1 OR cr.status IN ('active','registered'))
+           AND cr.is_active = 1
     )";
     $add('active_component_period_mismatch', 'Active term CA rows use a test column from the wrong term', 'fail', $count($db,
         sprintf($periodMismatchBase, $periodActiveExists)
@@ -158,7 +158,7 @@ function ca_integrity_audit(mysqli $db): array
         "SELECT COUNT(*) AS c
            FROM course_registration cr
            JOIN student_program sp ON sp.Sid = cr.Sid
-          WHERE (cr.is_active = 1 OR cr.status IN ('active','registered'))
+          WHERE cr.is_active = 1
             AND NOT EXISTS (
                 SELECT 1
                   FROM student_course_registrations scr
@@ -193,7 +193,7 @@ function ca_integrity_audit(mysqli $db): array
                    AND cr.course_code = sa.Course_Code
                    AND CAST(cr.academic_year AS CHAR) = sa.Year
                    AND CAST(cr.semester AS CHAR) = sa.semester
-                   AND (cr.is_active = 1 OR cr.status IN ('active','registered'))
+                   AND cr.is_active = 1
             )";
     $add('active_ca_missing_normalized_result', 'Active CA rows missing a normalized course result', 'fail', $count($db,
         sprintf($missingResultSql, $activeRegistrationExists)
@@ -228,7 +228,7 @@ function ca_integrity_audit(mysqli $db): array
                    AND cr.course_code = sa.Course_Code
                    AND CAST(cr.academic_year AS CHAR) = sa.Year
                    AND CAST(cr.semester AS CHAR) = sa.semester
-                   AND (cr.is_active = 1 OR cr.status IN ('active','registered'))
+                   AND cr.is_active = 1
           )
           ORDER BY sa.id"
     );

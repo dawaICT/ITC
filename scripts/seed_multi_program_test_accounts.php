@@ -206,7 +206,7 @@ $testStudents = [
         'lname' => 'Diploma',
         'email' => 'test-dip01@wuc.edu.zm',
         'mobile' => '0971000002',
-        'program_code' => 'CSE',
+        'program_code' => 'ICT-002',
         'is_sc_only' => false,
         'portal_desc' => 'Diploma Portal',
     ],
@@ -216,7 +216,7 @@ $testStudents = [
         'lname' => 'Certificate',
         'email' => 'test-cert01@wuc.edu.zm',
         'mobile' => '0971000003',
-        'program_code' => 'AUTO-002',
+        'program_code' => 'ICT-001',
         'is_sc_only' => false,
         'portal_desc' => 'Certificate Portal',
     ],
@@ -332,6 +332,34 @@ foreach ($testStudents as $ts) {
             $stProg->execute();
             $stProg->close();
         }
+        // Also seed course registrations from program_courses
+        $coursesQuery = $db->prepare("SELECT course_code FROM program_courses WHERE program_code = ? LIMIT 6");
+        if ($coursesQuery) {
+            $coursesQuery->bind_param('s', $prog);
+            $coursesQuery->execute();
+            $cRes = $coursesQuery->get_result();
+            while ($cRow = $cRes->fetch_assoc()) {
+                $cCode = (string)$cRow['course_code'];
+                $db->query("INSERT INTO course_registration (Sid, course_code, semester, Year, academic_year, is_active)
+                            VALUES ('$sid', '$cCode', '1', '1', '2026', 1)
+                            ON DUPLICATE KEY UPDATE is_active = 1");
+
+                // Seed sample published CA marks
+                $db->query("INSERT INTO semester_assessment (Sid, Course_Code, A1, A2, T1, Total_CA, semester, Year, program_type, posted_by, status, published_by, published_at)
+                            VALUES ('$sid', '$cCode', 82.00, 88.00, 79.00, 83.00, '1', '2026', 'term', 'WUC907', 'Published', 'admin', NOW())
+                            ON DUPLICATE KEY UPDATE A1 = 82.00, A2 = 88.00, T1 = 79.00, Total_CA = 83.00, status = 'Published'");
+
+                if (function_exists('ca_sync_normalized_component')) {
+                    $regId = ca_sync_normalized_component($db, $sid, $cCode, '1', '2026', 'A1', 82.00, 'WUC907');
+                    ca_sync_normalized_component($db, $sid, $cCode, '1', '2026', 'A2', 88.00, 'WUC907');
+                    ca_sync_normalized_component($db, $sid, $cCode, '1', '2026', 'T1', 79.00, 'WUC907');
+                    if ($regId && function_exists('ca_sync_normalized_result')) {
+                        ca_sync_normalized_result($db, (int)$regId, 83.00);
+                    }
+                }
+            }
+            $coursesQuery->close();
+        }
     } else {
         // Enrol short course in short_course_enrollments
         $stScEnrol = $db->prepare(
@@ -344,6 +372,11 @@ foreach ($testStudents as $ts) {
             $stScEnrol->execute();
             $stScEnrol->close();
         }
+
+        // Seed short course assessment mark
+        $db->query("INSERT INTO short_course_assessment (short_course_id, course_code, student_id, A1, A2, T1, Total_CA, posted_by)
+                    VALUES ($scId, '$prog', '$sid', 85.00, 90.00, 88.00, 87.67, 'WUC907')
+                    ON DUPLICATE KEY UPDATE A1 = 85.00, A2 = 90.00, T1 = 88.00, Total_CA = 87.67");
     }
 
     // Verify resolved profile

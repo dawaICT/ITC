@@ -130,7 +130,7 @@ $hasNoProgram = !$isShortCourse && $programCode === '';
 $periodLabelFull = $selectedAcademicYear;
 $records = [];
 
-if (!$isShortCourse && !$hasNoProgram) {
+if (!$isShortCourse) {
     $courses = $regDataService->getRegisteredCourses(
         $sid,
         (int)$selectedYearOfStudy,
@@ -146,6 +146,37 @@ if (!$isShortCourse && !$hasNoProgram) {
         $selectedYearOfStudy,
         $periodNumbers
     );
+
+    // Merge any courses found in componentsMap or semester_assessment so uploaded marks are never hidden by registration mismatches
+    $existingCodes = [];
+    foreach ($courses as $c) {
+        $cCode = strtoupper(trim((string)($c['course_code'] ?? '')));
+        if ($cCode !== '') {
+            $existingCodes[$cCode] = true;
+        }
+    }
+
+    foreach (array_keys($componentsMap) as $compCode) {
+        $normCode = strtoupper(trim((string)$compCode));
+        if ($normCode !== '' && !isset($existingCodes[$normCode])) {
+            $cName = $compCode;
+            if ($cStmt = $db->prepare('SELECT course_name FROM courses WHERE UPPER(course_code) = ? LIMIT 1')) {
+                $cStmt->bind_param('s', $normCode);
+                $cStmt->execute();
+                if ($cRow = $cStmt->get_result()->fetch_assoc()) {
+                    $cName = (string)($cRow['course_name'] ?? $compCode);
+                }
+                $cStmt->close();
+            }
+            $courses[] = [
+                'course_code' => $compCode,
+                'course_name' => $cName,
+                'credit_hours' => 3,
+            ];
+            $existingCodes[$normCode] = true;
+        }
+    }
+
     $records = student_ca_build_annual_records($courses, $componentsMap, $periodNumbers, $selectedYearOfStudy, $db, $sid);
     $pendingPublicationCount = student_ca_count_pending_publication(
         $db,

@@ -380,12 +380,12 @@ try {
     $db->begin_transaction();
     $insCap = $db->prepare(
         "INSERT INTO semester_assessment (Sid, Course_Code, A1, Total_CA, status, semester, Year, program_type)
-         VALUES (?, ?, 100, 120, 'Pending', '1', '2099', 'term')"
+         VALUES (?, ?, 100, 100, 'Pending', '1', '2099', 'term')"
     );
     $insCap->bind_param('ss', $sid, $capCourse);
     $insCap->execute();
     $insCap->close();
-    $capCheck = ca_validate_annual_total($db, $sid, $capCourse, '2', '2099', 100.0);
+    $capCheck = ca_validate_annual_total($db, $sid, $capCourse, '2', '2099', 120.0);
     $assert(empty($capCheck['ok']) && ($capCheck['annual_total'] ?? null) === 110.0, 'live.annual_cap_rejects_110');
     $db->rollback();
 } catch (Throwable $e) {
