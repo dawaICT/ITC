@@ -135,10 +135,17 @@ if(isset($_POST['action'])) {
     }
     else if($action == 'delete' && isset($_POST['staff_id'])) {
         require_once __DIR__ . '/../includes/helpers/staff_provisioning.php';
+        require_once __DIR__ . '/../includes/exhibition_mode.php';
 
         $staff_id = trim((string)($_POST['staff_id'] ?? ''));
         if ($staff_id === '') {
             die('Missing staff_id.');
+        }
+        try {
+            wuc_exhibition_assert_destructive_target($db, $staff_id);
+        } catch (DomainException $e) {
+            http_response_code(409);
+            die($e->getMessage());
         }
 
         // Full teardown of every login/RBAC/portal/profile row, atomically.

@@ -212,45 +212,14 @@ class AirtelMoneyGateway {
      * @return array Processing result
      */
     public function handleCallback($callbackData) {
-        try {
-            // Verify callback signature if provided
-            if (isset($callbackData['signature'])) {
-                if (!$this->verifySignature($callbackData)) {
-                    return [
-                        'success' => false,
-                        'error' => 'Invalid signature',
-                        'code' => 'INVALID_SIGNATURE'
-                    ];
-                }
-            }
-            
-            $transactionStatus = $callbackData['status'] ?? 'unknown';
-            $reference = $callbackData['reference'] ?? null;
-            
-            if (!$reference) {
-                return [
-                    'success' => false,
-                    'error' => 'Missing reference in callback',
-                    'code' => 'MISSING_REFERENCE'
-                ];
-            }
-            
-            return [
-                'success' => true,
-                'reference' => $reference,
-                'status' => $transactionStatus,
-                'id' => $callbackData['id'] ?? null,
-                'amount' => $callbackData['amount'] ?? null
-            ];
-            
-        } catch (Exception $e) {
-            error_log('Airtel callback exception: ' . $e->getMessage());
-            return [
-                'success' => false,
-                'error' => $e->getMessage(),
-                'code' => 'EXCEPTION'
-            ];
-        }
+        // Do not infer settlement from caller-supplied status, amount, or ID.
+        // This method can only be enabled after the merchant account's current
+        // verification contract is implemented and proven in sandbox.
+        return [
+            'success' => false,
+            'error' => 'Callback verification is not configured',
+            'code' => 'CALLBACK_VERIFICATION_REQUIRED'
+        ];
     }
     
     /**
@@ -282,7 +251,7 @@ class AirtelMoneyGateway {
      * Generate unique request ID
      */
     private function generateRequestId() {
-        return 'ITC-' . date('YmdHis') . '-' . substr(md5(uniqid()), 0, 8);
+        return 'ITC-' . date('YmdHis') . '-' . bin2hex(random_bytes(8));
     }
     
     /**
@@ -309,14 +278,10 @@ class AirtelMoneyGateway {
                 curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
             }
             
-            // SSL verification (disable for sandbox, enable for production)
-            if ($this->environment === 'production') {
-                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
-                curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
-            } else {
-                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-                curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-            }
+            // Sandbox traffic carries merchant credentials too; TLS
+            // verification is mandatory in every environment.
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
             
             $response = curl_exec($ch);
             $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -327,7 +292,7 @@ class AirtelMoneyGateway {
                 error_log('Airtel CURL error: ' . $curlError);
                 return [
                     'success' => false,
-                    'data' => ['message' => 'Network error: ' . $curlError]
+                    'data' => ['message' => 'Network request failed']
                 ];
             }
             
@@ -345,7 +310,7 @@ class AirtelMoneyGateway {
             error_log('Airtel sendRequest exception: ' . $e->getMessage());
             return [
                 'success' => false,
-                'data' => ['message' => $e->getMessage()]
+                'data' => ['message' => 'Network request failed']
             ];
         }
     }
@@ -354,10 +319,9 @@ class AirtelMoneyGateway {
      * Verify callback signature (if Airtel provides signature)
      */
     private function verifySignature($data) {
-        // Implement signature verification based on Airtel's documentation
-        // For now, just log that verification was attempted
-        error_log('Airtel callback signature verification attempted');
-        return true;
+        // Fail closed until the provider's merchant-specific signature scheme
+        // is implemented. A placeholder must never authenticate a payment.
+        return false;
     }
 }
 ?>

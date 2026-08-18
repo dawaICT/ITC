@@ -109,6 +109,11 @@ if (!function_exists('wuc_apply_portal_switch')) {
         wuc_require_portal_access($db, $targetPortal);
         wuc_set_portal_context($context);
 
+        if ($context === 'student_academic' && !empty($_SESSION['Sid'])) {
+            require_once __DIR__ . '/student_program_portal.php';
+            return wuc_student_program_portal_url($db, (string)$_SESSION['Sid']);
+        }
+
         return wuc_portal_switch_landing_url($context);
     }
 }

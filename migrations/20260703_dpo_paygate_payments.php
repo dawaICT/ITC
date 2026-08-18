@@ -81,6 +81,7 @@ if (!mig_table_exists($db, 'payment_gateway_transactions')) {
         updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         UNIQUE KEY uniq_payment_gateway_ref (reference_number),
         UNIQUE KEY uniq_payment_gateway_token (provider_token),
+        UNIQUE KEY uniq_pgt_provider_external_ref (provider, provider_transaction_id),
         KEY idx_payment_gateway_student (student_id),
         KEY idx_payment_gateway_invoice (invoice_number),
         KEY idx_payment_gateway_status (status),

@@ -31,12 +31,20 @@ $canCityGuilds = function_exists('canManageCityGuilds') && canManageCityGuilds()
 $canEnterExamMarks = function_exists('canEnterExamMarks') && canEnterExamMarks();
 $canReports    = (function_exists('canAccessReports') && canAccessReports()) || (function_exists('isAdmin') && isAdmin());
 $canAccessTransport = function_exists('canAccessTransport') ? canAccessTransport() : $canAcademics;
+// Academic-office ops inside Admin (Admin capability — never role=registrar /registrar URLs).
+$canAcademicOffice = function_exists('canManageAcademicOfficeOps') && canManageAcademicOfficeOps();
 
 // 1. DASHBOARD
 $dashboard_items = [];
 $dashboard_items[] = ['href' => $adminBase . 'index.php', 'icon' => 'fas fa-home', 'label' => 'Dashboard', 'active_on' => 'index.php'];
-if (file_exists(dirname(dirname(__DIR__)) . '/admin/analytics_dashboard.php')) {
-    $dashboard_items[] = ['href' => $adminBase . 'analytics_dashboard.php', 'icon' => 'fas fa-chart-bar', 'label' => 'Decision Support', 'active_on' => 'analytics_dashboard.php'];
+if (function_exists('isSystemsAdmin') && isSystemsAdmin()) {
+    $dashboard_items[] = ['href' => $adminBase . 'ai_governance.php', 'icon' => 'fas fa-shield-halved', 'label' => 'AI Governance', 'active_on' => 'ai_governance.php'];
+}
+if ($canReports && file_exists(dirname(dirname(__DIR__)) . '/admin/analytics_dashboard.php')) {
+    $dashboard_items[] = ['href' => $adminBase . 'analytics_dashboard.php', 'icon' => 'fas fa-chart-line', 'label' => 'Predictive Analytics', 'active_on' => 'analytics_dashboard.php'];
+}
+if ($canAcademicOffice) {
+    $dashboard_items[] = ['href' => $adminBase . 'students_by_admin.php', 'icon' => 'fas fa-clipboard-list', 'label' => 'Student Records', 'active_on' => 'students_by_admin.php'];
 }
 $menu_sections[] = [
     'title' => 'Dashboard',
@@ -61,7 +69,9 @@ if ($canAcademics) {
     $academics_items[] = ['href' => $adminBase . 'timetable_settings.php', 'icon' => 'fas fa-calendar-alt', 'label' => 'Timetable Settings', 'active_on' => 'timetable_settings.php'];
     if (function_exists('isSystemsAdmin') && isSystemsAdmin()) {
         $academics_items[] = ['href' => $adminBase . 'teaching_planner.php', 'icon' => 'fas fa-file-signature', 'label' => 'Teaching Planner', 'active_on' => 'teaching_planner.php'];
+        $academics_items[] = ['href' => $adminBase . 'academic_mgmt/progression.php', 'icon' => 'fas fa-arrow-up-right-dots', 'label' => 'Year Progression', 'active_on' => 'progression.php'];
     }
+
 }
 if (!empty($academics_items)) {
     $menu_sections[] = [
@@ -77,12 +87,9 @@ if ($canAdmissions) {
     $admissions_items[] = ['href' => $adminBase . 'manage_admitted_students.php', 'icon' => 'fas fa-user-check', 'label' => 'Approved Applicants', 'active_on' => 'manage_admitted_students.php'];
     $admissions_items[] = ['href' => $adminBase . 'processedApp.php', 'icon' => 'fas fa-tasks', 'label' => 'Processed Applications', 'active_on' => 'processedApp.php'];
 }
-if (!$transportOnly) {
-    $admissions_items[] = ['href' => '/wucportal/admissions/search_student.php?from=admin', 'icon' => 'fas fa-search', 'label' => 'Search Student', 'active_on' => 'search_student.php'];
-    if ($canStudents) {
-        $admissions_items[] = ['href' => $adminBase . 'students_by_admin.php', 'icon' => 'fas fa-user-graduate', 'label' => 'Student Records', 'active_on' => 'students_by_admin.php'];
-        $admissions_items[] = ['href' => $adminBase . 'regNewStud.php', 'icon' => 'fas fa-user-plus', 'label' => 'Add Student', 'active_on' => ['regNewStud.php', 'add_student.php', 'register_student.php']];
-    }
+if (!$transportOnly && $canStudents) {
+    $admissions_items[] = ['href' => $adminBase . 'students_by_admin.php', 'icon' => 'fas fa-search', 'label' => 'Search / Student Records', 'active_on' => 'students_by_admin.php'];
+    $admissions_items[] = ['href' => $adminBase . 'regNewStud.php', 'icon' => 'fas fa-user-plus', 'label' => 'Add Student', 'active_on' => ['regNewStud.php', 'add_student.php', 'register_student.php']];
 }
 if ($canAcademics) {
     $admissions_items[] = ['href' => $adminBase . 'registration_setup.php', 'icon' => 'fas fa-tools', 'label' => 'Registration Setup', 'active_on' => ['registration_setup.php', 'setup_semester_registration.php']];
@@ -143,6 +150,9 @@ if ($canExams) {
     $exams_items[] = ['href' => $adminBase . 'assessments.php', 'icon' => 'fas fa-tasks', 'label' => 'Assessment Schemes', 'active_on' => 'assessments.php'];
     $exams_items[] = ['href' => $adminBase . 'upload_ca.php', 'icon' => 'fas fa-upload', 'label' => 'CA Upload / Review', 'active_on' => 'upload_ca.php'];
     $exams_items[] = ['href' => $adminBase . 'exams.php', 'icon' => 'fas fa-file-alt', 'label' => 'Exams', 'active_on' => 'exams.php'];
+    if ($canAcademicOffice) {
+        $exams_items[] = ['href' => $adminBase . 'test_timetable.php', 'icon' => 'fas fa-calendar-check', 'label' => 'Test Timetable', 'active_on' => 'test_timetable.php'];
+    }
     if ($canEnterExamMarks) {
         $exams_items[] = ['href' => $adminBase . 'upload_exam_results.php', 'icon' => 'fas fa-upload', 'label' => 'Upload Results', 'active_on' => 'upload_exam_results.php'];
         $exams_items[] = ['href' => $adminBase . 'process_exam_results.php', 'icon' => 'fas fa-cogs', 'label' => 'Process Results', 'active_on' => 'process_exam_results.php'];
@@ -234,20 +244,42 @@ if (!empty($ops_items)) {
 
 // 11. REPORTS
 if ($canReports) {
+    $report_items = [
+        ['href' => $adminBase . 'admittedStud_report.php', 'icon' => 'fas fa-user-graduate', 'label' => 'Student Reports', 'active_on' => 'admittedStud_report.php'],
+        ['href' => $adminBase . 'ai_reports.php', 'icon' => 'fas fa-wand-magic-sparkles', 'label' => 'AI Reports', 'active_on' => 'ai_reports.php'],
+        ['href' => $adminBase . 'itc_academic_reports.php', 'icon' => 'fas fa-chart-pie', 'label' => 'Academic Reports', 'active_on' => 'itc_academic_reports.php'],
+        ['href' => $adminBase . 'training_reports.php', 'icon' => 'fas fa-filter', 'label' => 'Training Reports', 'active_on' => 'training_reports.php'],
+        ['href' => $adminBase . 'semesterReg_stud.php', 'icon' => 'fas fa-clipboard-list', 'label' => 'Registration Reports', 'active_on' => 'semesterReg_stud.php'],
+        ['href' => $adminBase . 'student_progression_report.php', 'icon' => 'fas fa-triangle-exclamation', 'label' => 'Progression Alerts', 'active_on' => 'student_progression_report.php'],
+        ['href' => $adminBase . 'report_year_intake.php', 'icon' => 'fas fa-hand-holding-usd', 'label' => 'Sponsorship Reports', 'active_on' => 'report_year_intake.php'],
+        ['href' => $adminBase . 'reportStudy_mode.php', 'icon' => 'fas fa-book-reader', 'label' => 'Study Mode', 'active_on' => 'reportStudy_mode.php'],
+        ['href' => $adminBase . 'print_registers.php', 'icon' => 'fas fa-print', 'label' => 'Print Registers', 'active_on' => 'print_registers.php'],
+        ['href' => $adminBase . 'login_activity.php', 'icon' => 'fas fa-chart-bar', 'label' => 'Login Activity', 'active_on' => 'login_activity.php'],
+    ];
     $menu_sections[] = [
         'title' => 'Reports',
+        'items' => $report_items
+    ];
+}
+
+// 11b. ACADEMIC OFFICE — Registrar-equivalent tasks hosted under /admin/ only.
+if ($canAcademicOffice && !$transportOnly) {
+    $menu_sections[] = [
+        'title' => 'Academic Office',
         'items' => [
-            ['href' => $adminBase . 'admittedStud_report.php', 'icon' => 'fas fa-user-graduate', 'label' => 'Student Reports', 'active_on' => 'admittedStud_report.php'],
-            ['href' => $adminBase . 'ai_reports.php', 'icon' => 'fas fa-wand-magic-sparkles', 'label' => 'AI Reports', 'active_on' => 'ai_reports.php'],
+            ['href' => $adminBase . 'students_by_admin.php', 'icon' => 'fas fa-search', 'label' => 'Search / Student Records', 'active_on' => 'students_by_admin.php'],
+            ['href' => $adminBase . 'upload_ca.php', 'icon' => 'fas fa-upload', 'label' => 'Upload CA', 'active_on' => 'upload_ca.php'],
+            ['href' => $adminBase . 'upload_exam_results.php', 'icon' => 'fas fa-file-upload', 'label' => 'Upload Exam Results', 'active_on' => ['upload_exam_results.php', 'process_exam_results.php']],
+            ['href' => $adminBase . 'teaching_planner_monitor.php', 'icon' => 'fas fa-chart-line', 'label' => 'Teaching Plan Monitor', 'active_on' => 'teaching_planner_monitor.php'],
+            ['href' => $adminBase . 'test_timetable.php', 'icon' => 'fas fa-calendar-check', 'label' => 'Test Timetable', 'active_on' => 'test_timetable.php'],
             ['href' => $adminBase . 'itc_academic_reports.php', 'icon' => 'fas fa-chart-pie', 'label' => 'Academic Reports', 'active_on' => 'itc_academic_reports.php'],
-            ['href' => $adminBase . 'training_reports.php', 'icon' => 'fas fa-filter', 'label' => 'Training Reports', 'active_on' => 'training_reports.php'],
-            ['href' => $adminBase . 'semesterReg_stud.php', 'icon' => 'fas fa-clipboard-list', 'label' => 'Registration Reports', 'active_on' => 'semesterReg_stud.php'],
-            ['href' => $adminBase . 'student_progression_report.php', 'icon' => 'fas fa-triangle-exclamation', 'label' => 'Progression Alerts', 'active_on' => 'student_progression_report.php'],
-            ['href' => $adminBase . 'report_year_intake.php', 'icon' => 'fas fa-hand-holding-usd', 'label' => 'Sponsorship Reports', 'active_on' => 'report_year_intake.php'],
-            ['href' => $adminBase . 'reportStudy_mode.php', 'icon' => 'fas fa-book-reader', 'label' => 'Study Mode', 'active_on' => 'reportStudy_mode.php'],
-            ['href' => $adminBase . 'print_registers.php', 'icon' => 'fas fa-print', 'label' => 'Print Registers', 'active_on' => 'print_registers.php'],
-            ['href' => $adminBase . 'login_activity.php', 'icon' => 'fas fa-chart-bar', 'label' => 'Login Activity', 'active_on' => 'login_activity.php'],
-        ]
+            ['href' => $adminBase . 'risk_watchlist.php', 'icon' => 'fas fa-heart-pulse', 'label' => 'Risk Watchlist', 'active_on' => 'risk_watchlist.php'],
+            ['href' => $adminBase . 'semester_registration.php', 'icon' => 'fas fa-user-edit', 'label' => 'Term Registration', 'active_on' => 'semester_registration.php'],
+            ['href' => $adminBase . 'courseReg.php', 'icon' => 'fas fa-clipboard-list', 'label' => 'Course Enrolment', 'active_on' => 'courseReg.php'],
+            ['href' => $adminBase . 'programs.php', 'icon' => 'fas fa-graduation-cap', 'label' => 'Programmes', 'active_on' => 'programs.php'],
+            ['href' => $adminBase . 'courses.php', 'icon' => 'fas fa-book-open', 'label' => 'Courses', 'active_on' => 'courses.php'],
+            ['href' => $adminBase . 'semesterReg_stud.php', 'icon' => 'fas fa-file-alt', 'label' => 'Registration Reports', 'active_on' => 'semesterReg_stud.php'],
+        ],
     ];
 }
 
@@ -295,7 +327,8 @@ $module_config = array(
 		? getRoleDisplayName($_SESSION['role'] ?? '')
 		: ($_SESSION['role'] ?? 'Administrator'),
 	'additional_css' => array(
-        'admin/css/admin-dashboard.css'
+        'admin/css/admin-dashboard.css',
+        'css/enterprise-hub.css',
     ),
 	'brand_color_primary' => '#1B2A4A', // ITC navy (matches unified sidebar)
 	'brand_color_secondary' => '#0B1530', // Deep navy (card-header gradient)

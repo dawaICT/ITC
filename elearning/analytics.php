@@ -9,9 +9,30 @@ require_once __DIR__ . '/../includes/elearning_access.php';
 require_once __DIR__ . '/../includes/elearning_ui.php';
 
 $staffId = $_SESSION['staff_id'] ?? null;
-$courseCode = trim($_GET['course_code'] ?? '');
-if (!$staffId || $courseCode === '') {
-    die('Unauthorized');
+$courseCode = trim((string) ($_GET['course_code'] ?? ''));
+if (!$staffId) {
+    header('Location: ../staff_login.php');
+    exit;
+}
+if ($courseCode === '') {
+    $availableCourses = getLecturerCourseDetails($db, (string) $staffId);
+    require_once __DIR__ . '/../lecturers/includes/nav.php';
+    ?>
+    <div class="elearning-shell">
+        <div class="elearning-header">
+            <div>
+                <h1 class="elearning-title"><i class="fas fa-chart-line"></i> Learning Progress</h1>
+                <p class="elearning-subtitle">Select one of your assigned courses to review engagement and progress.</p>
+            </div>
+        </div>
+        <?php elearningCourseSelection($availableCourses, 'analytics.php', 'View Progress', 'fas fa-chart-line'); ?>
+    </div>
+    </div>
+    </div>
+    </body>
+    </html>
+    <?php
+    exit;
 }
 
 enforceLecturerCourseAccess($db, $staffId, $courseCode);

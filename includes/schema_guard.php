@@ -22,28 +22,95 @@ if (!function_exists('wuc_table_exists')) {
     /**
      * Whether $table exists in the connection's current database. Uses
      * information_schema, which the DML-only app user can read.
+     *
+     * Results are memoized for the life of the request (and briefly in APCu
+     * when available) so hot pages that probe many optional tables do not
+     * re-query information_schema on every call.
      */
     function wuc_table_exists(mysqli $db, string $table): bool
     {
+        static $memo = [];
+        $table = trim($table);
+        if ($table === '') {
+            return false;
+        }
+        if (array_key_exists($table, $memo)) {
+            return $memo[$table];
+        }
+
+        if (function_exists('wuc_cache_apcu_available') && wuc_cache_apcu_available()) {
+            $apcuKey = 'wuc_tbl_' . $table;
+            $found = false;
+            $cached = apcu_fetch($apcuKey, $found);
+            if ($found) {
+                return $memo[$table] = (bool)$cached;
+            }
+        }
+
+        $exists = false;
         try {
             $stmt = $db->prepare(
                 'SELECT 1 FROM information_schema.tables
                  WHERE table_schema = DATABASE() AND table_name = ? LIMIT 1'
             );
-            if (!$stmt) {
-                return false;
+            if ($stmt) {
+                $stmt->bind_param('s', $table);
+                $stmt->execute();
+                $res = $stmt->get_result();
+                $exists = $res && $res->num_rows > 0;
+                $stmt->close();
             }
-            $stmt->bind_param('s', $table);
-            $stmt->execute();
-            $res = $stmt->get_result();
-            $exists = $res && $res->num_rows > 0;
-            $stmt->close();
-            return $exists;
         } catch (Throwable $e) {
             // If we cannot even introspect, assume missing and let the caller
             // decide; wuc_ensure_tables() will swallow any resulting DDL error.
+            $exists = false;
+        }
+
+        if (function_exists('wuc_cache_apcu_available') && wuc_cache_apcu_available()) {
+            @apcu_store('wuc_tbl_' . $table, $exists, 300);
+        }
+
+        return $memo[$table] = $exists;
+    }
+}
+
+if (!function_exists('wuc_column_exists')) {
+    /**
+     * Whether $column exists on $table in the current database.
+     * Memoized per request.
+     */
+    function wuc_column_exists(mysqli $db, string $table, string $column): bool
+    {
+        static $memo = [];
+        $table = trim($table);
+        $column = trim($column);
+        if ($table === '' || $column === '') {
             return false;
         }
+        $key = $table . '.' . $column;
+        if (array_key_exists($key, $memo)) {
+            return $memo[$key];
+        }
+
+        $exists = false;
+        try {
+            $stmt = $db->prepare(
+                'SELECT 1 FROM information_schema.columns
+                 WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?
+                 LIMIT 1'
+            );
+            if ($stmt) {
+                $stmt->bind_param('ss', $table, $column);
+                $stmt->execute();
+                $res = $stmt->get_result();
+                $exists = $res && $res->num_rows > 0;
+                $stmt->close();
+            }
+        } catch (Throwable $e) {
+            $exists = false;
+        }
+
+        return $memo[$key] = $exists;
     }
 }
 

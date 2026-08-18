@@ -23,7 +23,8 @@ echo 'Key set  : ' . ($cfg['api_key'] !== '' ? 'YES (' . substr($cfg['api_key'],
 echo 'Enabled  : ' . (wuc_ai_cloud_enabled() ? 'YES' : 'NO') . "\n\n";
 
 if (!wuc_ai_cloud_enabled()) {
-    echo "FAIL: Cloud AI not enabled. Add a free key to ai/cloud_key.txt (see ai/cloud_key.txt.example).\n";
+    echo "FAIL: Cloud AI not enabled. Add a free Groq key to ai/cloud_key.txt (see ai/cloud_key.txt.example).\n";
+    echo "Note: Pollinations keyless text API is deprecated (HTTP 402) and is no longer used as a default.\n";
     exit(1);
 }
 

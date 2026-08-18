@@ -22,6 +22,7 @@
 
 require_once __DIR__ . '/student_id_generator.php';
 require_once __DIR__ . '/applicant_program_helpers.php';
+require_once __DIR__ . '/cse_progression.php';
 require_once __DIR__ . '/../admissions/includes/registration_handlers.php';
 
 if (!function_exists('admissionsPeriodFromIntake')) {
@@ -150,6 +151,8 @@ if (!function_exists('admitProcessedApplicant')) {
 
         $warnings = [];
         $transactionStarted = false;
+        $manageTransaction = !invoice_transaction_active($db);
+        $savepoint = 'applicant_admission';
 
         try {
             // Normalise the applicant data.
@@ -163,6 +166,9 @@ if (!function_exists('admitProcessedApplicant')) {
             }
             $resolvedProgram = wuc_resolve_applicant_program($db, $rawProgram);
             $programCode = $resolvedProgram['valid'] ? $resolvedProgram['code'] : $rawProgram;
+            if ($stageError = wuc_cse_direct_assignment_error($programCode)) {
+                return ['success' => false, 'message' => $stageError];
+            }
             $entryYear    = (int)($app['year'] ?? 0) ?: (int)date('Y');
             $academicYear = (string)$entryYear;
             $sponsor      = trim((string)($app['sponsor'] ?? 'Self')) ?: 'Self';
@@ -205,7 +211,11 @@ if (!function_exists('admitProcessedApplicant')) {
             // 4. Student number (NRC-based, programme-aware for the type letter).
             $studentId = generateStudentId($db, $programCode !== '' ? $programCode : 'GENERAL', $period, $academicYear, $nrc);
 
-            $db->begin_transaction();
+            if ($manageTransaction) {
+                $db->begin_transaction();
+            } else {
+                $db->query('SAVEPOINT ' . $savepoint);
+            }
             $transactionStarted = true;
 
             require_once __DIR__ . '/sponsorship_helpers.php';
@@ -289,7 +299,16 @@ if (!function_exists('admitProcessedApplicant')) {
                 $invoiceAmount = $totalFees * (1 - $bursary / 100);
                 $desc = $program['name'] . ' registration - ' . $intake
                     . ($bursary > 0 ? sprintf(' (%s bursary %.0f%%)', $sponsor, $bursary) : '');
-                admissionsCreateInvoice($db, $studentId, $invoiceAmount, $desc);
+                admissionsCreateInvoice(
+                    $db,
+                    $studentId,
+                    $invoiceAmount,
+                    $desc,
+                    $academicYear,
+                    $period,
+                    1,
+                    $staffId !== '' ? $staffId : 'admissions'
+                );
             }
 
             // Generate student fee account automatically in the new fees system
@@ -327,7 +346,21 @@ if (!function_exists('admitProcessedApplicant')) {
                 $courseStmt->close();
             }
 
-            $db->commit();
+            require_once __DIR__ . '/audit.php';
+            audit_log($db, $staffId !== '' ? $staffId : 'admissions', 'admissions.student_created_from_applicant', [
+                'record_id' => (string)$applicantId,
+                'applicant_id' => $applicantId,
+                'student_id' => $studentId,
+                'program_code' => $programCode,
+                'academic_year' => $academicYear,
+                'period' => $period,
+            ]);
+
+            if ($manageTransaction) {
+                $db->commit();
+            } else {
+                $db->query('RELEASE SAVEPOINT ' . $savepoint);
+            }
 
             // The initial password mirrors admissionsEnsureStudentLogin: the NRC
             // (or the SID when NRC is blank). The student must change it on first login.
@@ -348,7 +381,12 @@ if (!function_exists('admitProcessedApplicant')) {
             ];
         } catch (Throwable $e) {
             if ($transactionStarted) {
-                $db->rollback();
+                if ($manageTransaction) {
+                    $db->rollback();
+                } else {
+                    $db->query('ROLLBACK TO SAVEPOINT ' . $savepoint);
+                    $db->query('RELEASE SAVEPOINT ' . $savepoint);
+                }
             }
             error_log('admitProcessedApplicant error (id ' . $applicantId . '): ' . $e->getMessage());
             return ['success' => false, 'message' => 'Admission failed: ' . $e->getMessage()];
@@ -392,6 +430,9 @@ if (!function_exists('admissionsEnrollExistingStudent')) {
 
         if ($sid === '' || $programCode === '') {
             return ['success' => false, 'message' => 'Student ID and programme are required.'];
+        }
+        if ($stageError = wuc_cse_direct_assignment_error($programCode)) {
+            return ['success' => false, 'message' => $stageError];
         }
 
         // Student must exist; pull the fields we need for login + invoice.
@@ -480,7 +521,7 @@ if (!function_exists('admissionsEnrollExistingStudent')) {
                     $amount  = $totalFees * (1 - $bursary / 100);
                     $desc    = $program['name'] . ' registration - ' . $intakeLabel
                         . ($bursary > 0 ? sprintf(' (%s bursary %.0f%%)', $sponsor, $bursary) : '');
-                    admissionsCreateInvoice($db, $sid, $amount, $desc);
+                    admissionsCreateInvoice($db, $sid, $amount, $desc, $academicYear, $period, 1, 'admissions');
                 }
             }
 

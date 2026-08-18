@@ -195,7 +195,7 @@ if (!empty($_POST)) {
 // Fetch programs
 $records = array();
 $termBasedExpr = admissionsTermBasedSql($db);
-if ($results = $db->query("SELECT *, {$termBasedExpr} AS term_based FROM programs ORDER BY program_name")) {
+if ($results = $db->query("SELECT *, {$termBasedExpr} AS term_based FROM programs WHERE COALESCE(is_active, 1) = 1 AND program_code NOT IN ('CSE', 'ICT-002') ORDER BY program_name")) {
     while ($row = $results->fetch_object()) {
         $records[] = $row;
     }

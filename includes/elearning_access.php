@@ -5,6 +5,12 @@
  * ensuring content is only visible to appropriate lecturers and students
  */
 
+// Conditional definition block: a bare second require must not redeclare functions.
+// A top-level `return` after define is not enough — PHP still compiles function
+// declarations on each include before runtime return runs.
+if (!defined('WUC_ELEARNING_ACCESS_LOADED')) {
+define('WUC_ELEARNING_ACCESS_LOADED', true);
+
 require_once __DIR__ . '/permissions.php';
 
 function elearningTableExists(mysqli $db, string $tableName): bool {
@@ -76,6 +82,18 @@ function elearningOfferingStudentTablesReady(mysqli $db): bool {
     return true;
 }
 
+/**
+ * Restrict normalized offering registrations to the student's current
+ * programme/curriculum assignment. Legacy migrations can leave historical
+ * offerings attached to the same student_program row; those must not grant
+ * current dashboard or eLearning access.
+ */
+function elearningCurrentStudentProgrammeSql(): string {
+    return " AND (sp.status IS NULL OR TRIM(sp.status) = '' OR LOWER(TRIM(sp.status)) IN ('active', 'current'))
+             AND (sp.curriculum_version_id IS NULL OR sp.curriculum_version_id = cc.curriculum_version_id)
+             AND (co.program_code IS NULL OR TRIM(co.program_code) = '' OR co.program_code = sp.program_code)";
+}
+
 function elearningOfferingLecturerTablesReady(mysqli $db): bool {
     foreach (['lecturer_course_assignments', 'course_offerings', 'curriculum_courses'] as $tableName) {
         if (!elearningTableExists($db, $tableName)) {
@@ -108,6 +126,7 @@ function getStudentCourseOfferingIds($db, $studentId, ?string $courseCode = null
               JOIN curriculum_courses cc ON cc.id = co.curriculum_course_id
              WHERE sp.Sid = ?
                {$courseSql}
+               " . elearningCurrentStudentProgrammeSql() . "
                AND scr.registration_status IN ('REGISTERED','COMPLETED','REPEATING')
                AND co.status IN ('planned','active','completed')
              ORDER BY co.id";
@@ -217,6 +236,7 @@ function isStudentEnrolledInCourse($db, $studentId, $courseCode) {
                   JOIN curriculum_courses cc ON cc.id = co.curriculum_course_id
                  WHERE sp.Sid = ?
                    AND UPPER(TRIM(cc.course_code)) = UPPER(TRIM(?))
+                   " . elearningCurrentStudentProgrammeSql() . "
                    AND scr.registration_status IN ('REGISTERED','COMPLETED','REPEATING')
                    AND co.status IN ('planned','active','completed')
                  LIMIT 1";
@@ -298,6 +318,7 @@ function getStudentEnrolledCourses($db, $studentId) {
                   JOIN course_offerings co ON co.id = scr.course_offering_id
                   JOIN curriculum_courses cc ON cc.id = co.curriculum_course_id
                  WHERE sp.Sid = ?
+                   " . elearningCurrentStudentProgrammeSql() . "
                    AND scr.registration_status IN ('REGISTERED','COMPLETED','REPEATING')
                    AND co.status IN ('planned','active','completed')
                  ORDER BY cc.course_code";
@@ -318,7 +339,10 @@ function getStudentEnrolledCourses($db, $studentId) {
         }
     }
 
-    $tables = ['student_courses', 'course_registration', 'registered_courses'];
+    // course_registration is the canonical registration store. student_courses
+    // is a legacy compatibility table and can contain only a partial period,
+    // so consulting it first understates full-year programme enrolments.
+    $tables = ['course_registration', 'student_courses', 'registered_courses'];
     
     foreach ($tables as $tableName) {
         $tblCheck = $db->query("SHOW FULL TABLES LIKE '" . $db->real_escape_string($tableName) . "'");
@@ -373,56 +397,13 @@ function isLecturerAssignedToCourse($db, $staffId, $courseCode) {
         return false;
     }
 
-    if (elearningOfferingLecturerTablesReady($db)) {
-        $sql = "SELECT 1
-                  FROM lecturer_course_assignments lca
-                  JOIN course_offerings co ON co.id = lca.course_offering_id
-                  JOIN curriculum_courses cc ON cc.id = co.curriculum_course_id
-                 WHERE lca.staff_id = ?
-                   AND UPPER(TRIM(cc.course_code)) = UPPER(TRIM(?))
-                   AND lca.status = 'active'
-                   AND co.status IN ('planned','active','completed')
-                 LIMIT 1";
-        if ($stmt = $db->prepare($sql)) {
-            $stmt->bind_param('ss', $staffId, $courseCode);
-            if ($stmt->execute()) {
-                $result = $stmt->get_result();
-                if ($result && $result->num_rows > 0) {
-                    $stmt->close();
-                    return true;
-                }
-            }
-            $stmt->close();
+    $assigned = getLecturerAssignedCourses($db, $staffId);
+    $needle = strtoupper(trim((string)$courseCode));
+    foreach ($assigned as $code) {
+        if (strtoupper(trim((string)$code)) === $needle) {
+            return true;
         }
     }
-    
-    if (!elearningTableExists($db, 'course_lecturer')) {
-        return false;
-    }
-
-    $staffCol = elearningDetectColumn($db, 'course_lecturer', ['staff_id', 'lecturer_id', 'staffid', 'staff']);
-    $courseCol = elearningDetectColumn($db, 'course_lecturer', ['course_code', 'code', 'course']);
-    if ($staffCol === null || $courseCol === null) {
-        return false;
-    }
-
-    $statusCol = elearningDetectColumn($db, 'course_lecturer', ['status', 'state']);
-    $statusSql = elearningActiveStatusSql($statusCol, 'cl');
-    $sql = "SELECT 1
-              FROM `course_lecturer` cl
-              INNER JOIN courses c ON c.course_code = cl.`{$courseCol}`
-             WHERE cl.`{$staffCol}` = ?
-               AND UPPER(TRIM(cl.`{$courseCol}`)) = UPPER(TRIM(?)){$statusSql}
-             LIMIT 1";
-    if ($stmt = $db->prepare($sql)) {
-        $stmt->bind_param("ss", $staffId, $courseCode);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $isAssigned = $result && $result->num_rows > 0;
-        $stmt->close();
-        return $isAssigned;
-    }
-    
     return false;
 }
 
@@ -437,8 +418,13 @@ function getLecturerAssignedCourses($db, $staffId) {
     if (empty($staffId)) {
         return [];
     }
-    
-    $courses = [];
+
+    // Canonical resolver merges course_lecturer + orphan lecturer_courses.
+    require_once __DIR__ . '/helpers/lecturer_course_helpers.php';
+    if (function_exists('wuc_sync_legacy_lecturer_courses_table')) {
+        wuc_sync_legacy_lecturer_courses_table($db, (string)$staffId);
+    }
+    $courses = wuc_lecturer_resolved_course_codes($db, (string)$staffId);
 
     if (elearningOfferingLecturerTablesReady($db)) {
         $sql = "SELECT DISTINCT TRIM(cc.course_code) AS course_code
@@ -461,37 +447,10 @@ function getLecturerAssignedCourses($db, $staffId) {
             $stmt->close();
         }
     }
-    
-    if (!elearningTableExists($db, 'course_lecturer')) {
-        return array_unique($courses);
-    }
 
-    $staffCol = elearningDetectColumn($db, 'course_lecturer', ['staff_id', 'lecturer_id', 'staffid', 'staff']);
-    $courseCol = elearningDetectColumn($db, 'course_lecturer', ['course_code', 'code', 'course']);
-    if ($staffCol === null || $courseCol === null) {
-        return array_unique($courses);
-    }
-
-    $statusCol = elearningDetectColumn($db, 'course_lecturer', ['status', 'state']);
-    $statusSql = elearningActiveStatusSql($statusCol, 'cl');
-    $sql = "SELECT DISTINCT TRIM(cl.`{$courseCol}`) AS course_code
-              FROM `course_lecturer` cl
-              INNER JOIN courses c ON c.course_code = cl.`{$courseCol}`
-             WHERE cl.`{$staffCol}` = ?{$statusSql}
-             ORDER BY course_code";
-    if ($stmt = $db->prepare($sql)) {
-        $stmt->bind_param("s", $staffId);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        while ($row = $result->fetch_assoc()) {
-            if ($row['course_code'] !== null && trim((string) $row['course_code']) !== '') {
-                $courses[] = trim((string) $row['course_code']);
-            }
-        }
-        $stmt->close();
-    }
-    
-    return array_unique($courses);
+    $courses = array_values(array_unique(array_filter(array_map('strval', $courses))));
+    sort($courses);
+    return $courses;
 }
 
 /**
@@ -761,3 +720,6 @@ function accessDeniedResponse($reason = 'Access denied') {
         'code' => 'ACCESS_DENIED'
     ];
 }
+
+} // WUC_ELEARNING_ACCESS_LOADED
+

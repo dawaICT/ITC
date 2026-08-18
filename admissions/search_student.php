@@ -348,45 +348,49 @@ $recent_searches = getRecentSearches($db);
 ?>
 
 <style>
+/* Follows the flat admin panel conventions used by admin/timetable_settings.php:
+   white panels, 1px #e5e7eb borders, 8px radius, no gradients/shadows. */
 :root {
-    --primary: var(--brand-primary, #4e73df);
-    --primary-dark: var(--brand-secondary, #224abe);
-    --secondary: #858796;
+    --primary: var(--bs-primary, #0d6efd);
+    --primary-dark: #0a58ca;
+    --secondary: #64748b;
     --success: #1cc88a;
     --info: #36b9cc;
     --warning: #f6c23e;
     --danger: #e74a3b;
-    --light: #f8f9fc;
-    --dark: #5a5c69;
+    --light: #f8fafc;
+    --dark: #1e293b;
     --white: #fff;
-    --shadow: 0 0.5rem 2rem rgba(0,0,0,0.15);
-    --shadow-sm: 0 0.125rem 0.25rem rgba(0,0,0,0.075);
-    --radius: 1rem;
-    --radius-sm: 0.5rem;
+    --shadow: none;
+    --shadow-sm: none;
+    --radius: 8px;
+    --radius-sm: 6px;
 }
 
 /* Main Container */
 .search-container {
     max-width: 900px;
-    margin: 2rem auto;
-    padding: 0 1rem;
-    min-height: calc(100vh - 140px); /* Vertical centering alignment helper */
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
+    margin: 0 auto;
+    padding: 0;
 }
 
-/* Card Styles */
-.search-card {
+/* Card Styles — .portal-dashboard prefix matches the specificity of the
+   .portal-dashboard .search-card rule in portal-dashboard.css so this
+   later-loaded block wins. */
+.portal-dashboard .search-card {
     background: var(--white);
+    border: 1px solid #e5e7eb;
     border-radius: var(--radius);
-    box-shadow: var(--shadow);
+    box-shadow: none;
+    padding: 0;
     overflow: hidden;
     position: relative;
     width: 100%;
+    margin-bottom: 18px;
 }
 
 .card-bg-logo {
+    display: none; /* watermark is not part of the flat admin panel style */
     position: absolute;
     top: 50%;
     left: 50%;
@@ -403,9 +407,10 @@ $recent_searches = getRecentSearches($db);
 }
 
 .card-header-custom {
-    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-    color: var(--white);
-    padding: 1.5rem 2rem;
+    background: var(--white);
+    color: var(--dark);
+    padding: 14px 16px;
+    border-bottom: 1px solid #e5e7eb;
     position: relative;
     z-index: 1;
     display: flex;
@@ -415,15 +420,19 @@ $recent_searches = getRecentSearches($db);
 
 .card-header-custom h5 {
     font-weight: 600;
-    font-size: 1.25rem;
+    font-size: 1.1rem;
     margin: 0;
     display: flex;
     align-items: center;
     gap: 0.75rem;
 }
 
+.card-header-custom h5 i {
+    color: var(--primary);
+}
+
 .card-body-custom {
-    padding: 2rem;
+    padding: 16px;
     position: relative;
     z-index: 1;
 }
@@ -450,7 +459,7 @@ $recent_searches = getRecentSearches($db);
 
 .search-input-group .input-group-text {
     background: var(--light);
-    border: 2px solid #e3e6f0;
+    border: 1px solid #e5e7eb;
     border-right: none;
     padding: 0 1rem;
     color: var(--secondary);
@@ -460,10 +469,10 @@ $recent_searches = getRecentSearches($db);
 
 .search-input {
     flex: 1;
-    border: 2px solid #e3e6f0;
+    border: 1px solid #e5e7eb;
     border-left: none;
     border-right: none;
-    padding: 1rem;
+    padding: .75rem 1rem;
     font-size: 1rem;
     transition: all 0.2s;
 }
@@ -572,7 +581,7 @@ $recent_searches = getRecentSearches($db);
 .result-card {
     background: var(--white);
     border-radius: var(--radius-sm);
-    border: 1px solid #e3e6f0;
+    border: 1px solid #e5e7eb;
     margin-top: 1.5rem;
     overflow: hidden;
     animation: slideUp 0.3s ease-out;
@@ -594,8 +603,8 @@ $recent_searches = getRecentSearches($db);
     display: flex;
     gap: 1.5rem;
     padding: 1.5rem;
-    background: linear-gradient(135deg, #f8f9fc 0%, #ffffff 100%);
-    border-bottom: 1px solid #e3e6f0;
+    background: var(--light);
+    border-bottom: 1px solid #e5e7eb;
 }
 
 @media (max-width: 576px) {
@@ -674,7 +683,7 @@ $recent_searches = getRecentSearches($db);
     margin: 0;
     font-weight: 600;
     color: var(--dark);
-    border-bottom: 1px solid #e3e6f0;
+    border-bottom: 1px solid #e5e7eb;
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -703,10 +712,10 @@ $recent_searches = getRecentSearches($db);
 .badge-program {
     display: inline-flex;
     align-items: center;
-    background: rgba(78, 115, 223, 0.1);
+    background: rgba(13, 110, 253, 0.1);
     color: var(--primary);
     padding: 0.5rem 1rem;
-    border-radius: 2rem;
+    border-radius: var(--radius-sm);
     font-weight: 600;
     font-size: 0.875rem;
 }
@@ -718,7 +727,7 @@ $recent_searches = getRecentSearches($db);
     gap: 0.75rem;
     padding: 1rem 1.5rem;
     background: var(--light);
-    border-top: 1px solid #e3e6f0;
+    border-top: 1px solid #e5e7eb;
 }
 
 .btn-action {
@@ -736,8 +745,7 @@ $recent_searches = getRecentSearches($db);
 }
 
 .btn-action:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    filter: brightness(0.95);
 }
 
 .btn-primary-action { background: var(--primary); color: var(--white); }
@@ -765,7 +773,7 @@ $recent_searches = getRecentSearches($db);
 .recent-section {
     margin-top: 2rem;
     padding-top: 2rem;
-    border-top: 1px solid #e3e6f0;
+    border-top: 1px solid #e5e7eb;
 }
 
 .recent-title {
@@ -791,9 +799,9 @@ $recent_searches = getRecentSearches($db);
     align-items: center;
     gap: 0.5rem;
     padding: 0.625rem 1rem;
-    background: var(--white);
-    border: 1px solid #e3e6f0;
-    border-radius: 2rem;
+    background: var(--light);
+    border: 1px solid #dbe3ef;
+    border-radius: var(--radius-sm);
     font-size: 0.875rem;
     color: var(--dark);
     text-decoration: none;
@@ -805,8 +813,6 @@ $recent_searches = getRecentSearches($db);
     background: var(--primary);
     color: var(--white);
     border-color: var(--primary);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 6px rgba(78, 115, 223, 0.2);
 }
 
 .recent-chip small {
@@ -817,13 +823,14 @@ $recent_searches = getRecentSearches($db);
 .help-section {
     margin-top: 1.5rem;
     padding: 1.25rem;
-    background: #e8f4f8;
+    background: var(--light);
+    border: 1px solid #e5e7eb;
     border-radius: var(--radius-sm);
-    border-left: 4px solid var(--info);
+    border-left: 4px solid var(--primary);
 }
 
 .help-section h6 {
-    color: #0c5460;
+    color: var(--dark);
     font-weight: 700;
     margin-bottom: 0.75rem;
     display: flex;
@@ -834,7 +841,7 @@ $recent_searches = getRecentSearches($db);
 .help-section ul {
     margin: 0;
     padding-left: 1.25rem;
-    color: #0c5460;
+    color: var(--secondary);
     font-size: 0.9rem;
 }
 
@@ -870,7 +877,7 @@ $recent_searches = getRecentSearches($db);
 
 /* Utilities */
 .text-primary-subtle { color: var(--primary) !important; }
-.bg-primary-subtle { background-color: rgba(78, 115, 223, 0.1) !important; }
+.bg-primary-subtle { background-color: rgba(13, 110, 253, 0.1) !important; }
 /* Typeahead Dropdown */
 .cursor-pointer { cursor: pointer; }
 
@@ -881,7 +888,7 @@ $recent_searches = getRecentSearches($db);
     right: 0;
     z-index: 1050;
     background: var(--white);
-    border: 1px solid #e3e6f0;
+    border: 1px solid #e5e7eb;
     border-radius: var(--radius-sm);
     box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15);
     max-height: 320px;
@@ -889,7 +896,7 @@ $recent_searches = getRecentSearches($db);
 }
 
 .typeahead-item:last-child { border-bottom: 0 !important; }
-.typeahead-item:hover { background-color: rgba(78, 115, 223, 0.08); }
+.typeahead-item:hover { background-color: rgba(13, 110, 253, 0.08); }
 .typeahead-item.bg-primary:hover { background-color: var(--primary); }
 
 /* Keyboard Navigation */
@@ -901,7 +908,7 @@ $recent_searches = getRecentSearches($db);
 .search-input:focus {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(78, 115, 223, 0.1);
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.1);
 }
 
 /* Loading States */
@@ -941,7 +948,7 @@ $recent_searches = getRecentSearches($db);
                 <i class="fas fa-search"></i>
                 Student Search
             </h5>
-            <a href="index.php" class="btn-close btn-close-white" aria-label="Close"></a>
+            <a href="index.php" class="btn-close" aria-label="Close"></a>
         </div>
         
         <!-- Body -->

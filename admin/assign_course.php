@@ -162,108 +162,14 @@ if (!empty($_POST) && isset($_POST["course_code"], $_POST["staff_id"])) {
     $staff_id = trim($_POST["staff_id"]);
     
     if (!empty($course_code) && !empty($staff_id)) {
-        // Retrieve current academic year
-        $curAy = date('Y');
-        if ($st = $db->prepare("SELECT setting_value FROM portal_settings WHERE setting_key = 'current_academic_year' LIMIT 1")) {
-            if ($st->execute()) {
-                $res = $st->get_result();
-                if ($res && $res->num_rows) {
-                    $curAy = (string)$res->fetch_assoc()['setting_value'];
-                }
-            }
-            $st->close();
-        }
-
-        // Retrieve course mappings from program_courses
-        $pc_query = "SELECT program_code, year, semester FROM program_courses WHERE course_code = ?";
-        $pc_stmt = $db->prepare($pc_query);
-        $pc_stmt->bind_param("s", $course_code);
-        $pc_stmt->execute();
-        $pc_result = $pc_stmt->get_result();
-        
-        $inserted = 0;
-        $existed = 0;
-        
-        if ($pc_result->num_rows > 0) {
-            while ($pc_row = $pc_result->fetch_assoc()) {
-                $prog = $pc_row['program_code'];
-                $y = (int)$pc_row['year'];
-                $sem = (string)$pc_row['semester'];
-                
-                // Get program academic structure
-                $p_info_stmt = $db->prepare("SELECT academic_structure FROM programs WHERE program_code = ? LIMIT 1");
-                $p_info_stmt->bind_param("s", $prog);
-                $p_info_stmt->execute();
-                $p_info = $p_info_stmt->get_result()->fetch_assoc();
-                $p_info_stmt->close();
-                
-                $academic_structure = $p_info['academic_structure'] ?? 'certificate_term';
-                
-                // Determine appropriate fields based on academic structure
-                if ($academic_structure === 'short_course') {
-                    // For short course: don't require year of study or semester.
-                    // We check uniqueness using program_code and course_code.
-                    $check_query = "SELECT 1 FROM course_lecturer WHERE course_code = ? AND staff_id = ? AND program_code = ?";
-                    $check_stmt = $db->prepare($check_query);
-                    $check_stmt->bind_param("sss", $course_code, $staff_id, $prog);
-                    $check_stmt->execute();
-                    $has_assignment = $check_stmt->get_result()->num_rows > 0;
-                    $check_stmt->close();
-                    
-                    if (!$has_assignment) {
-                        $insert = $db->prepare("INSERT INTO course_lecturer (course_code, staff_id, program_code, academic_year, status) VALUES (?, ?, ?, ?, 'active')");
-                        $insert->bind_param("ssss", $course_code, $staff_id, $prog, $curAy);
-                        $insert->execute();
-                        $insert->close();
-                        $inserted++;
-                    } else {
-                        $existed++;
-                    }
-                } else {
-                    // For standard Certificate/Diploma/Transport exception: require year of study and term/semester
-                    $check_query = "SELECT 1 FROM course_lecturer WHERE course_code = ? AND staff_id = ? AND program_code = ? AND year_of_study = ? AND semester = ?";
-                    $check_stmt = $db->prepare($check_query);
-                    $check_stmt->bind_param("sssis", $course_code, $staff_id, $prog, $y, $sem);
-                    $check_stmt->execute();
-                    $has_assignment = $check_stmt->get_result()->num_rows > 0;
-                    $check_stmt->close();
-                    
-                    if (!$has_assignment) {
-                        $insert = $db->prepare("INSERT INTO course_lecturer (course_code, staff_id, program_code, academic_year, year_of_study, semester, status) VALUES (?, ?, ?, ?, ?, ?, 'active')");
-                        $insert->bind_param("ssssis", $course_code, $staff_id, $prog, $curAy, $y, $sem);
-                        $insert->execute();
-                        $insert->close();
-                        $inserted++;
-                    } else {
-                        $existed++;
-                    }
-                }
-            }
+        require_once dirname(__DIR__) . '/includes/helpers/lecturer_course_helpers.php';
+        $assignResult = wuc_assign_lecturer_to_course($db, $staff_id, $course_code, [
+            'allow_unmapped' => true,
+        ]);
+        if (!empty($assignResult['inserted']) || !empty($assignResult['updated'])) {
+            $_SESSION['successMsg'] = (string)$assignResult['message'];
         } else {
-            // Fallback legacy insertion
-            $check_query = "SELECT 1 FROM course_lecturer WHERE course_code = ? AND staff_id = ?";
-            $check_stmt = $db->prepare($check_query);
-            $check_stmt->bind_param("ss", $course_code, $staff_id);
-            $check_stmt->execute();
-            $has_assignment = $check_stmt->get_result()->num_rows > 0;
-            $check_stmt->close();
-            
-            if (!$has_assignment) {
-                $insert = $db->prepare("INSERT INTO course_lecturer (course_code, staff_id, academic_year, status) VALUES (?, ?, ?, 'active')");
-                $insert->bind_param("sss", $course_code, $staff_id, $curAy);
-                $insert->execute();
-                $insert->close();
-                $inserted++;
-            } else {
-                $existed++;
-            }
-        }
-        $pc_stmt->close();
-        
-        if ($inserted > 0) {
-            $_SESSION['successMsg'] = "Course has been assigned to the lecturer successfully ($inserted context mappings created)";
-        } else {
-            $_SESSION['errorMsg'] = 'This course is already assigned to the selected lecturer under all mapping contexts';
+            $_SESSION['errorMsg'] = (string)($assignResult['message'] ?: 'This course is already assigned to the selected lecturer under all mapping contexts.');
         }
         header('Location: assign_course.php');
         exit();

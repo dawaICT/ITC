@@ -1,8 +1,19 @@
 <?php
 $page_title = 'Update Program Fees';
 require "includes/nav.php";
+require_once dirname(__DIR__) . '/includes/auth_helpers.php';
 error_reporting(0);
+
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 if(isset($_POST['update'])){
+    if (!wuc_validate_csrf($_POST['csrf_token'] ?? null)) {
+        echo "<script>alert('Invalid or expired form token. Please try again.')</script>";
+        echo "<script>window.open('programFees.php','_self')</script>";
+        exit;
+    }
 
     $id = trim($_POST["id"]);
     $program_code = trim($_POST["program_code"]);
@@ -15,11 +26,17 @@ if(isset($_POST['update'])){
     $YR_4_S1 = trim($_POST["YR_4_S1"]);
     $YR_4_S2 = trim($_POST["YR_4_S2"]);
 
-   $sql = "update program_fees set program_code = '$program_code', YR_1_S1 = '$YR_1_S1', YR_1_S2 = '$YR_1_S2', 
-   YR_2_S1 = '$YR_2_S1', YR_2_S2 = '$YR_2_S2', YR_3_S1 = '$YR_3_S1', YR_3_S2 = '$YR_3_S2', YR_4_S1 = '$YR_4_S1', 
-   YR_4_S2 = '$YR_4_S2' WHERE id ='$id'";
+    $stmt = $db->prepare(
+        'UPDATE program_fees SET program_code = ?, YR_1_S1 = ?, YR_1_S2 = ?, YR_2_S1 = ?, YR_2_S2 = ?, YR_3_S1 = ?, YR_3_S2 = ?, YR_4_S1 = ?, YR_4_S2 = ? WHERE id = ?'
+    );
+    if ($stmt) {
+        $stmt->bind_param('ssssssssss', $program_code, $YR_1_S1, $YR_1_S2, $YR_2_S1, $YR_2_S2, $YR_3_S1, $YR_3_S2, $YR_4_S1, $YR_4_S2, $id);
+        $result = $stmt->execute();
+        $stmt->close();
+    } else {
+        $result = false;
+    }
 
-    $result = mysqli_query($db, $sql);
     if (!empty($result)) {
       echo "<script>alert('Program fees updated successfully')</script>";
           echo"<script>window.open('programFees.php','_self')</script>";
@@ -50,16 +67,19 @@ if(isset($_POST['update'])){
 						<div class="card-body">
 							<?php
 								if (isset($_GET['update'])) {
-									$update = ($_GET['update']);
-										if($results = $db->query("SELECT * FROM program_fees 
-											WHERE id = '$update'")) {
-												if($count = $results->num_rows) {
-												while($row = $results->fetch_object()){
-												$records_1[] = $row;
-												}
-												$results->free();
-											}
-										}
+									$update = trim($_GET['update']);
+                                    $records_1 = [];
+                                    if ($stmt = $db->prepare('SELECT * FROM program_fees WHERE id = ?')) {
+                                        $stmt->bind_param('s', $update);
+                                        $stmt->execute();
+                                        $results = $stmt->get_result();
+                                        if ($results && $results->num_rows) {
+                                            while ($row = $results->fetch_object()) {
+                                                $records_1[] = $row;
+                                            }
+                                        }
+                                        $stmt->close();
+                                    }
 								}
 
                     ?>
@@ -68,6 +88,7 @@ if(isset($_POST['update'])){
 						foreach($records_1 as $r) {
 					?>
                     <form action="updateFees.php" method="post" class="row g-3" role="form">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8'); ?>">
                     <table id="myTable" class="table table-hover align-middle">
                         <thead class="table-light">
                         <tr>

@@ -11,23 +11,40 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/assessment_weighting_helpers.php';
 require_once __DIR__ . '/helpers/lecturer_course_helpers.php';
+require_once __DIR__ . '/elearning_access.php';
 
 if (!function_exists('wuc_risk_table_exists')) {
     function wuc_risk_table_exists(mysqli $db, string $table): bool
     {
+        static $memo = [];
+        $table = trim($table);
+        if ($table === '') {
+            return false;
+        }
+        if (array_key_exists($table, $memo)) {
+            return $memo[$table];
+        }
+        if (function_exists('wuc_table_exists')) {
+            return $memo[$table] = wuc_table_exists($db, $table);
+        }
         if ($res = @$db->query("SHOW TABLES LIKE '" . $db->real_escape_string($table) . "'")) {
             $exists = $res->num_rows > 0;
             $res->free();
-            return $exists;
+            return $memo[$table] = $exists;
         }
-        return false;
+        return $memo[$table] = false;
     }
 }
 
 if (!function_exists('wuc_risk_load_thresholds')) {
     function wuc_risk_load_thresholds(mysqli $db): array
     {
-        $thresholds = [
+        static $cached = null;
+        if (is_array($cached)) {
+            return $cached;
+        }
+
+        $defaults = [
             'attendance_threshold' => 60,
             'marks_threshold' => 50,
             'assignment_threshold' => 50,
@@ -37,24 +54,31 @@ if (!function_exists('wuc_risk_load_thresholds')) {
             'high_risk_threshold' => 70,
         ];
 
-        if (!wuc_risk_table_exists($db, 'ai_threshold_settings')) {
-            return $thresholds;
-        }
-
-        try {
-            $res = $db->query('SELECT setting_name, setting_value FROM ai_threshold_settings');
-            while ($row = $res->fetch_assoc()) {
-                $name = (string)($row['setting_name'] ?? '');
-                if (array_key_exists($name, $thresholds) && is_numeric($row['setting_value'])) {
-                    $thresholds[$name] = (float)$row['setting_value'];
-                }
+        $producer = static function () use ($db, $defaults): array {
+            $thresholds = $defaults;
+            if (!wuc_risk_table_exists($db, 'ai_threshold_settings')) {
+                return $thresholds;
             }
-            $res->free();
-        } catch (Throwable $e) {
-            error_log('wuc_risk_load_thresholds failed: ' . $e->getMessage());
+            try {
+                $res = $db->query('SELECT setting_name, setting_value FROM ai_threshold_settings');
+                while ($row = $res->fetch_assoc()) {
+                    $name = (string)($row['setting_name'] ?? '');
+                    if (array_key_exists($name, $thresholds) && is_numeric($row['setting_value'])) {
+                        $thresholds[$name] = (float)$row['setting_value'];
+                    }
+                }
+                $res->free();
+            } catch (Throwable $e) {
+                error_log('wuc_risk_load_thresholds failed: ' . $e->getMessage());
+            }
+            return $thresholds;
+        };
+
+        if (function_exists('wuc_cache_remember')) {
+            return $cached = wuc_cache_remember('risk_thresholds', $producer, 300);
         }
 
-        return $thresholds;
+        return $cached = $producer();
     }
 }
 
@@ -72,6 +96,17 @@ if (!function_exists('wuc_risk_bind_values')) {
 if (!function_exists('wuc_risk_student_courses')) {
     function wuc_risk_student_courses(mysqli $db, string $studentId): array
     {
+        if (function_exists('getStudentEnrolledCourses')) {
+            $resolved = getStudentEnrolledCourses($db, $studentId);
+            $resolved = array_values(array_unique(array_filter(array_map(
+                static fn($code): string => trim((string)$code),
+                is_array($resolved) ? $resolved : []
+            ))));
+            if ($resolved) {
+                return $resolved;
+            }
+        }
+
         if (!wuc_risk_table_exists($db, 'course_registration')) {
             return [];
         }
@@ -103,16 +138,19 @@ if (!function_exists('wuc_risk_student_program')) {
             'program_code' => '',
             'program_name' => '',
             'department_id' => null,
+            'examination_type' => '',
         ];
 
         if (!wuc_risk_table_exists($db, 'student_program')) {
             return $program;
         }
 
-        $sql = "SELECT sp.program_code, COALESCE(p.program_name, '') AS program_name, p.department_id
+        $sql = "SELECT sp.program_code, COALESCE(p.program_name, '') AS program_name,
+                       p.department_id, COALESCE(p.examination_type, '') AS examination_type
                 FROM student_program sp
                 LEFT JOIN programs p ON p.program_code = sp.program_code
                 WHERE sp.Sid = ?
+                  AND (sp.status IS NULL OR TRIM(sp.status) = '' OR LOWER(TRIM(sp.status)) IN ('active', 'current'))
                 ORDER BY sp.id DESC
                 LIMIT 1";
         if ($stmt = $db->prepare($sql)) {
@@ -123,6 +161,7 @@ if (!function_exists('wuc_risk_student_program')) {
             $program['program_code'] = trim((string)($row['program_code'] ?? ''));
             $program['program_name'] = trim((string)($row['program_name'] ?? ''));
             $program['department_id'] = isset($row['department_id']) ? (int)$row['department_id'] : null;
+            $program['examination_type'] = strtolower(trim((string)($row['examination_type'] ?? '')));
         }
 
         return $program;
@@ -195,12 +234,13 @@ if (!function_exists('wuc_risk_attendance_metrics')) {
 if (!function_exists('wuc_risk_assessment_metrics')) {
     function wuc_risk_assessment_metrics(mysqli $db, string $studentId, array $courseCodes): array
     {
-        $marks = [];
+        $marksByCourse = [];
         $failedRecent = 0;
 
         if ($courseCodes && wuc_risk_table_exists($db, 'exams')) {
             $placeholders = implode(',', array_fill(0, count($courseCodes), '?'));
-            $sql = "SELECT Course_Code, Total_marks, Total_CA, Exam_marks, created_at
+            $sql = "SELECT Course_Code, Total_marks, Total_CA, Exam_marks,
+                           COALESCE(updated_at, created_at) AS recorded_at
                     FROM exams
                     WHERE Sid = ? AND Course_Code IN ($placeholders)
                     ORDER BY COALESCE(updated_at, created_at) DESC, id DESC";
@@ -210,19 +250,36 @@ if (!function_exists('wuc_risk_assessment_metrics')) {
                 $stmt->execute();
                 $res = $stmt->get_result();
                 while ($row = $res->fetch_assoc()) {
-                    if (is_numeric($row['Total_marks'])) {
-                        $marks[] = (float)$row['Total_marks'];
-                    } else {
-                        $marks[] = assessment_weighting_total($db, $studentId, $row['Total_CA'] ?? 0, $row['Exam_marks'] ?? 0);
+                    $code = trim((string)($row['Course_Code'] ?? ''));
+                    if ($code === '' || isset($marksByCourse[$code])) {
+                        continue;
                     }
+                    if (is_numeric($row['Total_marks'])) {
+                        $mark = max(0.0, min(100.0, (float)$row['Total_marks']));
+                    } elseif (is_numeric($row['Total_CA'])) {
+                        // External-exam programmes often hold only internal CA
+                        // until results return. Total_CA is on a 40-point scale;
+                        // applying final-result weighting again produced values
+                        // such as 5.29% from a valid 13.42/40 CA total.
+                        $totalCa = (float)$row['Total_CA'];
+                        $scale = $totalCa <= 40 ? 40.0 : 100.0;
+                        $mark = round(min(100, ($totalCa / $scale) * 100), 2);
+                    } else {
+                        continue;
+                    }
+                    $marksByCourse[$code] = [
+                        'mark' => $mark,
+                        'recorded_at' => (string)($row['recorded_at'] ?? ''),
+                    ];
                 }
                 $stmt->close();
             }
         }
 
-        if (!$marks && $courseCodes && wuc_risk_table_exists($db, 'semester_assessment')) {
+        if ($courseCodes && wuc_risk_table_exists($db, 'semester_assessment')) {
             $placeholders = implode(',', array_fill(0, count($courseCodes), '?'));
-            $sql = "SELECT Total_CA, A1, A2, A3, T1, T2
+            $sql = "SELECT Course_Code, Total_CA, A1, A2, A3, T1, T2,
+                           COALESCE(updated_at, created_at) AS recorded_at
                     FROM semester_assessment
                     WHERE Sid = ? AND Course_Code IN ($placeholders)
                     ORDER BY COALESCE(updated_at, created_at) DESC, id DESC";
@@ -232,17 +289,26 @@ if (!function_exists('wuc_risk_assessment_metrics')) {
                 $stmt->execute();
                 $res = $stmt->get_result();
                 while ($row = $res->fetch_assoc()) {
+                    $code = trim((string)($row['Course_Code'] ?? ''));
+                    if ($code === '' || isset($marksByCourse[$code])) {
+                        continue;
+                    }
                     if (!is_numeric($row['Total_CA'])) {
                         continue;
                     }
                     $totalCa = (float)$row['Total_CA'];
                     $scale = $totalCa <= 40 ? 40.0 : 100.0;
-                    $marks[] = round(min(100, ($totalCa / $scale) * 100), 2);
+                    $marksByCourse[$code] = [
+                        'mark' => round(min(100, ($totalCa / $scale) * 100), 2),
+                        'recorded_at' => (string)($row['recorded_at'] ?? ''),
+                    ];
                 }
                 $stmt->close();
             }
         }
 
+        uasort($marksByCourse, static fn(array $a, array $b): int => strcmp($b['recorded_at'], $a['recorded_at']));
+        $marks = array_map(static fn(array $row): float => (float)$row['mark'], array_values($marksByCourse));
         foreach (array_slice($marks, 0, 2) as $mark) {
             if ($mark < 50) {
                 $failedRecent++;
@@ -409,7 +475,7 @@ if (!function_exists('wuc_risk_registration_metrics')) {
      * academic year's semester/term, and do active course registrations exist?
      * semester_registration keeps the student key in BOTH student_id and SID.
      */
-    function wuc_risk_registration_metrics(mysqli $db, string $studentId): array
+    function wuc_risk_registration_metrics(mysqli $db, string $studentId, array $courseCodes = []): array
     {
         $metrics = [
             'has_semester_registration' => null,
@@ -434,7 +500,9 @@ if (!function_exists('wuc_risk_registration_metrics')) {
             }
         }
 
-        if (wuc_risk_table_exists($db, 'course_registration')) {
+        if ($courseCodes) {
+            $metrics['active_course_registrations'] = count(array_unique($courseCodes));
+        } elseif (wuc_risk_table_exists($db, 'course_registration')) {
             $sql = "SELECT COUNT(*) AS total FROM course_registration
                     WHERE Sid = ? AND COALESCE(is_active, 1) = 1";
             if ($stmt = $db->prepare($sql)) {
@@ -457,7 +525,7 @@ if (!function_exists('wuc_risk_failed_course_metrics')) {
      * wuc_risk_assessment_metrics: totals on a 40-point CA scale are
      * normalised to 100 before the <50% fail check.
      */
-    function wuc_risk_failed_course_metrics(mysqli $db, string $studentId): array
+    function wuc_risk_failed_course_metrics(mysqli $db, string $studentId, array $courseCodes = []): array
     {
         $metrics = [
             'failed_courses' => 0,
@@ -465,17 +533,19 @@ if (!function_exists('wuc_risk_failed_course_metrics')) {
             'failed_course_codes' => [],
         ];
 
-        if (!wuc_risk_table_exists($db, 'semester_assessment')) {
+        if (!$courseCodes || !wuc_risk_table_exists($db, 'semester_assessment')) {
             return $metrics;
         }
 
+        $placeholders = implode(',', array_fill(0, count($courseCodes), '?'));
         $sql = "SELECT Course_Code, Total_CA
                 FROM semester_assessment
-                WHERE Sid = ? AND Total_CA IS NOT NULL";
+                WHERE Sid = ? AND Course_Code IN ($placeholders) AND Total_CA IS NOT NULL";
         if (!$stmt = $db->prepare($sql)) {
             return $metrics;
         }
-        $stmt->bind_param('s', $studentId);
+        $params = array_merge([$studentId], $courseCodes);
+        wuc_risk_bind_values($stmt, 's' . str_repeat('s', count($courseCodes)), $params);
         $stmt->execute();
         $res = $stmt->get_result();
         $failCounts = [];
@@ -597,8 +667,9 @@ if (!function_exists('wuc_academic_risk_analyze_student')) {
         $activity = wuc_risk_activity_metrics($db, $studentId);
         $progress = wuc_risk_progress_metrics($db, $studentId, $courses);
         $fees = wuc_risk_fee_metrics($db, $studentId);
-        $registration = wuc_risk_registration_metrics($db, $studentId);
-        $failedCourses = wuc_risk_failed_course_metrics($db, $studentId);
+        $registration = wuc_risk_registration_metrics($db, $studentId, $courses);
+        $failedCourses = wuc_risk_failed_course_metrics($db, $studentId, $courses);
+        $usesExternalExams = ($program['examination_type'] ?? '') === 'external';
 
         $score = 0;
         $reasons = [];
@@ -624,13 +695,17 @@ if (!function_exists('wuc_academic_risk_analyze_student')) {
         } elseif ($assessment['average_mark'] < $thresholds['marks_threshold']) {
             $score += 30;
             $reasonKeys[] = 'marks';
-            $reasons[] = 'Average mark is below ' . (int)$thresholds['marks_threshold'] . '% (' . $assessment['average_mark'] . '%).';
+            $reasons[] = $usesExternalExams
+                ? 'Average internal CA is below the ' . (int)$thresholds['marks_threshold'] . '% support threshold (' . $assessment['average_mark'] . '%). External examination results determine the final outcome.'
+                : 'Average mark is below ' . (int)$thresholds['marks_threshold'] . '% (' . $assessment['average_mark'] . '%).';
         }
 
         if ((int)$assessment['failed_recent_assessments'] >= 2) {
             $score += 20;
             $reasonKeys[] = 'failed_recent';
-            $reasons[] = 'The latest two assessment records are below the pass threshold.';
+            $reasons[] = $usesExternalExams
+                ? 'The latest two internal CA records are below the support threshold.'
+                : 'The latest two assessment records are below the pass threshold.';
         }
 
         if ($assignments['submission_rate'] === null) {
@@ -688,7 +763,9 @@ if (!function_exists('wuc_academic_risk_analyze_student')) {
         } elseif ((int)$failedCourses['failed_courses'] >= 2) {
             $score += 10;
             $reasonKeys[] = 'failed_courses';
-            $reasons[] = (int)$failedCourses['failed_courses'] . ' registered courses have results below the pass mark.';
+            $reasons[] = $usesExternalExams
+                ? (int)$failedCourses['failed_courses'] . ' active modules have internal CA below the support threshold.'
+                : (int)$failedCourses['failed_courses'] . ' registered courses have results below the pass mark.';
         }
 
         if ($score >= $thresholds['high_risk_threshold']) {
@@ -735,6 +812,89 @@ if (!function_exists('wuc_academic_risk_analyze_student')) {
         }
 
         return $result;
+    }
+}
+
+if (!function_exists('wuc_academic_risk_read_cached_summary')) {
+    /**
+     * Read the newest persisted risk summary when it is still fresh.
+     * Returns null when the table is missing, the row is stale, or read fails.
+     *
+     * @return array<string,mixed>|null
+     */
+    function wuc_academic_risk_read_cached_summary(mysqli $db, string $studentId, int $maxAgeSeconds = 900): ?array
+    {
+        $studentId = trim($studentId);
+        if ($studentId === '' || $maxAgeSeconds < 1 || !wuc_risk_table_exists($db, 'student_risk_summary')) {
+            return null;
+        }
+
+        try {
+            $stmt = $db->prepare(
+                'SELECT risk_score, risk_level, risk_reason, recommended_action, data_quality, generated_at
+                 FROM student_risk_summary
+                 WHERE student_id = ?
+                 ORDER BY generated_at DESC
+                 LIMIT 1'
+            );
+            if (!$stmt) {
+                return null;
+            }
+            $stmt->bind_param('s', $studentId);
+            $stmt->execute();
+            $row = $stmt->get_result()->fetch_assoc() ?: null;
+            $stmt->close();
+            if (!$row) {
+                return null;
+            }
+
+            $generatedAt = strtotime((string)($row['generated_at'] ?? ''));
+            if ($generatedAt === false || (time() - $generatedAt) > $maxAgeSeconds) {
+                return null;
+            }
+
+            $reasons = preg_split("/\r\n|\n|\r/", (string)($row['risk_reason'] ?? '')) ?: [];
+            $reasons = array_values(array_filter(array_map('trim', $reasons), static fn($r) => $r !== ''));
+            $level = (string)($row['risk_level'] ?? 'Low');
+            $recommended = trim((string)($row['recommended_action'] ?? ''));
+
+            return [
+                'student_id' => $studentId,
+                'risk_score' => (int)($row['risk_score'] ?? 0),
+                'risk_level' => $level,
+                'risk_reasons' => $reasons,
+                'reason_keys' => [],
+                'recommended_action' => $recommended,
+                'student_guidance' => $recommended !== ''
+                    ? $recommended
+                    : wuc_risk_student_guidance([], $level),
+                'data_notes' => preg_split("/\r\n|\n|\r/", (string)($row['data_quality'] ?? '')) ?: [],
+                'generated_at' => (string)($row['generated_at'] ?? ''),
+                'saved' => true,
+                'from_cache' => true,
+            ];
+        } catch (Throwable $e) {
+            error_log('wuc_academic_risk_read_cached_summary failed: ' . $e->getMessage());
+            return null;
+        }
+    }
+}
+
+if (!function_exists('wuc_academic_risk_for_dashboard')) {
+    /**
+     * Dashboard-optimized risk insight: reuse a fresh persisted summary when
+     * available, otherwise compute and persist. Avoids re-running the full
+     * multi-metric engine on every student home-page load.
+     *
+     * @return array<string,mixed>
+     */
+    function wuc_academic_risk_for_dashboard(mysqli $db, string $studentId, int $maxAgeSeconds = 900): array
+    {
+        $cached = wuc_academic_risk_read_cached_summary($db, $studentId, $maxAgeSeconds);
+        if (is_array($cached)) {
+            return $cached;
+        }
+        return wuc_academic_risk_analyze_student($db, $studentId, true);
     }
 }
 
@@ -926,7 +1086,7 @@ if (!function_exists('wuc_academic_risk_create_portal_alert')) {
         }
 
         $reasonKeys = is_array($result['reason_keys'] ?? null) ? $result['reason_keys'] : [];
-        $created = wuc_portal_alert_create($db, [
+        $created = wuc_portal_alert_upsert_current($db, [
             'user_id' => $studentId,
             'user_role' => 'student',
             'alert_type' => 'academic_risk',
@@ -936,8 +1096,20 @@ if (!function_exists('wuc_academic_risk_create_portal_alert')) {
             'entity_type' => 'student',
             'entity_id' => $studentId,
             'action_url' => '/wucportal/students/index.php',
-            'dedupe_days' => 7,
         ]);
+
+        // Earlier dashboard and eLearning bridges created parallel copies of
+        // the same academic-risk notice. Keep the canonical academic_risk row
+        // and retire those legacy duplicates from the unread feed.
+        if ($stmt = $db->prepare(
+            "UPDATE portal_alerts SET status = 'dismissed'
+             WHERE user_id = ? AND alert_type IN ('student_dashboard_ai_academic_insight', 'el_academic_risk')
+               AND status IN ('unread', 'read')"
+        )) {
+            $stmt->bind_param('s', $studentId);
+            $stmt->execute();
+            $stmt->close();
+        }
 
         if ($created) {
             wuc_ai_decision_log($db, [

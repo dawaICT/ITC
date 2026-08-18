@@ -1,0 +1,15 @@
+=== LEARNING ASSISTANT POST-FIX PROBE ===
+time=2026-07-20T11:02:09+02:00
+status={"available":true,"model_ready":true,"provider":"cloud","model":"pollinations:openai","cloud_enabled":true,"local_ready":false,"message":"Cloud AI service is configured (pollinations:openai)."}
+cloud_enabled_fn=yes
+cloud_chain=pollinations:openai
+router_ok=yes
+router_model=cloud:pollinations:openai
+router_answer=Information Technology is the use of computers and telecommunications to store, retrieve, transmit, and manipulate data.
+gateway_ok=yes
+source_status=general_model_knowledge
+answer_preview=General knowledge (not lecturer-verified):
+
+Information Technology, in the context of this course, refers to the use of computers, software, networks, and other digital tools to create, store, retrieve, transmit, and manage information. It covers the basics of how computer systems work, how to use c
+confirm=yes
+is_old_error=no

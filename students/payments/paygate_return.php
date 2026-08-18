@@ -80,6 +80,52 @@ function pgr_process(mysqli $db, DpoGateway $gateway, array $transaction, string
         ];
     }
 
+    // Bind verified gateway payload to the stored local transaction (amount / company ref).
+    $expectedAmount = payment_decimal($transaction['amount'] ?? 0);
+    $verifiedAmount = payment_decimal(
+        $verifyData['TransactionAmount']
+            ?? $verifyData['Amount']
+            ?? $verifyData['TotalAmount']
+            ?? $expectedAmount
+    );
+    if ($expectedAmount > 0 && abs($verifiedAmount - $expectedAmount) > 0.009) {
+        error_log(sprintf(
+            'paygate_return amount mismatch tx=%d expected=%s verified=%s',
+            (int)$transaction['id'],
+            (string)$expectedAmount,
+            (string)$verifiedAmount
+        ));
+        $updateFields['status'] = 'failed';
+        $updateFields['notes'] = 'Gateway amount did not match the local transaction.';
+        payment_update_gateway_transaction($db, (int)$transaction['id'], $updateFields);
+        return [
+            'success' => false,
+            'payment_type' => $paymentType,
+            'message' => 'Payment verification failed amount validation.',
+            'invoice_number' => (string)($transaction['invoice_number'] ?? ''),
+        ];
+    }
+
+    $localRef = trim((string)($transaction['reference_number'] ?? $transaction['company_ref'] ?? ''));
+    $verifiedCompanyRef = trim((string)($verifyData['CompanyRef'] ?? $verifyData['CompanyRefUnique'] ?? ''));
+    if ($localRef !== '' && $verifiedCompanyRef !== '' && strcasecmp($localRef, $verifiedCompanyRef) !== 0) {
+        error_log(sprintf(
+            'paygate_return company ref mismatch tx=%d local=%s verified=%s',
+            (int)$transaction['id'],
+            $localRef,
+            $verifiedCompanyRef
+        ));
+        $updateFields['status'] = 'failed';
+        $updateFields['notes'] = 'Gateway company reference did not match the local transaction.';
+        payment_update_gateway_transaction($db, (int)$transaction['id'], $updateFields);
+        return [
+            'success' => false,
+            'payment_type' => $paymentType,
+            'message' => 'Payment verification failed reference validation.',
+            'invoice_number' => (string)($transaction['invoice_number'] ?? ''),
+        ];
+    }
+
     $receiptNo = trim((string)($transaction['receipt_no'] ?? ''));
 
     if (strtolower((string)($transaction['status'] ?? '')) !== 'completed') {

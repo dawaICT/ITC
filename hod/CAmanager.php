@@ -762,10 +762,11 @@ $(document).ready(function() {
         Swal.fire({
             title: 'Edit CA Scores',
             html: '<div class="row g-2 text-start">'
-                +'<div class="col-6"><label>A1</label><input id="sw_a1" type="number" min="0" max="10" step="0.1" class="form-control" value="'+a1+'"></div>'
-                +'<div class="col-6"><label>A2</label><input id="sw_a2" type="number" min="0" max="10" step="0.1" class="form-control" value="'+a2+'"></div>'
-                +'<div class="col-6"><label>T1</label><input id="sw_t1" type="number" min="0" max="10" step="0.1" class="form-control" value="'+t1+'"></div>'
-                +'<div class="col-6"><label>T2</label><input id="sw_t2" type="number" min="0" max="10" step="0.1" class="form-control" value="'+t2+'"></div>'
+                +'<div class="col-6"><label>A1 mark /100</label><input id="sw_a1" type="number" min="0" max="100" step="0.1" class="form-control" value="'+a1+'"></div>'
+                +'<div class="col-6"><label>A2 mark /100</label><input id="sw_a2" type="number" min="0" max="100" step="0.1" class="form-control" value="'+a2+'"></div>'
+                +'<div class="col-6"><label>T1 mark /100</label><input id="sw_t1" type="number" min="0" max="100" step="0.1" class="form-control" value="'+t1+'"></div>'
+                +'<div class="col-6"><label>T2 mark /100</label><input id="sw_t2" type="number" min="0" max="100" step="0.1" class="form-control" value="'+t2+'"></div>'
+                +'<div class="col-12"><small class="text-muted">Course weights are applied automatically; the annual result cannot exceed 100%.</small></div>'
                 +'</div>',
             showCancelButton: true,
             confirmButtonText: 'Save',
@@ -835,4 +836,3 @@ $(document).ready(function() {
 });
 </script>
 <?php require "includes/footer.php"; ?>
-

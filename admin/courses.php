@@ -1,5 +1,10 @@
 <?php
 require "includes/admin.php";
+require_once dirname(__DIR__) . '/includes/auth_helpers.php';
+
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
 
 // Set page title early so header can use it later
 $page_title = "Course Management";
@@ -13,18 +18,48 @@ $program = null;
 // Get program details
 $program_code = isset($_GET['program']) ? $_GET['program'] : '';
 if ($program_code) {
-    $program_query = "SELECT * FROM programs WHERE program_code = ?";
+    $program_query = "SELECT * FROM programs WHERE program_code = ? AND COALESCE(is_active, 1) = 1";
     $program_stmt = $db->prepare($program_query);
     $program_stmt->bind_param("s", $program_code);
     $program_stmt->execute();
     $program = $program_stmt->get_result()->fetch_object();
 }
+$isCseStagedProgram = in_array(strtoupper((string)$program_code), ['ICT-001', 'ICT-002'], true);
 require_once dirname(__DIR__) . '/students/includes/period_mode_helper.php';
 require_once dirname(__DIR__) . '/includes/helpers/academic_period_helpers.php';
 require_once dirname(__DIR__) . '/includes/helpers/course_availability_helpers.php';
 $structure = $program ? getProgramPeriodMode($db, (string)$program->program_code) : 'semester';
 $periodLabel = wuc_period_label_from_structure($structure, true);
 $periodsPerYear = ($structure === 'term') ? 3 : (($structure === 'semester') ? 2 : (($structure === 'duration') ? 4 : 1));
+
+// Remove one programme-course assignment without deleting the course itself.
+if (isset($_POST['remove_course'])) {
+    if (!wuc_validate_csrf($_POST['csrf_token'] ?? null)) {
+        http_response_code(403);
+        exit('Invalid request.');
+    }
+
+    $assignmentId = filter_input(INPUT_POST, 'assignment_id', FILTER_VALIDATE_INT);
+    if ($isCseStagedProgram) {
+        $_SESSION['errorMsg'] = 'This staged curriculum is locked to the approved CD012 progression structure.';
+    } elseif (!$program || !$assignmentId || $assignmentId < 1) {
+        $_SESSION['errorMsg'] = 'The selected course assignment was not found.';
+    } else {
+        $deleteStmt = $db->prepare(
+            'DELETE FROM program_courses WHERE id = ? AND program_code = ?'
+        );
+        $deleteStmt->bind_param('is', $assignmentId, $program_code);
+        $deleteStmt->execute();
+        $_SESSION[$deleteStmt->affected_rows > 0 ? 'successMsg' : 'errorMsg'] =
+            $deleteStmt->affected_rows > 0
+                ? 'Course removed from the programme.'
+                : 'The selected course assignment was not found.';
+        $deleteStmt->close();
+    }
+
+    header('Location: courses.php?program=' . urlencode($program_code), true, 303);
+    exit();
+}
 
 // Handle course addition (before any output)
 if (isset($_POST['add_course'])) {
@@ -34,7 +69,11 @@ if (isset($_POST['add_course'])) {
     $deliveryPeriod = $deliveryPeriodRaw !== '' ? (int)$deliveryPeriodRaw : null;
     $periodSpecific = !empty($_POST['period_specific']);
 
-    if (empty($course_codes)) {
+    if ($isCseStagedProgram) {
+        $_SESSION['errorMsg'] = 'This staged curriculum is locked to the approved CD012 progression structure.';
+    } elseif (!wuc_validate_csrf($_POST['csrf_token'] ?? null)) {
+        $_SESSION['errorMsg'] = 'Invalid request. Please refresh the page and try again.';
+    } elseif (empty($course_codes)) {
         $_SESSION['errorMsg'] = "Please select at least one course to add!";
     } elseif (!$program) {
         $_SESSION['errorMsg'] = "Select a valid program before adding courses.";
@@ -78,7 +117,10 @@ if (isset($_POST['add_course'])) {
             }
 
             if ($added > 0) {
-                $msg = "$added course(s) added for Year {$year} (full academic year).";
+                $availability = $periodSpecific && $deliveryPeriod !== null
+                    ? "{$periodLabel} {$deliveryPeriod} only"
+                    : 'full academic year';
+                $msg = "$added course(s) added for Year {$year} ({$availability}).";
                 if ($skipped > 0) {
                     $msg .= " ({$skipped} already assigned for this year)";
                 }
@@ -100,17 +142,24 @@ if ($program) {
     $stats_query = "SELECT
         COUNT(DISTINCT CONCAT(course_code, '-', year)) as total_courses,
         COUNT(DISTINCT course_code) as distinct_courses,
-        (SELECT COUNT(DISTINCT Sid) FROM course_registration WHERE course_code IN
+        (SELECT COUNT(DISTINCT cr.Sid)
+           FROM course_registration cr
+           INNER JOIN student_program sp
+                   ON sp.Sid = cr.Sid AND sp.program_code = ?
+          WHERE cr.course_code IN
             (SELECT course_code FROM program_courses WHERE program_code = ?)) as enrolled_students
     FROM program_courses WHERE program_code = ?";
     $stats_stmt = $db->prepare($stats_query);
-    $stats_stmt->bind_param("ss", $program_code, $program_code);
+    $stats_stmt->bind_param("sss", $program_code, $program_code, $program_code);
     $stats_stmt->execute();
     $stats = $stats_stmt->get_result()->fetch_object();
 
     // Catalogue courses available to add
     $catalogue = [];
-    $cat_query = "SELECT course_code, course_name FROM courses ORDER BY course_code";
+    $cat_query = "SELECT course_code, course_name
+                    FROM courses
+                   WHERE COALESCE(status, 'active') = 'active'
+                   ORDER BY course_code";
     $cat_stmt = $db->prepare($cat_query);
     $cat_stmt->execute();
     $cat_result = $cat_stmt->get_result();
@@ -140,14 +189,14 @@ require "includes/header.php";
                 <p class="page-subtitle mb-0"><?= $program ? 'Managing courses for <strong>' . htmlspecialchars($program->program_name) . '</strong>' : 'Select a program to manage its academic courses' ?></p>
             </div>
             <div class="header-actions d-flex gap-2">
-                <?php if ($program): ?>
+                <?php if ($program && !$isCseStagedProgram): ?>
                     <button class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#addCourse">
                         <i class="fas fa-plus me-1"></i>Add Course
                     </button>
                     <a href="courses.php" class="btn btn-outline-primary shadow-sm">
                         <i class="fas fa-list me-1"></i>All Programs
                     </a>
-                <?php else: ?>
+                <?php elseif (!$program): ?>
                     <a href="course_program_mgmt.php" class="btn btn-outline-primary shadow-sm">
                         <i class="fas fa-sitemap me-1"></i>Mapping Overview
                     </a>
@@ -279,15 +328,25 @@ require "includes/header.php";
                                 <td><?php echo htmlspecialchars((string)($course->credits ?? '')); ?></td>
                                 <td>
                                     <div class="d-flex justify-content-center gap-2">
-                                        <a href="edit_course.php?program=<?php echo urlencode($program_code); ?>&course=<?php echo urlencode($course->course_code); ?>"
+                                    <?php if ($isCseStagedProgram): ?>
+                                        <span class="badge bg-light text-secondary border" title="Approved staged curriculum">
+                                            <i class="fas fa-lock me-1"></i>CD012
+                                        </span>
+                                    <?php else: ?>
+                                        <a href="edit_course_program.php?update=<?php echo (int)$course->id; ?>"
                                            class="btn btn-sm btn-primary rounded-pill">
                                             <i class="fas fa-edit"></i>
                                         </a>
-                                        <a href="delete_course.php?program=<?php echo urlencode($program_code); ?>&course=<?php echo urlencode($course->course_code); ?>"
-                                           class="btn btn-sm btn-danger rounded-pill"
-                                           onclick="return confirm('Are you sure you want to delete this course?')">
-                                            <i class="fas fa-trash"></i>
-                                        </a>
+                                        <form method="post" class="d-inline"
+                                              onsubmit="return confirm('Remove this course from the programme?')">
+                                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8'); ?>">
+                                            <input type="hidden" name="assignment_id" value="<?php echo (int)$course->id; ?>">
+                                            <button type="submit" name="remove_course" value="1"
+                                                    class="btn btn-sm btn-danger rounded-pill">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    <?php endif; ?>
                                     </div>
                                 </td>
                             </tr>
@@ -304,9 +363,10 @@ require "includes/header.php";
     <?php
     // Get all programs
         $programs_query = "SELECT p.*, 
-            COUNT(pc.course_code) as course_count 
+            COUNT(DISTINCT CONCAT(pc.course_code, ':', pc.year)) as course_count
             FROM programs p 
             LEFT JOIN program_courses pc ON p.program_code = pc.program_code 
+            WHERE COALESCE(p.is_active, 1) = 1
             GROUP BY p.program_code 
             ORDER BY p.program_name";
     $programs_result = $db->query($programs_query);
@@ -359,7 +419,7 @@ require "includes/header.php";
 </div>
 
 <!-- Add Course Modal -->
-<?php if ($program): ?>
+<?php if ($program && !$isCseStagedProgram): ?>
 <div class="modal fade" id="addCourse" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -370,6 +430,7 @@ require "includes/header.php";
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form method="POST">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8'); ?>">
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label d-block fw-bold">Select Courses</label>

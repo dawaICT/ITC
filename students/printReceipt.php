@@ -339,7 +339,7 @@ $pdfError = isset($_GET['pdf_error']) && $_GET['pdf_error'] === '1';
         :root { --primary-blue: #2563eb; --success-green: #059669; }
         
         body { background: #f1f5f9; }
-        .content-wrapper { padding: 2rem; max-width: 900px; margin: 0 auto; }
+        .content-wrapper.receipt-page { padding: 2rem; max-width: 900px; }
         .page-header { margin-bottom: 1.5rem; }
         .page-title { font-size: 1.5rem; font-weight: 700; color: #1e293b; margin-bottom: 0.25rem; }
         .page-subtitle { color: #64748b; font-size: 0.9rem; margin-bottom: 0; }
@@ -360,12 +360,12 @@ $pdfError = isset($_GET['pdf_error']) && $_GET['pdf_error'] === '1';
         
         @media print {
             .no-print { display: none !important; }
-            .content-wrapper { padding: 0; max-width: 100%; }
+            .content-wrapper.receipt-page { padding: 0; max-width: 100%; }
             .receipt-frame { box-shadow: none; border-radius: 0; }
         }
         
         @media (max-width: 768px) {
-            .content-wrapper { padding: 1rem; }
+            .content-wrapper.receipt-page { padding: 1rem; }
             .action-bar { flex-direction: column; }
             .btn-action { justify-content: center; }
         }
@@ -374,7 +374,7 @@ $pdfError = isset($_GET['pdf_error']) && $_GET['pdf_error'] === '1';
 <body class="single-page-document no-auto-print">
     <div class="no-print"><?php require_once __DIR__ . '/includes/navbar.php'; ?></div>
     
-    <div class="content-wrapper">
+    <div class="content-wrapper receipt-page">
         <div class="page-header no-print">
             <h1 class="page-title">Payment Receipt</h1>
             <p class="page-subtitle">View, print, or download your payment receipt</p>

@@ -287,7 +287,7 @@ if ($WUC_ENV === 'development' || isset($_GET['debug'])) {
                         <option selected disabled>Select program</option>
                         <?php
                         // Fetch available programs
-                        if($programResults = $db->query("SELECT * FROM programs ORDER BY program_name ASC")) {
+                        if($programResults = $db->query("SELECT * FROM programs WHERE COALESCE(is_active, 1) = 1 AND program_code NOT IN ('CSE', 'ICT-002') ORDER BY program_name ASC")) {
                             while($program = $programResults->fetch_object()) {
                                 echo '<option value="'.$program->program_code.'">'.$program->program_name.'</option>';
                             }

@@ -1,112 +1,41 @@
 <?php
-// SchoolPay callback receiver
-// This endpoint accepts POST callbacks from SchoolPay and marks invoices paid.
-// It logs raw payloads and attempts to update invoice and student payment records.
+declare(strict_types=1);
 
-require_once '../db/connect.php';
+require_once __DIR__ . '/../includes/portal_config.php';
+require_once __DIR__ . '/../db/connect.php';
+require_once __DIR__ . '/../includes/schoolpay_webhook.php';
 
-$raw = file_get_contents('php://input');
-$logDir = __DIR__ . '/../logs';
-if (!is_dir($logDir)) {
-    @mkdir($logDir, 0755, true);
+header('Content-Type: application/json; charset=utf-8');
+header('X-Content-Type-Options: nosniff');
+header('Cache-Control: no-store');
+
+if (strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET')) !== 'POST') {
+    header('Allow: POST');
+    http_response_code(405);
+    echo json_encode(['success' => false, 'status' => 'method_not_allowed', 'message' => 'POST is required.']);
+    exit;
 }
-$logFile = $logDir . '/schoolpay_callbacks.log';
-file_put_contents($logFile, "[" . date('c') . "] " . $raw . PHP_EOL, FILE_APPEND);
 
-$data = $_POST ? $_POST : json_decode($raw, true);
-
-// Expected fields: invoice, transaction_id, status, amount, student_id
-$invoiceRef = $data['invoice'] ?? $data['invoice_id'] ?? $data['reference'] ?? null;
-$transactionId = $data['transaction_id'] ?? $data['tx_id'] ?? null;
-$status = strtolower($data['status'] ?? $data['payment_status'] ?? '');
-$amount = $data['amount'] ?? $data['value'] ?? null;
-$studentId = $data['student_id'] ?? $data['Sid'] ?? null;
-
-if (!$invoiceRef) {
+$raw = (string)file_get_contents('php://input');
+if ($raw === '' || strlen($raw) > 65536) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Missing invoice reference']);
+    echo json_encode(['success' => false, 'status' => 'invalid', 'message' => 'A valid JSON payload is required.']);
     exit;
 }
 
-// Normalize status
-$paidStatuses = ['paid', 'completed', 'success'];
-
-// Attempt to update invoice record if exists
 try {
-    // Find invoice row
-    $escRef = $db->real_escape_string($invoiceRef);
-    $q = "SELECT * FROM invoices WHERE invoice = '$escRef' OR invoice_number = '$escRef' OR reference = '$escRef' OR id = '$escRef' LIMIT 1";
-    $res = $db->query($q);
-    $invoiceRow = ($res && $res->num_rows) ? $res->fetch_assoc() : null;
-
-    if (in_array($status, $paidStatuses, true)) {
-        // mark invoice as paid if table has a status-like column
-        if ($invoiceRow) {
-            // Try a few column names
-            $updateCols = [];
-            if (array_key_exists('status', $invoiceRow)) {
-                $updateCols[] = "status = 'paid'";
-            }
-            if (array_key_exists('paid_at', $invoiceRow)) {
-                $updateCols[] = "paid_at = NOW()";
-            }
-            if (count($updateCols)) {
-                $upd = "UPDATE invoices SET " . implode(', ', $updateCols) . " WHERE id = '" . $db->real_escape_string($invoiceRow['id']) . "'";
-                $db->query($upd);
-            }
-        }
-
-        // Insert into student_payments if not present
-        // Try to determine student id and amount
-        $sid = $studentId ?: ($invoiceRow['Sid'] ?? $invoiceRow['student_id'] ?? null);
-        $amt = $amount ?: ($invoiceRow['amount'] ?? $invoiceRow['total'] ?? null);
-        $refCol = 'reference_number';
-
-        // Check duplicates
-        $dupCheck = null;
-        if (!empty($transactionId)) {
-            $dupCheck = $db->query("SELECT id FROM student_payments WHERE reference_number = '" . $db->real_escape_string($transactionId) . "' LIMIT 1");
-        }
-        if (!$dupCheck || ($dupCheck && $dupCheck->num_rows == 0)) {
-            // fallback check by invoice ref
-            $dupCheck2 = $db->query("SELECT id FROM student_payments WHERE reference_number = '" . $db->real_escape_string($invoiceRef) . "' LIMIT 1");
-            if (!$dupCheck2 || ($dupCheck2 && $dupCheck2->num_rows == 0)) {
-                // prepare insert — check which columns exist in student_payments
-                $colsRes = $db->query("SHOW COLUMNS FROM student_payments");
-                $cols = [];
-                if ($colsRes) {
-                    while ($c = $colsRes->fetch_assoc()) {
-                        $cols[] = $c['Field'];
-                    }
-                }
-                $insertCols = [];
-                $insertVals = [];
-                if (in_array('Sid', $cols)) { $insertCols[] = 'Sid'; $insertVals[] = $db->real_escape_string($sid); }
-                if (in_array('amount', $cols)) { $insertCols[] = 'amount'; $insertVals[] = $db->real_escape_string($amt); }
-                if (in_array('reference_number', $cols)) { $insertCols[] = 'reference_number'; $insertVals[] = $db->real_escape_string($transactionId ?: $invoiceRef); }
-                if (in_array('narration', $cols)) { $insertCols[] = 'narration'; $insertVals[] = $db->real_escape_string($description ?? ($invoiceRow['description'] ?? 'SchoolPay payment')); }
-                if (in_array('channel', $cols)) { $insertCols[] = 'channel'; $insertVals[] = $db->real_escape_string('SchPay'); }
-                if (in_array('dte_time', $cols)) { $insertCols[] = 'dte_time'; $insertVals[] = "NOW()"; }
-
-                if (count($insertCols)) {
-                    // build query
-                    $colsSql = implode(', ', $insertCols);
-                    $valsSql = implode(', ', array_map(function($v){ return is_string($v) && $v !== 'NOW()' ? "'" . $v . "'" : $v; }, $insertVals));
-                    $ins = "INSERT INTO student_payments ($colsSql) VALUES ($valsSql)";
-                    $db->query($ins);
-                }
-            }
-        }
+    $payload = json_decode($raw, true, 32, JSON_THROW_ON_ERROR);
+    if (!is_array($payload)) {
+        throw new JsonException('Payload must be an object.');
     }
-
-    echo json_encode(['success' => true]);
-    exit;
-
-} catch (Exception $e) {
-    file_put_contents($logFile, "[" . date('c') . "] ERROR: " . $e->getMessage() . PHP_EOL, FILE_APPEND);
-    http_response_code(500);
-    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
-    exit;
+    $result = schoolpay_webhook_process($db, $payload, schoolpay_webhook_config($db));
+} catch (JsonException $e) {
+    $result = ['http_status' => 400, 'success' => false, 'status' => 'invalid', 'message' => 'A valid JSON payload is required.'];
+} catch (Throwable $e) {
+    error_log('SchoolPay webhook processing failed: ' . $e->getMessage());
+    $result = ['http_status' => 500, 'success' => false, 'status' => 'error', 'message' => 'The payment callback could not be processed.'];
 }
 
-?>
+http_response_code((int)($result['http_status'] ?? 500));
+unset($result['http_status']);
+echo json_encode($result, JSON_UNESCAPED_SLASHES);

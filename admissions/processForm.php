@@ -4,6 +4,7 @@ require_once __DIR__ . '/includes/session_handler.php';
 // System-authoritative Student ID generator (single source of truth).
 require_once dirname(__DIR__) . '/includes/student_id_generator.php';
 require_once dirname(__DIR__) . '/includes/helpers/academic_structure_helpers.php';
+require_once dirname(__DIR__) . '/includes/cse_progression.php';
 // Shared admissions helpers (portal login creation, schema-aware inserts).
 require_once __DIR__ . '/includes/registration_handlers.php';
 
@@ -57,6 +58,11 @@ $english_grade = in('english_grade');
 $math_grade = in('math_grade');
 $bursary_percentage = in('bursary_percentage');
 $program_code = in('program_code');
+if ($stageError = wuc_cse_direct_assignment_error($program_code)) {
+  $_SESSION['errorMessage'] = $stageError;
+  header('Location: processedApp.php');
+  exit;
+}
 $mode = in('mode');
 
 // Basic required checks

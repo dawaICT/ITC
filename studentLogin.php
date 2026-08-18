@@ -237,6 +237,18 @@ if (!empty($_SESSION['must_change_password'])) {
 
 if ($hasExplicitNext) {
     $requestedPortal = strpos($nextDest, 'students/elearning/') === 0 ? 'elearning' : 'academic';
+
+    // eLearning entry login: ensure an active student can reach the Learning Hub
+    // immediately. Many accounts already have academic portal rows, which disables
+    // inference for eLearning and previously bounced them back to the login form.
+    if ($requestedPortal === 'elearning' && $fromElearning) {
+        try {
+            wuc_grant_user_portal_access($db, (int)$user['user_id'], ['elearning'], 'elearning_login');
+        } catch (Throwable $e) {
+            error_log('eLearning portal grant failed for user ' . (int)$user['user_id'] . ': ' . $e->getMessage());
+        }
+    }
+
     if (!wuc_user_has_portal_access($db, (int)$user['user_id'], $requestedPortal)) {
         $_SESSION['errorMssg'] = $requestedPortal === 'elearning'
             ? 'Your account is active, but eLearning access has not been assigned. Please contact the Registrar or eLearning Administrator.'
@@ -247,4 +259,9 @@ if ($hasExplicitNext) {
     wuc_redirect($nextDest);
 }
 
-wuc_redirect(wuc_after_login_portal_url($db, (int)$user['user_id'], 'student'));
+$afterLoginUrl = wuc_after_login_portal_url($db, (int)$user['user_id'], 'student');
+if ($afterLoginUrl === '/wucportal/students/index.php') {
+    require_once __DIR__ . '/includes/student_program_portal.php';
+    $afterLoginUrl = wuc_student_program_portal_url($db, $foundSid);
+}
+wuc_redirect($afterLoginUrl);

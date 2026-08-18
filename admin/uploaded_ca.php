@@ -2,6 +2,7 @@
 require_once __DIR__ . '/includes/admin.php';
 require_once dirname(__DIR__) . '/includes/ca_helpers.php';
 require_once dirname(__DIR__) . '/includes/result_entry_helpers.php';
+require_once dirname(__DIR__) . '/includes/auth_helpers.php';
 
 $page_title = 'Uploaded CA Results';
 $staffId = (string)($_SESSION['staff_id'] ?? $_SESSION['user_id'] ?? '');
@@ -35,6 +36,10 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['import'])) {
     header('Location: upload_ca.php');
     exit;
 }
+if (!wuc_validate_csrf($_POST['csrf_token'] ?? null)) {
+    http_response_code(403);
+    exit('Invalid request.');
+}
 
 $year = trim((string)($_POST['Year'] ?? ''));
 $semester = trim((string)($_POST['semester'] ?? ''));
@@ -53,6 +58,11 @@ if (!in_array($semester, ['1', '2', '3'], true)) {
 
 if (!isset($_FILES['file']) || (int)($_FILES['file']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
     $_SESSION['errorMsg'] = 'The CSV file could not be uploaded. Please try again.';
+    header('Location: upload_ca.php');
+    exit;
+}
+if ((int)($_FILES['file']['size'] ?? 0) <= 0 || (int)$_FILES['file']['size'] > 5 * 1024 * 1024) {
+    $_SESSION['errorMsg'] = 'The CSV file must be between 1 byte and 5 MB.';
     header('Location: upload_ca.php');
     exit;
 }
@@ -77,6 +87,11 @@ if (!$handle) {
 $rowNumber = 0;
 while (($row = fgetcsv($handle, 10000, ',')) !== false) {
     $rowNumber++;
+    if ($rowNumber > 10001) {
+        $summary['failed']++;
+        $messages[] = ['type' => 'danger', 'text' => 'Import stopped after 10,000 data rows. Split larger files into separate uploads.'];
+        break;
+    }
     $row = array_map(static function ($value) {
         return trim((string)$value);
     }, $row);

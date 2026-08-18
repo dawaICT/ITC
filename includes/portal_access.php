@@ -494,6 +494,52 @@ if (!function_exists('wuc_user_applicant_stage')) {
     }
 }
 
+if (!function_exists('wuc_student_is_alumni_eligible')) {
+    /**
+     * Alumni eligibility is driven by graduation clearance only.
+     * Approved / Graduated → eligible; anything else (or no clearance row) → not.
+     */
+    function wuc_student_is_alumni_eligible(mysqli $db, string $studentId): bool
+    {
+        $studentId = trim($studentId);
+        if ($studentId === '' || !wuc_portal_table_exists($db, 'student_clearance')) {
+            return false;
+        }
+
+        $stmt = $db->prepare(
+            'SELECT graduation_status FROM student_clearance WHERE student_id = ? LIMIT 1'
+        );
+        if (!$stmt) {
+            return false;
+        }
+        $stmt->bind_param('s', $studentId);
+        $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+
+        $status = (string)($row['graduation_status'] ?? '');
+        return in_array($status, ['Approved', 'Graduated'], true);
+    }
+}
+
+if (!function_exists('wuc_user_is_alumni_eligible')) {
+    function wuc_user_is_alumni_eligible(mysqli $db, int $userId, ?array $user = null): bool
+    {
+        $user = $user ?? wuc_load_portal_user_row($db, $userId);
+        if (!$user) {
+            return false;
+        }
+
+        $studentId = trim((string)($user['student_id'] ?? ''));
+        // Non-student accounts are not gated by graduation clearance here.
+        if ($studentId === '') {
+            return true;
+        }
+
+        return wuc_student_is_alumni_eligible($db, $studentId);
+    }
+}
+
 if (!function_exists('wuc_filter_portals_by_account_lifecycle')) {
     function wuc_filter_portals_by_account_lifecycle(mysqli $db, int $userId, array $portals): array
     {
@@ -511,29 +557,37 @@ if (!function_exists('wuc_filter_portals_by_account_lifecycle')) {
         }
 
         if (wuc_user_is_fully_registered_student($db, $userId, $user)) {
-            return array_values(array_filter(
+            $portals = array_values(array_filter(
                 $portals,
                 static fn(array $portal): bool => strtolower((string)$portal['portal_code']) !== 'applicant'
             ));
+        } else {
+            $applicantStage = wuc_user_applicant_stage($db, $userId, $user);
+            if ($applicantStage === 'pending') {
+                return array_values(array_filter(
+                    $portals,
+                    static fn(array $portal): bool => strtolower((string)$portal['portal_code']) === 'applicant'
+                ));
+            }
+            if ($applicantStage !== null) {
+                $allowed = ['applicant', 'academic'];
+                $portals = array_values(array_filter(
+                    $portals,
+                    static fn(array $portal): bool => in_array(strtolower((string)$portal['portal_code']), $allowed, true)
+                ));
+            }
         }
 
-        $applicantStage = wuc_user_applicant_stage($db, $userId, $user);
-        if ($applicantStage === null) {
-            return $portals;
-        }
-
-        if ($applicantStage === 'pending') {
-            return array_values(array_filter(
+        // Never surface Alumni for a student who is not Approved/Graduated —
+        // even if a stale user_portal_access grant remains.
+        if (!wuc_user_is_alumni_eligible($db, $userId, $user)) {
+            $portals = array_values(array_filter(
                 $portals,
-                static fn(array $portal): bool => strtolower((string)$portal['portal_code']) === 'applicant'
+                static fn(array $portal): bool => strtolower((string)$portal['portal_code']) !== 'alumni'
             ));
         }
 
-        $allowed = ['applicant', 'academic'];
-        return array_values(array_filter(
-            $portals,
-            static fn(array $portal): bool => in_array(strtolower((string)$portal['portal_code']), $allowed, true)
-        ));
+        return $portals;
     }
 }
 
@@ -550,6 +604,10 @@ if (!function_exists('wuc_portal_access_allowed_by_lifecycle')) {
             return true;
         }
 
+        if ($portalCode === 'alumni' && !wuc_user_is_alumni_eligible($db, $userId, $user)) {
+            return false;
+        }
+
         if ($portalCode === 'applicant' && wuc_user_is_fully_registered_student($db, $userId, $user)) {
             return false;
         }
@@ -563,7 +621,7 @@ if (!function_exists('wuc_portal_access_allowed_by_lifecycle')) {
             return $portalCode === 'applicant';
         }
 
-        return in_array($portalCode, ['applicant', 'academic'], true);
+        return in_array($portalCode, ['applicant', 'academic', 'elearning'], true);
     }
 }
 
@@ -766,6 +824,7 @@ if (!function_exists('wuc_portal_direct_landing_url')) {
             'applicant' => '/wucportal/admissions/applicant_portal.php',
             'alumni' => '/wucportal/alumni/index.php',
             'employer' => '/wucportal/employer/index.php',
+            'enterprise' => '/wucportal/enterprise/index.php',
         ];
 
         return $map[$portalCode] ?? null;

@@ -3,7 +3,6 @@ $page_title = 'Students';
 include "includes/admin.php";
 require_once dirname(__DIR__) . '/includes/role_helpers.php';
 wuc_require_systems_admin('/wucportal/registrar/search_student.php');
-include 'add_student.php';
 error_reporting(0);
 
 ?>

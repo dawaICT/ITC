@@ -1,7 +1,7 @@
 <?php
 $page_title = 'Process Student Payments';
 require "includes/nav.php";
-require_once __DIR__ . '/../includes/fees_helpers.php';
+require_once __DIR__ . '/../includes/manual_payment_helpers.php';
 
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -12,145 +12,32 @@ $message = '';
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $csrfToken) {
-        $error = 'CSRF validation failed.';
+    $postedToken = (string)($_POST['csrf_token'] ?? '');
+    if ($postedToken === '' || !hash_equals($csrfToken, $postedToken)) {
+        $error = 'Invalid request token. Please refresh and try again.';
     } else {
         $action = $_POST['action'] ?? '';
-    
-    if ($action === 'record') {
-        $student_fee_account_id = (int)($_POST['student_fee_account_id'] ?? 0);
-        $amount = isset($_POST['amount']) && is_numeric($_POST['amount']) ? (float)$_POST['amount'] : 0.00;
-        $payment_method = trim($_POST['payment_method'] ?? 'Cash');
-        $receipt_number = trim($_POST['receipt_number'] ?? '');
-        $payment_date = trim($_POST['payment_date'] ?? date('Y-m-d'));
-        $notes = trim($_POST['notes'] ?? '');
-        $recorded_by = $_SESSION['staff_id'] ?? $_SESSION['user_id'] ?? 'system';
 
-        // Fetch student fee account info
-        $account = null;
-        $stmt = $db->prepare("SELECT student_id, academic_year, intake FROM student_fee_accounts WHERE id = ? AND status = 'active' LIMIT 1");
-        if ($stmt) {
-            $stmt->bind_param('i', $student_fee_account_id);
-            $stmt->execute();
-            $account = $stmt->get_result()->fetch_assoc();
-            $stmt->close();
-        }
-
-        if (!$account) {
-            $error = 'Select a valid active student fee account.';
-        } elseif ($amount <= 0) {
-            $error = 'Payment amount must be greater than zero.';
-        } elseif ($receipt_number === '') {
-            $error = 'Receipt number is required.';
+        $staffId = (string)($_SESSION['staff_id'] ?? $_SESSION['user_id'] ?? 'accounts');
+        if ($action === 'record') {
+            $result = manual_payment_record($db, $_POST, $staffId);
+        } elseif ($action === 'reverse') {
+            $result = manual_payment_reverse(
+                $db,
+                (int)($_POST['payment_id'] ?? 0),
+                (string)($_POST['status'] ?? ''),
+                (string)($_POST['reversal_reason'] ?? ''),
+                $staffId
+            );
         } else {
-            try {
-                // Validate receipt number is unique
-                $check = $db->prepare("SELECT payment_id FROM student_payments WHERE receipt_number = ? LIMIT 1");
-                $check->bind_param('s', $receipt_number);
-                $check->execute();
-                $dup = $check->get_result()->num_rows > 0;
-                $check->close();
-
-                if ($dup) {
-                    $error = "Receipt number '$receipt_number' has already been used.";
-                } else {
-                    $db->begin_transaction();
-
-                    // Insert payment record
-                    // Maps to student_payments table, keeping fallback fields aligned
-                    $stmt = $db->prepare("INSERT INTO student_payments 
-                        (student_fee_account_id, Sid, amount_paid, channel, payment_date, academic_year, semester_term, payment_status, reference_number, description, status, recorded_by, receipt_number) 
-                        VALUES (?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, 'approved', ?, ?)");
-                    
-                    $studentId = $account['student_id'];
-                    $academicYear = $account['academic_year'];
-                    $intake = $account['intake'];
-                    $statusVal = 'completed';
-
-                    $stmt->bind_param(
-                        'isdssssssss', 
-                        $student_fee_account_id, 
-                        $studentId, 
-                        $amount, 
-                        $payment_method, 
-                        $payment_date, 
-                        $academicYear, 
-                        $intake, 
-                        $receipt_number, 
-                        $notes, 
-                        $recorded_by, 
-                        $receipt_number
-                    );
-
-                    if ($stmt->execute()) {
-                        $stmt->close();
-
-                        // Recalculate balance & status
-                        fees_recalculate_student_balance($db, $student_fee_account_id);
-
-                        $db->commit();
-                        $message = 'Payment recorded successfully.';
-                    } else {
-                        $db->rollback();
-                        $error = 'A database error occurred. Please try again.';
-                        error_log("Database error in accounts/fees_student_payments.php: " . $db->error);
-                        $stmt->close();
-                    }
-                }
-            } catch (Exception $e) {
-                $db->rollback();
-                $error = 'Database error: ' . $e->getMessage();
-            }
+            $result = ['success' => false, 'message' => 'Invalid payment action.'];
         }
-    } elseif ($action === 'reverse') {
-        $payment_id = (int)($_POST['payment_id'] ?? 0);
-        $reason = trim($_POST['reversal_reason'] ?? '');
-        $status = $_POST['status'] ?? 'reversed'; // reversed or cancelled
 
-        if ($payment_id <= 0 || $reason === '') {
-            $error = 'Reversal reason is required.';
+        if (!empty($result['success'])) {
+            $message = (string)$result['message'];
         } else {
-            $db->begin_transaction();
-            try {
-                // Get student fee account id
-                $student_fee_account_id = 0;
-                $stmt = $db->prepare("SELECT student_fee_account_id FROM student_payments WHERE payment_id = ? LIMIT 1");
-                if ($stmt) {
-                    $stmt->bind_param('i', $payment_id);
-                    $stmt->execute();
-                    $res = $stmt->get_result();
-                    if ($row = $res->fetch_assoc()) {
-                        $student_fee_account_id = (int)$row['student_fee_account_id'];
-                    }
-                    $stmt->close();
-                }
-
-                // Update payment status
-                $stmt = $db->prepare("UPDATE student_payments 
-                                      SET status = ?, reversal_reason = ?, payment_status = 'failed' 
-                                      WHERE payment_id = ? LIMIT 1");
-                $stmt->bind_param('ssi', $status, $reason, $payment_id);
-                if ($stmt->execute()) {
-                    $stmt->close();
-
-                    if ($student_fee_account_id > 0) {
-                        fees_recalculate_student_balance($db, $student_fee_account_id);
-                    }
-
-                    $db->commit();
-                    $message = "Payment reversed successfully.";
-                } else {
-                    $db->rollback();
-                    $error = 'A database error occurred. Please try again.';
-                    error_log("Database error in accounts/fees_student_payments.php: " . $db->error);
-                    $stmt->close();
-                }
-            } catch (Exception $e) {
-                $db->rollback();
-                $error = 'Database error: ' . $e->getMessage();
-            }
+            $error = (string)($result['message'] ?? 'The payment request could not be completed.');
         }
-    }
     }
 }
 
@@ -191,9 +78,12 @@ if ($res) {
         <div class="row align-items-center">
             <div class="col">
                 <h1 class="dashboard-title"><i class="fas fa-receipt me-2 text-primary"></i>Process Payments</h1>
-                <p class="text-muted mb-0">Post cash or bank payments to student fee accounts, issue receipts, and manage reversals or cancellations.</p>
+                <p class="text-muted mb-0">Record verified over-the-counter and sponsor payments, issue receipts, and manage reversals.</p>
             </div>
-            <div class="col-auto">
+            <div class="col-auto d-flex gap-2">
+                <a href="pendingPayments.php" class="btn btn-outline-primary">
+                    <i class="fas fa-university me-2"></i>Review Bank Transfers
+                </a>
                 <button type="button" class="btn btn-primary" onclick="openRecordModal()">
                     <i class="fas fa-plus me-2"></i>Record Payment
                 </button>
@@ -317,11 +207,10 @@ if ($res) {
                         <label for="p_method" class="form-label fw-semibold">Payment Method</label>
                         <select class="form-select rounded-3" name="payment_method" id="p_method">
                             <option value="Cash">Cash</option>
-                            <option value="Bank Transfer">Bank Transfer</option>
                             <option value="Cheque">Cheque</option>
-                            <option value="Airtel Money">Airtel Money</option>
-                            <option value="Card">Credit/Debit Card</option>
+                            <option value="Sponsor / Scholarship">Sponsor / Scholarship</option>
                         </select>
+                        <div class="form-text">Bank transfers must be approved from the payment-proof queue.</div>
                     </div>
                     <div class="mb-3">
                         <label for="p_receipt" class="form-label fw-semibold">Receipt / Reference Number (Unique)</label>

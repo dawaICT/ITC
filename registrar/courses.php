@@ -4,7 +4,7 @@ require_once dirname(__DIR__) . '/includes/auth_helpers.php';
 $csrfToken = wuc_csrf_token();
 include 'add_courses.php';
 include 'assign_course_lecturer.php';
-include 'student_course_registration.php';
+// student_course_registration.php was never shipped; omit so the page can load.
 include 'semester_courses.php';
 error_reporting(0);
 
@@ -83,12 +83,12 @@ error_reporting(0);
 											<a class='btn w3-green' href="editCourseLecturer.php?update=<?php echo $r->course_code?>">
 												<span class="glyphicon glyphicon-eye-open"></span>
 			                                    </a>
-												<a class='btn w3-blue' href="editCourse.php?update=<?php echo $r->Co_id?>">
+												<a class='btn w3-blue' href="editCourse.php?update=<?php echo (int)($r->id ?? 0); ?>">
 												<span class="glyphicon glyphicon-edit"></span>
 			                                    </a>
 										<form action="deleteCourse.php" method="post" style="display:inline" onsubmit="return confirm('Delete this course?')">
 										<input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
-										<input type="hidden" name="id" value="<?php echo (int)$r->Co_id; ?>">
+										<input type="hidden" name="id" value="<?php echo (int)($r->id ?? 0); ?>">
 										<button class="btn w3-red" type="submit"><span class="glyphicon glyphicon-remove"></span></button>
 										</form>
 

@@ -1,12 +1,16 @@
 <?php
-$page_title = 'Upload CA (CSV/Manual)';
+$page_title = 'Upload CA';
 require_once __DIR__ . '/includes/guard.php';
 require_once dirname(__DIR__) . '/includes/finance_guard.php';
 require_once dirname(__DIR__) . '/includes/ca_helpers.php';
 require_once dirname(__DIR__) . '/includes/elearning_access.php';
 require_once dirname(__DIR__) . '/includes/academic_settings_helper.php';
+require_once dirname(__DIR__) . '/includes/auth_helpers.php';
 
 ca_ensure_schema($db);
+if (function_exists('wuc_csrf_token')) {
+    wuc_csrf_token();
+}
 
 // Backend: ensure required data structures exist for CA uploads
 if (isset($db) && $db instanceof mysqli) {
@@ -142,14 +146,18 @@ if (isset($db) && $db instanceof mysqli) {
                         } else {
                         $elig = is_student_allowed_ca($db, $sid, $year, $period);
                         if (!$elig['allowed']) {
-                            $manualMessage = '<div class="alert alert-danger"><i class="fas fa-exclamation-triangle me-2"></i>This student is not eligible to receive CA marks. Only '.htmlspecialchars((string)$elig['percent']).'% of tuition fees paid (minimum 50% required).</div>';
+                            $paidPct = rtrim(rtrim(number_format((float)($elig['percent'] ?? 0), 2), '0'), '.');
+                            $needPct = rtrim(rtrim(number_format((float)($elig['required_percent'] ?? 50), 2), '0'), '.');
+                            $manualMessage = '<div class="alert alert-danger"><i class="fas fa-exclamation-triangle me-2"></i>This student is not eligible to receive CA marks for this period. Paid '
+                                . htmlspecialchars($paidPct, ENT_QUOTES, 'UTF-8') . '% of tuition (minimum '
+                                . htmlspecialchars($needPct, ENT_QUOTES, 'UTF-8') . '% required).</div>';
                         } elseif ($enforceTerm && ($year !== $curAy || $period !== $curSem)) {
                             $manualMessage = '<div class="alert alert-warning">Uploads are restricted to current term ('.htmlspecialchars($curAy).' / '.htmlspecialchars($curSem).').</div>';
                         } else {
                             $posted_by = $_SESSION['staff_id'] ?? '';
                             $save = ca_save_component($db, $sid, $course_code, $period, $year, $program_type, (string)$normalized['component'], (float)$normalized['value'], $posted_by);
                             $manualMessage = $save['ok']
-                                ? '<div class="alert alert-success">'.htmlspecialchars($save['message']).' Total CA: '.htmlspecialchars((string)$save['total_ca']).'</div>'
+                                ? '<div class="alert alert-success">'.htmlspecialchars($save['message']).' Total CA: '.htmlspecialchars((string)$save['total_ca']).'%</div>'
                                 : '<div class="alert alert-danger">'.htmlspecialchars($save['message']).'</div>';
                         }
                         }
@@ -161,7 +169,7 @@ if (isset($db) && $db instanceof mysqli) {
     }
 
     // Populate assigned courses
-    $assignedCourses = [];
+    $assignedCourses = $assignedCourses ?? [];
     $lecturerCourseTable = null;
     if ($tableExists($db, 'course_lecturer')) { $lecturerCourseTable = 'course_lecturer'; }
     if ($lecturerCourseTable) {
@@ -213,6 +221,24 @@ if ($activeTab === 'manual' && empty($manualEnabled) && !empty($csvEnabled)) { $
 if ($activeTab === 'csv' && empty($csvEnabled) && !empty($manualEnabled)) { $activeTab = 'manual'; }
 $manualTabActive = ($activeTab === 'manual');
 $csvTabActive = ($activeTab === 'csv');
+$assignedCourses = $assignedCourses ?? [];
+$academicYears = $academicYears ?? [];
+$manualEnabled = $manualEnabled ?? true;
+$csvEnabled = $csvEnabled ?? true;
+$showCaAdminDebug = $showCaAdminDebug ?? false;
+
+// Deep-link support from lecturer dashboard (?course_code=&Year=)
+$preselectCourse = trim((string)($_GET['course_code'] ?? ''));
+$preselectYear = trim((string)($_GET['Year'] ?? $_GET['year'] ?? ''));
+if ($preselectYear === '' && count($academicYears) === 1) {
+    $preselectYear = (string)$academicYears[0];
+}
+if ($preselectCourse !== '' && $assignedCourses !== []) {
+    $allowedCodes = array_column($assignedCourses, 'course_code');
+    if (!in_array($preselectCourse, $allowedCodes, true)) {
+        $preselectCourse = '';
+    }
+}
 ?>
 
 <?php require "includes/nav.php"; ?>
@@ -221,8 +247,8 @@ $csvTabActive = ($activeTab === 'csv');
 	<div class="dashboard-header lecturer-section mb-4">
 		<div class="row align-items-center">
 			<div class="col">
-				<h1 class="dashboard-title">Upload Results</h1>
-				<p class="text-muted">Upload continuous assessment results (CSV or manual)</p>
+				<h1 class="dashboard-title">Upload CA</h1>
+				<p class="text-muted">Enter continuous assessment marks manually or by CSV for your assigned courses.</p>
 			</div>
 			<div class="col-auto header-actions">
 				<a class="btn btn-outline-primary" href="assessments.php">
@@ -319,6 +345,12 @@ $csvTabActive = ($activeTab === 'csv');
 					</div>
 				</div>
 				<div class="card-body">
+					<?php if ($assignedCourses === []): ?>
+						<div class="alert alert-warning mb-3">
+							<i class="fas fa-exclamation-triangle me-2"></i>
+							No courses are assigned to your staff account. Ask your HOD/Registrar to allocate courses before uploading CA.
+						</div>
+					<?php endif; ?>
 					<?php if (!$manualEnabled && !$csvEnabled): ?>
 						<div class="alert alert-warning mb-3">All CA upload options are currently disabled by the administrator.</div>
 					<?php endif; ?>
@@ -348,19 +380,20 @@ $csvTabActive = ($activeTab === 'csv');
 									<div class="col-md-4">
 										<label class="form-label">1. Academic Year <span class="required-star">*</span></label>
 										<select class="form-select" name="Year" id="yearSelect" required>
-											<option value="" disabled selected>Select academic year</option>
+											<option value="" disabled <?php echo $preselectYear === '' ? 'selected' : ''; ?>>Select academic year</option>
 											<?php foreach (($academicYears ?? []) as $academicYear): ?>
-												<option value="<?php echo htmlspecialchars((string)$academicYear, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars((string)$academicYear, ENT_QUOTES, 'UTF-8'); ?></option>
+												<?php $ay = (string)$academicYear; ?>
+												<option value="<?php echo htmlspecialchars($ay, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $preselectYear === $ay ? 'selected' : ''; ?>><?php echo htmlspecialchars($ay, ENT_QUOTES, 'UTF-8'); ?></option>
 											<?php endforeach; ?>
 										</select>
 										<small class="hint-muted">Choose the academic year first.</small>
 									</div>
 									<div class="col-md-4">
 										<label class="form-label">2. Course <span class="required-star">*</span></label>
-										<select class="form-select" name="course_code" id="courseSelect" required disabled>
-											<option value="" disabled selected>Select academic year first</option>
+										<select class="form-select" name="course_code" id="courseSelect" required <?php echo $preselectYear !== '' ? '' : 'disabled'; ?>>
+											<option value="" disabled <?php echo $preselectCourse === '' ? 'selected' : ''; ?>><?php echo $preselectYear !== '' ? 'Select course' : 'Select academic year first'; ?></option>
 											<?php foreach (($assignedCourses ?? []) as $c): ?>
-												<option value="<?php echo htmlspecialchars($c['course_code']); ?>"><?php echo htmlspecialchars($c['course_code'].' - '.$c['course_name']); ?></option>
+												<option value="<?php echo htmlspecialchars($c['course_code'], ENT_QUOTES, 'UTF-8'); ?>" <?php echo $preselectCourse === (string)$c['course_code'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($c['course_code'].' - '.$c['course_name'], ENT_QUOTES, 'UTF-8'); ?></option>
 											<?php endforeach; ?>
 										</select>
 										<small id="courseTypeHint" class="hint-muted">Select a course to load its students.</small>
@@ -399,13 +432,13 @@ $csvTabActive = ($activeTab === 'csv');
 								</div>
 
 								<div id="noStudentsInfo" class="alert alert-warning hidden-block" role="alert">
-									<i class="fas fa-exclamation-triangle me-2"></i><strong>No eligible students found</strong>
-									<p id="noStudentsMessage" class="mb-2 mt-2"></p>
-									<ul class="mb-0 small">
-										<li>Confirm students completed course registration for this course and academic period.</li>
-										<li>Verify programme-course mapping and lecturer course allocation with the Registrar or HOD.</li>
-										<li>Check that the academic year and term/semester match the registration records.</li>
-									</ul>
+									<div class="d-flex gap-2 align-items-start">
+										<i class="fas fa-user-slash mt-1" aria-hidden="true"></i>
+										<div>
+											<strong>No eligible students</strong>
+											<p id="noStudentsMessage" class="mb-0 mt-1 small"></p>
+										</div>
+									</div>
 								</div>
 
 								<div id="courseConfigAlert" class="alert alert-warning hidden-block" role="alert">
@@ -437,7 +470,7 @@ $csvTabActive = ($activeTab === 'csv');
 										<div class="col-md-4">
 											<label class="form-label">Mark for <span id="assessmentLabel" class="hint-primary">Assessment</span></label>
 											<input type="number" step="0.01" min="0" max="100" name="mark_value" id="markValue" value="0" class="form-control">
-											<small id="maxMarkHint" class="hint-muted d-block">Enter mark out of 100.</small>
+											<small id="maxMarkHint" class="hint-muted d-block">Enter the raw mark out of 100.</small>
 											<small id="scaledMarkPreview" class="hint-primary d-block"></small>
 										</div>
 										<div class="col-12">
@@ -470,7 +503,7 @@ $csvTabActive = ($activeTab === 'csv');
 								<i class="fas fa-info-circle me-2"></i><strong>CSV Upload Instructions:</strong>
 								<ul class="mb-0 mt-2">
 									<li>Download the template below to ensure correct formatting</li>
-									<li><strong>Semester courses:</strong> A1, A2, and Test are entered as local CA marks out of 100.</li>
+									<li><strong>CA entry:</strong> Enter each raw component mark out of 100. Course weights are applied automatically.</li>
 									<li><strong>Term courses:</strong>
 										<ul>
 											<li>Term 1 & 2: A1, A2 (Assignments), T1/T2 (Test 1 or Test 2)</li>
@@ -597,7 +630,7 @@ document.addEventListener('DOMContentLoaded', function() {
 			assessmentType.innerHTML += '<option value="CA1_SEM">Assignment 1</option>';
 			assessmentType.innerHTML += '<option value="CA2_SEM">Assignment 2</option>';
 			assessmentType.innerHTML += '<option value="Test_SEM">Test</option>';
-			maxMarkHint.textContent = 'Enter local CA mark out of 100.';
+			maxMarkHint.textContent = 'Enter the raw component mark out of 100.';
 		} else if (pType === 'term') {
 			// Term-based: Different components per term
 			if (term === '1') {
@@ -605,18 +638,18 @@ document.addEventListener('DOMContentLoaded', function() {
 				assessmentType.innerHTML += '<option value="CA1_TERM">Assignment 1</option>';
 				assessmentType.innerHTML += '<option value="CA2_TERM">Assignment 2</option>';
 				assessmentType.innerHTML += '<option value="Test1_TERM">Test 1</option>';
-				maxMarkHint.textContent = 'Term 1: Assignment 1, Assignment 2, Test 1 (out of 100)';
+				maxMarkHint.textContent = 'Term 1: enter each raw component mark out of 100.';
 			} else if (term === '2') {
 				// Term 2: A1, A2, Test2
 				assessmentType.innerHTML += '<option value="CA1_TERM">Assignment 1</option>';
 				assessmentType.innerHTML += '<option value="CA2_TERM">Assignment 2</option>';
 				assessmentType.innerHTML += '<option value="Test2_TERM">Test 2</option>';
-				maxMarkHint.textContent = 'Term 2: Assignment 1, Assignment 2, Test 2 (out of 100)';
+				maxMarkHint.textContent = 'Term 2: enter each raw component mark out of 100.';
 			} else if (term === '3') {
 				// Term 3: A1, A2 only (no test - contributes to final exam)
 				assessmentType.innerHTML += '<option value="CA1_TERM">Assignment 1</option>';
 				assessmentType.innerHTML += '<option value="CA2_TERM">Assignment 2</option>';
-				maxMarkHint.textContent = 'Term 3: Assignment 1 & 2 only where applicable (out of 100)';
+				maxMarkHint.textContent = 'Term 3: enter each raw component mark out of 100.';
 			} else {
 				assessmentType.innerHTML += '<option value="CA1_TERM">Assignment 1</option>';
 				assessmentType.innerHTML += '<option value="CA2_TERM">Assignment 2</option>';
@@ -712,15 +745,34 @@ document.addEventListener('DOMContentLoaded', function() {
 
 			if (data.success && data.students && data.students.length > 0) {
 				studentSelect.innerHTML = '<option value="" disabled selected>Select a student</option>';
+				let payableCount = 0;
 				data.students.forEach(student => {
 					const opt = document.createElement('option');
 					opt.value = student.Sid;
-					opt.textContent = student.Sid + (student.name ? ' - ' + student.name : '');
+					const paid = typeof student.payment_percent === 'number' ? student.payment_percent : null;
+					const need = typeof student.required_percent === 'number' ? student.required_percent : null;
+					const eligible = student.ca_eligible !== false;
+					if (eligible) {
+						payableCount += 1;
+					} else {
+						opt.disabled = true;
+					}
+					let label = student.Sid + (student.name ? ' - ' + student.name : '');
+					if (paid !== null && need !== null) {
+						label += eligible
+							? ` (paid ${paid}% ≥ ${need}%)`
+							: ` (paid ${paid}% — needs ${need}%)`;
+					} else if (!eligible) {
+						label += ' (payment incomplete)';
+					}
+					opt.textContent = label;
 					studentSelect.appendChild(opt);
 				});
-				studentCount.textContent = `${data.students.length} eligible student(s) found`;
+				studentCount.textContent = payableCount > 0
+					? `${payableCount} of ${data.students.length} student(s) eligible for CA entry`
+					: `${data.students.length} student(s) found, but none meet the fee threshold for this period`;
 				show(studentSection);
-				setUploadEnabled(true);
+				setUploadEnabled(payableCount > 0);
 				updateAssessmentLabel();
 			} else if (data.success === false && data.error) {
 				errorMessage.textContent = data.error || 'Unable to load students.';
@@ -731,7 +783,7 @@ document.addEventListener('DOMContentLoaded', function() {
 				const periodPart = data.period_label || `Period ${period}`;
 				const yearPart   = data.year || year;
 				noStudentsMessage.textContent = data.info
-					|| `No students are currently registered for ${coursePart} in ${periodPart}, Academic Year ${yearPart}. Please confirm student registration, programme-course mapping, and lecturer course allocation before uploading CA marks.`;
+					|| `No students registered for ${coursePart} · ${periodPart} · Academic Year ${yearPart}.`;
 				show(noStudentsInfo);
 				setUploadEnabled(false);
 			}
@@ -901,7 +953,7 @@ document.addEventListener('DOMContentLoaded', function() {
 		caManualForm.addEventListener('submit', function (event) {
 			if (!studentsLoaded) {
 				event.preventDefault();
-				noStudentsMessage.textContent = 'CA marks cannot be saved because no eligible students were found for the selected course, academic year, and period.';
+				noStudentsMessage.textContent = 'Select a course with registered students before saving CA marks.';
 				show(noStudentsInfo);
 				return false;
 			}
@@ -962,6 +1014,17 @@ document.addEventListener('DOMContentLoaded', function() {
 	}
 
 	setUploadEnabled(false);
+
+	// Honour deep-links / single-year defaults so lecturers land ready to work.
+	if (yearSelect.value) {
+		courseSelect.disabled = false;
+		if (courseSelect.options[0] && !courseSelect.value) {
+			courseSelect.options[0].textContent = 'Select course';
+		}
+		if (courseSelect.value) {
+			courseSelect.dispatchEvent(new Event('change'));
+		}
+	}
 });
 </script>
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

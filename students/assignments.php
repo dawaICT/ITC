@@ -17,7 +17,15 @@ function student_assignment_table_exists(mysqli $db, string $table): bool {
 }
 
 if (isset($_POST['submit'])) {
-    $Sid = trim((string)($_POST['Sid'] ?? ''));
+    require_once __DIR__ . '/../includes/production_guards.php';
+    require_once __DIR__ . '/../includes/auth_helpers.php';
+
+    $Sid = wuc_force_session_student_id($_POST['Sid'] ?? null, false);
+    if (!wuc_validate_csrf((string)($_POST['csrf_token'] ?? ''))) {
+        $assignmentMessage = 'Request verification failed. Refresh and try again.';
+        $assignmentMessageType = 'danger';
+    }
+
     $course_code = trim((string)($_POST['course_code'] ?? ''));
     $due_dte = trim((string)($_POST['due_dte'] ?? ''));
     $dte = trim((string)($_POST['dte'] ?? ''));
@@ -25,14 +33,29 @@ if (isset($_POST['submit'])) {
     $tmpName = (string)($_FILES['file_doc']['tmp_name'] ?? '');
     $ext = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
     $allowedExt = ['jpg', 'docx', 'doc', 'pdf'];
+    $allowedMime = [
+        'image/jpeg',
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    ];
 
-    if (!in_array($ext, $allowedExt, true)) {
+    if ($assignmentMessage === '' && !in_array($ext, $allowedExt, true)) {
         $assignmentMessage = 'Sorry, invalid file format. Upload files in pdf, docx, doc or jpg.';
         $assignmentMessageType = 'danger';
-    } elseif (!student_assignment_table_exists($db, 'submitted_assess')) {
+    } elseif ($assignmentMessage === '' && is_uploaded_file($tmpName)) {
+        $finfo = new finfo(FILEINFO_MIME_TYPE);
+        $detectedMime = (string)$finfo->file($tmpName);
+        if (!in_array($detectedMime, $allowedMime, true)) {
+            $assignmentMessage = 'Sorry, invalid file content. Upload files in pdf, docx, doc or jpg.';
+            $assignmentMessageType = 'danger';
+        }
+    }
+
+    if ($assignmentMessage === '' && !student_assignment_table_exists($db, 'submitted_assess')) {
         $assignmentMessage = 'Assignment submission is not configured yet. Please check back later.';
         $assignmentMessageType = 'warning';
-    } else {
+    } elseif ($assignmentMessage === '') {
         $uploadDir = __DIR__ . '/uploads/';
         if (!is_dir($uploadDir)) {
             @mkdir($uploadDir, 0755, true);
@@ -157,6 +180,10 @@ if ($selectedCourse !== '') {
 					      </div>
 					      <div class="modal-body">
 					        <form action="assignments.php" method="post" enctype="multipart/form-data" name="myForm" onsubmit="return validateForm()">
+					        	      <input type="hidden" name="csrf_token" value="<?php
+					        	        if (empty($_SESSION['csrf_token'])) { $_SESSION['csrf_token'] = bin2hex(random_bytes(32)); }
+					        	        echo htmlspecialchars((string)$_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8');
+					        	      ?>">
 					        	<div class="form-group">
 					                  <label for="Sid">Student ID:</label><br>
 					                  <input type="text" class="form-control" id="Sid" name="Sid" value="<?php echo htmlspecialchars((string)($_SESSION['Sid'] ?? '')); ?>" readonly>

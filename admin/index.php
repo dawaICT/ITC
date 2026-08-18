@@ -28,99 +28,115 @@ $transportRouteUrls = [
 // Access staff_id from session (already verified by nav.php)
 $staff_id = $_SESSION['user_id'];
 
-// Helper for table existence
-$tableExists = function(mysqli $db, string $table): bool {
-    if ($res = $db->query("SHOW TABLES LIKE '".$db->real_escape_string($table)."'")) {
-        $exists = $res->num_rows > 0; $res->free(); return $exists;
+require_once dirname(__DIR__) . '/includes/lookup_cache.php';
+if (function_exists('wuc_session_release_lock')) {
+    wuc_session_release_lock();
+} elseif (session_status() === PHP_SESSION_ACTIVE) {
+    session_write_close();
+}
+
+$tableExists = static function (mysqli $db, string $table): bool {
+    if (function_exists('wuc_table_exists')) {
+        return wuc_table_exists($db, $table);
     }
-    return false;
+    $res = @$db->query("SHOW TABLES LIKE '" . $db->real_escape_string($table) . "'");
+    if (!$res) {
+        return false;
+    }
+    $exists = $res->num_rows > 0;
+    $res->free();
+    return $exists;
 };
 
-// Get counts for dashboard cards
-$totalStudents = 0;
-$totalStaff = 0;
-$totalShortCourses = 0;
-$totalTransportTrainees = 0;
-$totalTransportCohorts = 0;
-$totalTransportFleet = 0;
-$totalTransportFleetAlerts = 0;
-$totalTransportSessionsMonth = 0;
-$totalPrograms = 0;
-$totalCollected = 0.0;
+// Aggregate dashboard scalars are identical for every admin for ~60s. Cache them
+// so concurrent dashboard refreshes do not each re-run the COUNT/SUM fan-out.
+$dashboardCounts = wuc_cache_remember('admin_dashboard_counts_v1', static function () use ($db, $tableExists): array {
+    $dashboardScalar = static function (string $sql) use ($db): float {
+        if ($res = $db->query($sql)) {
+            $row = $res->fetch_row();
+            $res->free();
+            return isset($row[0]) ? (float)$row[0] : 0.0;
+        }
+        error_log('Admin dashboard query failed: ' . $db->error);
+        return 0.0;
+    };
 
-$transportTables = [
-    'transport_campuses',
-    'transport_programs',
-    'transport_cohorts',
-    'transport_trainees',
-    'transport_enrollments',
-    'transport_vehicles',
-    'transport_instructors',
-    'transport_sessions',
-    'transport_preuse_checks',
-    'transport_corporate_clients',
-];
-$transportTablesReady = true;
-foreach ($transportTables as $transportTable) {
-    if (!$tableExists($db, $transportTable)) {
-        $transportTablesReady = false;
-        break;
+    $transportTables = [
+        'transport_campuses',
+        'transport_programs',
+        'transport_cohorts',
+        'transport_trainees',
+        'transport_enrollments',
+        'transport_vehicles',
+        'transport_instructors',
+        'transport_sessions',
+        'transport_preuse_checks',
+        'transport_corporate_clients',
+    ];
+    $transportTablesReady = true;
+    foreach ($transportTables as $transportTable) {
+        if (!$tableExists($db, $transportTable)) {
+            $transportTablesReady = false;
+            break;
+        }
     }
-}
 
-$dashboardScalar = function(string $sql) use ($db): float {
-    if ($res = $db->query($sql)) {
-        $row = $res->fetch_row();
-        $res->free();
-        return isset($row[0]) ? (float)$row[0] : 0.0;
-    }
-    error_log('Admin dashboard query failed: ' . $db->error);
-    return 0.0;
-};
+    $out = [
+        'students' => 0,
+        'staff' => 0,
+        'short_courses' => 0,
+        'programs' => 0,
+        'collected' => 0.0,
+        'transport_ready' => $transportTablesReady,
+        'transport_trainees' => 0,
+        'transport_cohorts' => 0,
+        'transport_fleet' => 0,
+        'transport_fleet_alerts' => 0,
+        'transport_sessions_month' => 0,
+    ];
 
-// Count students
-if ($res = $db->query("SELECT COUNT(*) AS total FROM students")) {
-    if ($res->num_rows > 0) { $totalStudents = (int)$res->fetch_object()->total; }
-    $res->free();
-}
-
-// Count staff
-if ($res = $db->query("SELECT COUNT(*) AS total FROM staff")) {
-    if ($res->num_rows > 0) { $totalStaff = (int)$res->fetch_object()->total; }
-    $res->free();
-}
-
-// Count short courses (card is labeled "Short Courses" and links to short_courses.php)
-if ($tableExists($db, 'short_courses')) {
-    if ($res = $db->query("SELECT COUNT(*) AS total FROM short_courses")) {
-        if ($res->num_rows > 0) { $totalShortCourses = (int)$res->fetch_object()->total; }
+    if ($res = $db->query('SELECT COUNT(*) AS total FROM students')) {
+        $out['students'] = (int)($res->fetch_object()->total ?? 0);
         $res->free();
     }
-}
-
-if ($transportTablesReady) {
-    $totalTransportTrainees = (int)$dashboardScalar("SELECT COUNT(*) FROM transport_enrollments WHERE status IN ('enrolled','active')");
-    $totalTransportCohorts = (int)$dashboardScalar("SELECT COUNT(*) FROM transport_cohorts WHERE status IN ('open','in_progress')");
-    $totalTransportFleet = (int)$dashboardScalar("SELECT COUNT(*) FROM transport_vehicles WHERE status IN ('available','assigned')");
-    $totalTransportFleetAlerts = (int)$dashboardScalar("SELECT COUNT(*) FROM transport_vehicles WHERE status IN ('maintenance','unavailable') OR (fitness_expiry IS NOT NULL AND fitness_expiry <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)) OR (insurance_expiry IS NOT NULL AND insurance_expiry <= DATE_ADD(CURDATE(), INTERVAL 30 DAY))");
-    $totalTransportSessionsMonth = (int)$dashboardScalar("SELECT COUNT(*) FROM transport_sessions WHERE session_date >= DATE_FORMAT(CURDATE(), '%Y-%m-01') AND status <> 'cancelled'");
-}
-
-// Count programs
-if ($tableExists($db, 'programs')) {
-    if ($res = $db->query("SELECT COUNT(*) AS total FROM programs")) {
-        if ($res->num_rows > 0) { $totalPrograms = (int)$res->fetch_object()->total; }
+    if ($res = $db->query('SELECT COUNT(*) AS total FROM staff')) {
+        $out['staff'] = (int)($res->fetch_object()->total ?? 0);
         $res->free();
     }
-}
-
-// Sum collected payments for the Financial Overview card
-if ($tableExists($db, 'payments')) {
-    if ($res = $db->query("SELECT COALESCE(SUM(amount), 0) AS total FROM payments WHERE status = 'posted'")) {
-        if ($res->num_rows > 0) { $totalCollected = (float)$res->fetch_object()->total; }
+    if ($tableExists($db, 'short_courses') && ($res = $db->query('SELECT COUNT(*) AS total FROM short_courses'))) {
+        $out['short_courses'] = (int)($res->fetch_object()->total ?? 0);
         $res->free();
     }
-}
+    if ($tableExists($db, 'programs') && ($res = $db->query('SELECT COUNT(*) AS total FROM programs'))) {
+        $out['programs'] = (int)($res->fetch_object()->total ?? 0);
+        $res->free();
+    }
+    if ($tableExists($db, 'payments') && ($res = $db->query("SELECT COALESCE(SUM(amount), 0) AS total FROM payments WHERE status = 'posted'"))) {
+        $out['collected'] = (float)($res->fetch_object()->total ?? 0);
+        $res->free();
+    }
+    if ($transportTablesReady) {
+        $out['transport_trainees'] = (int)$dashboardScalar("SELECT COUNT(*) FROM transport_enrollments WHERE status IN ('enrolled','active')");
+        $out['transport_cohorts'] = (int)$dashboardScalar("SELECT COUNT(*) FROM transport_cohorts WHERE status IN ('open','in_progress')");
+        $out['transport_fleet'] = (int)$dashboardScalar("SELECT COUNT(*) FROM transport_vehicles WHERE status IN ('available','assigned')");
+        $out['transport_fleet_alerts'] = (int)$dashboardScalar("SELECT COUNT(*) FROM transport_vehicles WHERE status IN ('maintenance','unavailable') OR (fitness_expiry IS NOT NULL AND fitness_expiry <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)) OR (insurance_expiry IS NOT NULL AND insurance_expiry <= DATE_ADD(CURDATE(), INTERVAL 30 DAY))");
+        $out['transport_sessions_month'] = (int)$dashboardScalar("SELECT COUNT(*) FROM transport_sessions WHERE session_date >= DATE_FORMAT(CURDATE(), '%Y-%m-01') AND status <> 'cancelled'");
+    }
+
+    return $out;
+}, 60);
+
+$totalStudents = (int)$dashboardCounts['students'];
+$totalStaff = (int)$dashboardCounts['staff'];
+$totalShortCourses = (int)$dashboardCounts['short_courses'];
+$totalPrograms = (int)$dashboardCounts['programs'];
+$totalCollected = (float)$dashboardCounts['collected'];
+$transportTablesReady = !empty($dashboardCounts['transport_ready']);
+$totalTransportTrainees = (int)$dashboardCounts['transport_trainees'];
+$totalTransportCohorts = (int)$dashboardCounts['transport_cohorts'];
+$totalTransportFleet = (int)$dashboardCounts['transport_fleet'];
+$totalTransportFleetAlerts = (int)$dashboardCounts['transport_fleet_alerts'];
+$totalTransportSessionsMonth = (int)$dashboardCounts['transport_sessions_month'];
 
 // Configure unified dashboard
 $dashboard_title = 'Admin Dashboard';
@@ -254,6 +270,29 @@ if ($canShowTransportDashboard) {
         'description' => 'Open transport trainees, fleet, and checks.',
         'bg_class' => 'bg-teal',
         'link' => $transportModuleUrl,
+    ];
+}
+if (function_exists('canManageAcademicOfficeOps') && canManageAcademicOfficeOps()) {
+    $quick_modules[] = [
+        'icon' => 'fas fa-calendar-check',
+        'title' => 'Test Timetable',
+        'description' => 'Schedule, conflict-check and publish test timetables.',
+        'bg_class' => 'bg-purple',
+        'link' => 'test_timetable.php',
+    ];
+    $quick_modules[] = [
+        'icon' => 'fas fa-heart-pulse',
+        'title' => 'Risk Watchlist',
+        'description' => 'Review academic risk scores for learners.',
+        'bg_class' => 'bg-admissions',
+        'link' => 'risk_watchlist.php',
+    ];
+    $quick_modules[] = [
+        'icon' => 'fas fa-chart-line',
+        'title' => 'Teaching Plans',
+        'description' => 'Monitor teaching plan compliance.',
+        'bg_class' => 'bg-lecturer',
+        'link' => 'teaching_planner_monitor.php',
     ];
 }
 

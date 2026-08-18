@@ -1,8 +1,18 @@
 <?php
 include "includes/admin.php";
+require_once dirname(__DIR__) . '/includes/auth_helpers.php';
 error_reporting(0);
 
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 if(isset($_POST['update'])){
+    if (!wuc_validate_csrf($_POST['csrf_token'] ?? null)) {
+        echo "<script>alert('Invalid or expired form token. Please try again.')</script>";
+        echo "<script>window.open('students_by_admin.php','_self')</script>";
+        exit;
+    }
 
 	$St_id = trim($_POST["St_id"]);
     $Sid = trim($_POST["Sid"]);
@@ -12,25 +22,17 @@ if(isset($_POST['update'])){
     $startYear = trim($_POST["startYear"]);
     $endYear = trim($_POST["endYear"]);
 
-    //Check if the student number has already been used.
-    /*$check="SELECT * FROM student_program WHERE Sid='$Sid'";
-    if ($check_query = mysqli_query($db, $check)) {
-        $check_rs=mysqli_fetch_assoc($check_query);
-        $index=$check_rs['Sid'];
-    }
+   $stmt = $db->prepare(
+       'UPDATE student_program SET Sid = ?, program_code = ?, intake = ?, mode = ?, startYear = ?, endYear = ? WHERE St_id = ?'
+   );
+   if ($stmt) {
+       $stmt->bind_param('sssssss', $Sid, $program_code, $intake, $mode, $startYear, $endYear, $St_id);
+       $result = $stmt->execute();
+       $stmt->close();
+   } else {
+       $result = false;
+   }
 
-    if (isset($index)) {
-            echo"<script>alert('This student ID already exist in the system.')</script>";
-            echo"<script>window.open('students_by_admin.php','_self')</script>";
-    die();
-
-    }*/
-
-   $sql = "update student_program set Sid='$Sid', program_code='$program_code', intake='$intake', mode='$mode', 
-   startYear='$startYear', endYear='$endYear' 
-   WHERE St_id='$St_id'";
-
-    $result = mysqli_query($db, $sql);
     if (!empty($result)) {
 		echo "<script>alert('Student information by program was successfully upadated')</script>";
 		echo"<script>window.open('students_by_admin.php','_self')</script>";
@@ -64,22 +66,23 @@ if(isset($_POST['update'])){
 				<div class="container">
 					<?php
 						if (isset($_POST['search'])) {
-							$Sid = ($_POST['Sid']);
-
-                             if($results = $db->query("SELECT * FROM student_program
-								WHERE Sid = '$Sid'")) {
-									if($count = $results->num_rows) {
-										while($row = $results->fetch_object()){
-										$records_1[] = $row;
-										}
-										$results->free();
-									} 
-                                    else {
-                                        echo"<script>alert('This student ID does not exist in the system.')</script>";
-                                        echo"<script>window.open('editStud_by_prog.php','_self')</script>";
-                                        die();
+							$Sid = trim($_POST['Sid']);
+                            $records_1 = [];
+                            if ($stmt = $db->prepare('SELECT * FROM student_program WHERE Sid = ?')) {
+                                $stmt->bind_param('s', $Sid);
+                                $stmt->execute();
+                                $results = $stmt->get_result();
+                                if ($results && $count = $results->num_rows) {
+                                    while ($row = $results->fetch_object()) {
+                                        $records_1[] = $row;
                                     }
-								}
+                                } else {
+                                    echo"<script>alert('This student ID does not exist in the system.')</script>";
+                                    echo"<script>window.open('editStud_by_prog.php','_self')</script>";
+                                    die();
+                                }
+                                $stmt->close();
+                            }
 							}
 
                     ?>
@@ -89,6 +92,7 @@ if(isset($_POST['update'])){
 					?>
 					<h3 class="w3-center"><strong>Edit student by program</strong></h3>
                     <form action="processEdit_student.php" method="post" class="#" role="form">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8'); ?>">
 					<table id="myTable" class="table table-hover align-middle">
                         <thead class="table-light">
 

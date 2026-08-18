@@ -5,6 +5,7 @@
  */
 
 require_once dirname(__DIR__, 2) . '/includes/applicant_program_helpers.php';
+require_once dirname(__DIR__, 2) . '/includes/applicant_workflow.php';
 
 /**
  * Get Pending Applicants
@@ -121,6 +122,25 @@ function handleProcessApplication($db, $input, $user_name) {
     
     if (!$action) {
         return ['success' => false, 'message' => 'Invalid action'];
+    }
+
+    // Acceptance is the complete, canonical application-to-student workflow.
+    // It moves the application, creates the student/login/programme/courses/
+    // invoice, records the officer and removes the inbox row in one transaction.
+    if ($action === 'accept') {
+        $converted = wuc_accept_online_applicant($db, $applicant_id, (string)$user_name);
+        if (empty($converted['success'])) {
+            return $converted;
+        }
+        return [
+            'success' => true,
+            'message' => 'Application accepted and student account activated. Student ID: ' . $converted['student_id'],
+            'data' => [
+                'processed_id' => (int)($converted['processed_id'] ?? 0),
+                'student_id' => (string)$converted['student_id'],
+                'warnings' => (array)($converted['warnings'] ?? []),
+            ],
+        ];
     }
     
     // Start transaction

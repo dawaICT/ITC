@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 $page_title = 'Teaching Planner Administration';
 require_once __DIR__ . '/includes/admin.php';
+require_once dirname(__DIR__) . '/includes/role_helpers.php';
 require_once dirname(__DIR__) . '/includes/teaching_planner/init.php';
 
 if (!function_exists('isSystemsAdmin') || !isSystemsAdmin()) {
@@ -60,14 +61,14 @@ $courses = $db->query("SELECT course_code, course_name FROM courses WHERE status
 $curricula = $db->query("SELECT id, program_code, version_name, status FROM curriculum_versions WHERE status IN ('active','draft') ORDER BY program_code, version_name DESC")->fetch_all(MYSQLI_ASSOC);
 ?>
 <link rel="stylesheet" href="/wucportal/css/teaching-planner.css">
-<div class="container-fluid px-3 px-lg-4 py-4 tp-page">
+<div class="container-fluid px-4 py-4 portal-dashboard tp-page">
     <section class="tp-hero mb-4">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
             <div>
                 <h1 class="h3 mb-1"><i class="fas fa-file-signature me-2"></i>Teaching Planner Administration</h1>
                 <p class="mb-0 opacity-75">Control approved document templates and structured syllabus drafts. Academic approval remains with the Head of Section.</p>
             </div>
-            <a href="/wucportal/docs/TEACHING_PLANNER_TEMPLATE_GUIDE.md" class="btn btn-light"><i class="fas fa-book-open me-1"></i>Template guide</a>
+            <a href="teaching_planner_guide.php" class="btn btn-outline-secondary"><i class="fas fa-book-open me-1"></i>Template guide</a>
         </div>
     </section>
 

@@ -99,8 +99,8 @@ class StudentAcademicWorkflowService
             $periodName = getPeriodLabel($this->db, $studentId) . ' ' . $periodNumber;
         }
 
-        $yearOfStudy = max(1, $this->studentData->getStudentYearOfStudy($studentId));
         $academicYear = trim((string)$session['academic_year']);
+        $yearOfStudy = max(1, $this->studentData->getStudentYearOfStudy($studentId, $academicYear));
         $periodLabel = self::formatPeriodLabel($calendarType, $periodNumber, $academicYear, $periodName);
 
         return [
@@ -437,12 +437,22 @@ class StudentAcademicWorkflowService
             return ['ok' => false, 'message' => 'Registration is not open for the current academic period.'];
         }
 
-        if ($this->findSemesterRegistration($studentId, $period)) {
-            return ['ok' => false, 'message' => 'You are already registered for this academic period.'];
+        // A progression/pre-allocation placeholder (registration_status =
+        // 'pending') must not lock the student out: completing registration
+        // claims the placeholder row in the transaction below.
+        $existingRegistration = $this->findSemesterRegistration($studentId, $period);
+        $claimPendingRegistration = false;
+        if ($existingRegistration) {
+            $existingStatus = strtolower(trim((string)($existingRegistration['registration_status'] ?? '')));
+            if ($existingStatus === 'pending') {
+                $claimPendingRegistration = true;
+            } else {
+                return ['ok' => false, 'message' => 'You are already registered for this academic period.'];
+            }
         }
 
         $fee = $this->checkFeeEligibility($studentId, $period);
-        if (!$fee['is_eligible']) {
+        if (!$fee['is_eligible'] && $this->isRegistrationFeeGateEnabled()) {
             return ['ok' => false, 'message' => $fee['reason']];
         }
 
@@ -484,18 +494,23 @@ class StudentAcademicWorkflowService
 
         $this->db->begin_transaction();
         try {
-            $semRegId = $this->regData->createRegistration([
-                'student_id' => $studentId,
-                'academic_year' => $academicYear,
-                'semester' => (string)$periodNumber,
-                'year_of_study' => $yearOfStudy,
-                'program_code' => $programCode,
-                'registration_date' => date('Y-m-d H:i:s'),
-                'registration_type' => $regType,
-                'period_type' => $periodType,
-            ]);
+            if ($claimPendingRegistration) {
+                $semRegId = (int)$existingRegistration['id'];
+            } else {
+                $semRegId = $this->regData->createRegistration([
+                    'student_id' => $studentId,
+                    'academic_year' => $academicYear,
+                    'semester' => (string)$periodNumber,
+                    'year_of_study' => $yearOfStudy,
+                    'program_code' => $programCode,
+                    'registration_date' => date('Y-m-d H:i:s'),
+                    'registration_type' => $regType,
+                    'period_type' => $periodType,
+                ]);
+            }
 
             $this->updateRegistrationWorkflowColumns($semRegId, $period, $feeStatus);
+            $this->syncStudentProgramPosition($studentId, $programCode, $yearOfStudy, $periodNumber, $calendarType);
 
             $courseCount = $this->autoEnrolCourses($studentId, $semRegId, $courses, $periodNumber, $yearOfStudy, $academicYear, $programCode);
 
@@ -535,6 +550,12 @@ class StudentAcademicWorkflowService
 
         $row = $this->findSemesterRegistration($studentId, $periodContext);
         if (!$row) {
+            return 0;
+        }
+
+        // Progression placeholder rows are claimed (and courses enrolled) only
+        // when the student completes the fee-gated registration step.
+        if (strtolower(trim((string)($row['registration_status'] ?? ''))) === 'pending') {
             return 0;
         }
 
@@ -602,7 +623,7 @@ class StudentAcademicWorkflowService
             }
 
             if ($this->courseRegistrationExistsForYear($studentId, $code, $yearOfStudy, $academicYear)) {
-                $this->reactivateCourseRegistrationForYear($studentId, $code, $yearOfStudy, $academicYear, $semRegId);
+                $this->reactivateCourseRegistrationForYear($studentId, $code, $yearOfStudy, $academicYear, $semRegId, $periodNumber);
                 continue;
             }
 
@@ -632,7 +653,22 @@ class StudentAcademicWorkflowService
                 $params[] = 1;
             }
 
-            $sql = 'INSERT INTO course_registration (' . implode(', ', $cols) . ') VALUES (' . implode(',', array_fill(0, count($cols), '?')) . ')';
+            $updates = ['id = LAST_INSERT_ID(id)'];
+            if ($semRegCol) {
+                $updates[] = 'semester_registration_id = VALUES(semester_registration_id)';
+            }
+            if ($statusCol) {
+                $updates[] = "`{$statusCol}` = 'registered'";
+            }
+            if ($activeCol) {
+                $updates[] = "`{$activeCol}` = 1";
+            }
+            if (isset($this->courseRegCols['updated_at'])) {
+                $updates[] = '`' . $this->courseRegCols['updated_at'] . '` = CURRENT_TIMESTAMP';
+            }
+            $sql = 'INSERT INTO course_registration (' . implode(', ', $cols) . ') VALUES ('
+                . implode(',', array_fill(0, count($cols), '?')) . ') ON DUPLICATE KEY UPDATE '
+                . implode(', ', $updates);
             $stmt = $this->db->prepare($sql);
             if (!$stmt) {
                 throw new RuntimeException('Failed to prepare course registration insert.');
@@ -643,8 +679,11 @@ class StudentAcademicWorkflowService
                 $stmt->close();
                 throw new RuntimeException('Course registration failed: ' . $err);
             }
+            $wasInserted = $stmt->affected_rows === 1;
             $stmt->close();
-            $inserted++;
+            if ($wasInserted) {
+                $inserted++;
+            }
 
             if (function_exists('wuc_sync_legacy_course_registration_to_canonical')) {
                 wuc_sync_legacy_course_registration_to_canonical(
@@ -677,21 +716,15 @@ class StudentAcademicWorkflowService
         $types = 'ssi';
         $params = [$studentId, $courseCode, $yearOfStudy];
         if (preg_match('/(\d{4})/', $academicYear, $m)) {
-            $match[] = "`{$yearCol}` = ?";
-            $types .= 's';
-            $params[] = $m[1];
             if ($acYearCol) {
                 $match[] = "CAST(`{$acYearCol}` AS CHAR) = ?";
                 $types .= 's';
                 $params[] = $m[1];
-                $match[] = "`{$acYearCol}` = ?";
-                $types .= 'i';
-                $params[] = (int)$m[1];
             }
         }
 
-        $sql = "SELECT 1 FROM course_registration WHERE `{$sidCol}` = ? AND course_code = ? AND ("
-            . implode(' OR ', $match) . ')';
+        $sql = "SELECT 1 FROM course_registration WHERE `{$sidCol}` = ? AND course_code = ? AND "
+            . implode(' AND ', $match);
         if ($activeCol) {
             $sql .= " AND (`{$activeCol}` = 1 OR `{$activeCol}` IS NULL)";
         }
@@ -712,10 +745,12 @@ class StudentAcademicWorkflowService
         string $courseCode,
         int $yearOfStudy,
         string $academicYear,
-        int $semRegId
+        int $semRegId,
+        int $periodNumber
     ): void {
         $sidCol = $this->courseRegCols['sid'] ?? ($this->courseRegCols['student_id'] ?? 'Sid');
         $yearCol = $this->courseRegCols['year'] ?? 'Year';
+        $semCol = $this->courseRegCols['semester'] ?? 'semester';
         $acYearCol = $this->courseRegCols['academic_year'] ?? null;
         $activeCol = $this->courseRegCols['is_active'] ?? null;
         $statusCol = $this->courseRegCols['status'] ?? null;
@@ -725,9 +760,6 @@ class StudentAcademicWorkflowService
         $types = 'ssi';
         $params = [$studentId, $courseCode, $yearOfStudy];
         if (preg_match('/(\d{4})/', $academicYear, $m)) {
-            $match[] = "`{$yearCol}` = ?";
-            $types .= 's';
-            $params[] = $m[1];
             if ($acYearCol) {
                 $match[] = "CAST(`{$acYearCol}` AS CHAR) = ?";
                 $types .= 's';
@@ -736,6 +768,10 @@ class StudentAcademicWorkflowService
         }
 
         $sets = [];
+        // Re-enrolment happens in the *current* period: move the row so
+        // period-scoped consumers (CA class lists, per-term fee sums) stay
+        // aligned with the student's active term/semester.
+        $sets[] = "`{$semCol}` = " . max(1, $periodNumber);
         if ($activeCol) {
             $sets[] = "`{$activeCol}` = 1";
         }
@@ -749,7 +785,7 @@ class StudentAcademicWorkflowService
             return;
         }
         $sql = 'UPDATE course_registration SET ' . implode(', ', $sets)
-            . " WHERE `{$sidCol}` = ? AND course_code = ? AND (" . implode(' OR ', $match) . ')';
+            . " WHERE `{$sidCol}` = ? AND course_code = ? AND " . implode(' AND ', $match);
         $stmt = $this->db->prepare($sql);
         if ($stmt) {
             $stmt->bind_param($types, ...$params);
@@ -811,6 +847,115 @@ class StudentAcademicWorkflowService
             $stmt->bind_param('ssii', $studentId, $courseCode, $period, $yearOfStudy);
             $stmt->execute();
             $stmt->close();
+        }
+    }
+
+    /**
+     * Portal setting gate for registration fee enforcement (default: enforced).
+     */
+    private function isRegistrationFeeGateEnabled(): bool
+    {
+        try {
+            $stmt = $this->db->prepare("SELECT setting_value FROM portal_settings WHERE setting_key = 'reg_payment_gate_enabled' LIMIT 1");
+            if ($stmt) {
+                $stmt->execute();
+                $row = $stmt->get_result()->fetch_assoc();
+                $stmt->close();
+                if ($row !== null) {
+                    return trim((string)$row['setting_value']) === '1';
+                }
+            }
+        } catch (Throwable $e) {
+            error_log('[StudentAcademicWorkflow] isRegistrationFeeGateEnabled: ' . $e->getMessage());
+        }
+        return true;
+    }
+
+    /**
+     * Keep student_program's position columns in step with self-service
+     * registration (previously only admin/progression paths updated them,
+     * leaving current_term_number stale after Term 2/3 registration).
+     */
+    private function syncStudentProgramPosition(
+        string $studentId,
+        string $programCode,
+        int $yearOfStudy,
+        int $periodNumber,
+        string $calendarType
+    ): void {
+        try {
+            $cols = [];
+            if ($meta = $this->db->query("SHOW COLUMNS FROM student_program")) {
+                while ($c = $meta->fetch_assoc()) {
+                    $cols[strtolower((string)$c['Field'])] = (string)$c['Field'];
+                }
+                $meta->free();
+            }
+            if ($cols === [] || !isset($cols['sid'])) {
+                return;
+            }
+
+            $sets = [];
+            $types = '';
+            $params = [];
+            $addInt = static function (string $col, int $value) use (&$sets, &$types, &$params, $cols): void {
+                $key = strtolower($col);
+                if (isset($cols[$key])) {
+                    $sets[] = '`' . $cols[$key] . '` = ?';
+                    $types .= 'i';
+                    $params[] = $value;
+                }
+            };
+
+            $addInt('year_of_study', $yearOfStudy);
+            $addInt('current_year_number', $yearOfStudy);
+            if (strtolower($calendarType) === 'term') {
+                $addInt('current_term_number', $periodNumber);
+                // Legacy mirror observed on live rows: term and semester both
+                // carry the current period number for term-based programmes.
+                if (isset($cols['term'])) {
+                    $sets[] = '`' . $cols['term'] . '` = ?';
+                    $types .= 's';
+                    $params[] = (string)$periodNumber;
+                }
+                $addInt('semester', $periodNumber);
+            } else {
+                $addInt('current_semester_number', $periodNumber);
+                $addInt('semester', $periodNumber);
+            }
+            if (isset($cols['updated_at'])) {
+                $sets[] = '`updated_at` = CURRENT_TIMESTAMP';
+            }
+            if ($sets === []) {
+                return;
+            }
+
+            $sql = 'UPDATE student_program SET ' . implode(', ', $sets)
+                . ' WHERE `' . $cols['sid'] . '` = ?';
+            $types .= 's';
+            $params[] = $studentId;
+            if (isset($cols['program_code']) && $programCode !== '') {
+                $sql .= ' AND `' . $cols['program_code'] . '` = ?';
+                $types .= 's';
+                $params[] = $programCode;
+            }
+            if (isset($cols['status'])) {
+                $sql .= ' AND (`' . $cols['status'] . "` IS NULL OR `" . $cols['status'] . "` = '' OR LOWER(`" . $cols['status'] . "`) = 'active')";
+            }
+            if (isset($cols['id'])) {
+                $sql .= ' ORDER BY `' . $cols['id'] . '` DESC LIMIT 1';
+            }
+
+            $stmt = $this->db->prepare($sql);
+            if (!$stmt) {
+                return;
+            }
+            $stmt->bind_param($types, ...$params);
+            $stmt->execute();
+            $stmt->close();
+        } catch (Throwable $e) {
+            // Position sync is best-effort; it must not fail the registration.
+            error_log('[StudentAcademicWorkflow] syncStudentProgramPosition: ' . $e->getMessage());
         }
     }
 

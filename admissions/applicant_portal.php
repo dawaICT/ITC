@@ -30,6 +30,18 @@ if (!empty($_SESSION['Sid'])) {
         $stmt->close();
         $sessionEmail = strtolower(trim((string)($row['email'] ?? '')));
     }
+} elseif (!empty($_SESSION['user_id_db'])) {
+    $accountUserId = (int)$_SESSION['user_id_db'];
+    if ($stmt = $db->prepare("SELECT username FROM users WHERE user_id = ? AND primary_role = 'applicant' LIMIT 1")) {
+        $stmt->bind_param('i', $accountUserId);
+        $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        $candidate = strtolower(trim((string)($row['username'] ?? '')));
+        if (filter_var($candidate, FILTER_VALIDATE_EMAIL)) {
+            $sessionEmail = $candidate;
+        }
+    }
 }
 
 $progJoin = wuc_applicant_program_join_sql();

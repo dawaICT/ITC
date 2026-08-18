@@ -543,7 +543,10 @@ if (isset($_POST['submit'])) {
                 $staffId
             );
 
-            $notesUrl = $url !== '' ? $url : 'Not available';
+            // An absent optional video URL is stored as an empty value. Using a
+            // display label here makes downstream resource views treat it as a
+            // relative link (for example /lecturers/Not%20available).
+            $notesUrl = $url;
             $filename = (string) $storedUpload['filename'];
             $fileSize = (int) $pendingUpload['size'];
             if (elearningTableHasCourseOffering($db, 'lesson_notes')) {

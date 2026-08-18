@@ -1,6 +1,8 @@
 <?php
-// Verify lecturer viewCourse upload flow as WUC900 over HTTP after fixes.
+// Verify lecturer viewCourse upload flow as the seeded assigned lecturer.
 $BASE = 'http://localhost/wucportal';
+$staffId = 'ITC907';
+$courseCode = 'DCSE-101';
 $jar = tempnam(sys_get_temp_dir(), 'lec_');
 $pass = 0; $fail = 0;
 function ok($cond, $label){ global $pass,$fail; if($cond){$pass++; echo "  [OK]   $label\n";} else {$fail++; echo "  [FAIL] $label\n";} }
@@ -32,10 +34,10 @@ function alertText($body, $cls){
 
 // 1. Login
 $p = req("$BASE/staff_login.php", null, $jar);
-$login = req("$BASE/staffLogin.php", ['csrf_token' => $csrf($p['body']), 'user_id' => 'WUC900', 'password' => 'Test@12345'], $jar);
+$login = req("$BASE/staff_login.php", ['csrf_token' => $csrf($p['body']), 'user_id' => $staffId, 'password' => 'Test@12345'], $jar);
 ok(in_array($login['code'], [302,303]), "login redirects ({$login['code']})");
 
-$page = req("$BASE/lecturers/viewCourse.php?code=COM101", null, $jar);
+$page = req("$BASE/lecturers/viewCourse.php?code=" . rawurlencode($courseCode), null, $jar);
 ok($page['code'] === 200, "GET viewCourse 200");
 $phpIssue = false;
 foreach (['Fatal error','Parse error','Warning:','Notice:','Deprecated:','headers already sent'] as $n) {
@@ -50,41 +52,42 @@ $mkfile = function($bytes, $name){ $f = tempnam(sys_get_temp_dir(),'up_'); $real
 
 // 3a. Upload WITHOUT csrf -> must be rejected (403 / Invalid Request)
 $pdf = $mkfile("%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n", 'a.pdf');
-$noCsrf = req("$BASE/lecturers/viewCourse.php?code=COM101", [
-    'submit'=>'1','course_code'=>'COM101','course_contents'=>new CURLFile($pdf,'application/pdf','a.pdf')
+$noCsrf = req("$BASE/lecturers/viewCourse.php?code=" . rawurlencode($courseCode), [
+    'submit'=>'1','course_code'=>$courseCode,'course_contents'=>new CURLFile($pdf,'application/pdf','a.pdf')
 ], $jar, true);
 ok($noCsrf['code'] === 403 || stripos($noCsrf['body'],'could not be verified') !== false, "upload without CSRF token is rejected");
 
 // 3b. Valid upload WITH csrf -> PRG redirect, then success flash
-$ok1 = req("$BASE/lecturers/viewCourse.php?code=COM101", [
-    'submit'=>'1','course_code'=>'COM101','csrf_token'=>$pageCsrf,
+$ok1 = req("$BASE/lecturers/viewCourse.php?code=" . rawurlencode($courseCode), [
+    'submit'=>'1','course_code'=>$courseCode,'csrf_token'=>$pageCsrf,
     'course_contents'=>new CURLFile($pdf,'application/pdf','outline_ok.pdf')
 ], $jar, true);
-ok(in_array($ok1['code'],[302,303]) && stripos($ok1['location'],'viewCourse.php?code=COM101') !== false, "valid upload redirects (PRG) -> {$ok1['location']}");
-$after = req("$BASE/lecturers/viewCourse.php?code=COM101", null, $jar);
+ok(in_array($ok1['code'],[302,303]) && stripos($ok1['location'],'viewCourse.php?code=' . $courseCode) !== false, "valid upload redirects (PRG) -> {$ok1['location']}");
+$after = req("$BASE/lecturers/viewCourse.php?code=" . rawurlencode($courseCode), null, $jar);
 ok(stripos(alertText($after['body'],'alert-success'),'uploaded successfully') !== false, "success flash shown after redirect");
 
 // 3c. No file selected -> friendly error (was previously silent)
-$noFile = req("$BASE/lecturers/viewCourse.php?code=COM101", ['submit'=>'1','course_code'=>'COM101','csrf_token'=>$csrf($after['body'])], $jar);
+$noFile = req("$BASE/lecturers/viewCourse.php?code=" . rawurlencode($courseCode), ['submit'=>'1','course_code'=>$courseCode,'csrf_token'=>$csrf($after['body'])], $jar);
 ok(stripos(alertText($noFile['body'],'alert-danger'),'select a file') !== false, "no-file submit shows a clear error (not silent)");
 
 // 3d. Wrong extension -> rejected with message
-$page2 = req("$BASE/lecturers/viewCourse.php?code=COM101", null, $jar);
+$page2 = req("$BASE/lecturers/viewCourse.php?code=" . rawurlencode($courseCode), null, $jar);
 $exe = $mkfile("MZ\x90\x00bad", 'evil.exe');
-$badExt = req("$BASE/lecturers/viewCourse.php?code=COM101", [
-    'submit'=>'1','course_code'=>'COM101','csrf_token'=>$csrf($page2['body']),
+$badExt = req("$BASE/lecturers/viewCourse.php?code=" . rawurlencode($courseCode), [
+    'submit'=>'1','course_code'=>$courseCode,'csrf_token'=>$csrf($page2['body']),
     'course_contents'=>new CURLFile($exe,'application/octet-stream','evil.exe')
 ], $jar, true);
 ok(stripos(alertText($badExt['body'],'alert-danger'),'Invalid file format') !== false, "disallowed extension rejected with message");
 
 // 3e. MIME mismatch (.pdf name but PNG content) -> rejected
-$page3 = req("$BASE/lecturers/viewCourse.php?code=COM101", null, $jar);
+$page3 = req("$BASE/lecturers/viewCourse.php?code=" . rawurlencode($courseCode), null, $jar);
 $fakePdf = $mkfile("\x89PNG\r\n\x1a\n".str_repeat("\0",40), 'fake.pdf');
-$mismatch = req("$BASE/lecturers/viewCourse.php?code=COM101", [
-    'submit'=>'1','course_code'=>'COM101','csrf_token'=>$csrf($page3['body']),
+$mismatch = req("$BASE/lecturers/viewCourse.php?code=" . rawurlencode($courseCode), [
+    'submit'=>'1','course_code'=>$courseCode,'csrf_token'=>$csrf($page3['body']),
     'course_contents'=>new CURLFile($fakePdf,'application/pdf','fake.pdf')
 ], $jar, true);
 ok(stripos(alertText($mismatch['body'],'alert-danger'),'does not match its extension') !== false, "MIME/extension mismatch rejected");
 
 @unlink($pdf); @unlink($exe); @unlink($fakePdf); @unlink($jar);
 echo "\nResult: $pass passed, $fail failed\n";
+exit($fail > 0 ? 1 : 0);

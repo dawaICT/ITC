@@ -52,7 +52,7 @@ session_start();
     <script>
         // Sidebar Toggle for Mobile
         document.getElementById('sidebarToggle').addEventListener('click', function() {
-            document.querySelector('.sidebar').classList.toggle('active');
+            document.querySelector('.sidebar').classList.toggle('show');
             document.querySelector('.main-content').classList.toggle('sidebar-active');
         });
 
@@ -64,8 +64,8 @@ session_start();
             if (window.innerWidth <= 768 && 
                 !sidebar.contains(event.target) && 
                 !sidebarToggle.contains(event.target) &&
-                sidebar.classList.contains('active')) {
-                sidebar.classList.remove('active');
+                sidebar.classList.contains('show')) {
+                sidebar.classList.remove('show');
                 document.querySelector('.main-content').classList.remove('sidebar-active');
             }
         });

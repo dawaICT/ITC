@@ -117,6 +117,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && !$scCsrf
                     $fee, $cap, $prereqs, $mode, $status, $start, $end, $staffId
                 );
                 if ($ins->execute()) {
+                    $newId = (int)$ins->insert_id;
+                    require_once dirname(__DIR__) . '/includes/short_course_db.php';
+                    sc_ensure_courses_mirror($db, [
+                        'course_code' => $code,
+                        'course_name' => $name,
+                        'fee' => $fee,
+                        'status' => $status,
+                    ]);
                     $msg = "Short course <strong>" . htmlspecialchars($name) . "</strong> created successfully.";
                     $msgType = 'success';
                 } else {
@@ -184,6 +192,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && !$scCsrf
                 $fee, $cap, $prereqs, $mode, $status, $start, $end, $id
             );
             if ($upd->execute()) {
+                $codeForMirror = '';
+                if ($cstmt = $db->prepare('SELECT course_code FROM short_courses WHERE id = ? LIMIT 1')) {
+                    $cstmt->bind_param('i', $id);
+                    $cstmt->execute();
+                    $codeForMirror = (string)($cstmt->get_result()->fetch_assoc()['course_code'] ?? '');
+                    $cstmt->close();
+                }
+                require_once dirname(__DIR__) . '/includes/short_course_db.php';
+                sc_ensure_courses_mirror($db, [
+                    'course_code' => $codeForMirror,
+                    'course_name' => $name,
+                    'fee' => $fee,
+                    'status' => $status,
+                ]);
                 $msg = "Course updated successfully.";
                 $msgType = 'success';
             } else {

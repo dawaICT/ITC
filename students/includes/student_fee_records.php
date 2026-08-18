@@ -151,7 +151,7 @@ function student_fee_completed_payments(mysqli $db, string $studentId, ?array $p
             if ($yearOfStudy !== '' && $rowYear !== '' && $rowYear !== $yearOfStudy) {
                 return;
             }
-            if ($rowYear === '' && $academicYear !== '' && !student_fee_flexible_year_matches($rowAcademicYear, $academicYear)) {
+            if ($academicYear !== '' && $rowAcademicYear !== '' && !student_fee_flexible_year_matches($rowAcademicYear, $academicYear)) {
                 return;
             }
         }
@@ -194,6 +194,9 @@ function student_fee_completed_payments(mysqli $db, string $studentId, ?array $p
         if ($sidCol && $amountCol) {
             $refExpr = isset($cols['reference_number']) ? "`{$cols['reference_number']}`" : (isset($cols['receipt_no']) ? "`{$cols['receipt_no']}`" : "CAST(`{$cols['payment_id']}` AS CHAR)");
             $statusSql = isset($cols['payment_status']) ? "AND (LOWER(`{$cols['payment_status']}`) IN ('completed','posted','confirmed','paid','success') OR `{$cols['payment_status']}` IS NULL)" : '';
+            if (isset($cols['status'])) {
+                $statusSql .= " AND LOWER(COALESCE(`{$cols['status']}`, 'approved')) = 'approved'";
+            }
             $sql = "SELECT "
                 . "{$refExpr} AS reference_number, "
                 . (isset($cols['description']) ? "COALESCE(`{$cols['description']}`, 'Payment')" : "'Payment'") . " AS narration, "
@@ -226,6 +229,53 @@ function student_fee_completed_payments(mysqli $db, string $studentId, ?array $p
         'records' => array_slice($records, 0, $limit),
         'total_paid' => $total,
         'limited' => count($records) > $limit,
+    ];
+}
+
+function student_fee_active_account_summary(mysqli $db, string $studentId, string $academicYear = ''): ?array
+{
+    if (!student_fee_table_exists($db, 'student_fee_accounts')) {
+        return null;
+    }
+    $columns = student_fee_columns($db, 'student_fee_accounts');
+    foreach (['student_id', 'total_payable', 'amount_paid', 'balance'] as $required) {
+        if (!isset($columns[$required])) {
+            return null;
+        }
+    }
+
+    $where = ["`{$columns['student_id']}` = ?"];
+    $types = 's';
+    $params = [$studentId];
+    if (isset($columns['status'])) {
+        $where[] = "LOWER(COALESCE(`{$columns['status']}`, '')) = 'active'";
+    }
+    if ($academicYear !== '' && isset($columns['academic_year'])) {
+        $where[] = "`{$columns['academic_year']}` = ?";
+        $types .= 's';
+        $params[] = $academicYear;
+    }
+    $order = isset($columns['id']) ? "`{$columns['id']}` DESC" : "`{$columns['student_id']}`";
+    $sql = "SELECT `{$columns['total_payable']}` AS total_payable,
+                   `{$columns['amount_paid']}` AS amount_paid,
+                   `{$columns['balance']}` AS balance
+              FROM student_fee_accounts
+             WHERE " . implode(' AND ', $where) . "
+             ORDER BY {$order} LIMIT 1";
+    if (!$stmt = $db->prepare($sql)) {
+        return null;
+    }
+    $stmt->bind_param($types, ...$params);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc() ?: null;
+    $stmt->close();
+    if (!$row) {
+        return null;
+    }
+    return [
+        'total_payable' => (float)$row['total_payable'],
+        'amount_paid' => (float)$row['amount_paid'],
+        'balance' => max(0.0, (float)$row['balance']),
     ];
 }
 
@@ -267,14 +317,18 @@ function student_fee_current_program_summary(mysqli $db, string $studentId): arr
         'year_of_study' => $year,
         'semester' => $period,
     ], 5000);
+    $account = student_fee_active_account_summary($db, $studentId, $academicYear);
+    $totalDue = $account ? $account['total_payable'] : (float)$due['total_due'];
+    $totalPaid = $account ? $account['amount_paid'] : (float)$paid['total_paid'];
+    $balance = $account ? $account['balance'] : max(0.0, $totalDue - $totalPaid);
     return [
         'registration' => $registration,
         'program_code' => $programCode,
         'fee_rows' => $due['fee_rows'],
-        'total_due' => $due['total_due'],
-        'total_paid' => $paid['total_paid'],
-        'balance' => max(0.0, (float)$due['total_due'] - (float)$paid['total_paid']),
-        'has_fees' => (int)$due['fee_rows'] > 0,
+        'total_due' => $totalDue,
+        'total_paid' => $totalPaid,
+        'balance' => $balance,
+        'has_fees' => $account !== null || (int)$due['fee_rows'] > 0,
         'current_period' => $currentPeriod,
     ];
 }

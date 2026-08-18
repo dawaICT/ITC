@@ -1,8 +1,7 @@
 <?php
-// Localhost-only admin page to create a course and enroll a student (dev/testing only)
-if (php_sapi_name() !== 'cli' && ($_SERVER['SERVER_NAME'] ?? '') !== 'localhost') {
-    die('Access restricted to localhost');
-}
+// Dev/testing only — never available over HTTP in any environment.
+require_once __DIR__ . '/../../includes/production_guards.php';
+wuc_require_cli_only('eLearning admin bootstrap is CLI-only.');
 
 require_once __DIR__ . '/../../db/connect.php';
 

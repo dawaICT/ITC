@@ -24,8 +24,29 @@ function ok(bool $cond, string $label) {
 $nrc = '987654/88/1';
 $email = 'e2e.regtest@example.test';
 $phone = '+260971112233';
+$programCode = 'ICT-001';
+$expectedSid = generateStudentId($db, $programCode, '1', (string)date('Y'), $nrc);
 
 // Pre-clean any leftovers from a previous run
+$staleStudentIds = [$expectedSid];
+$staleStudents = $db->query("SELECT SID FROM students WHERE email = '$email'");
+while ($staleStudents && ($staleRow = $staleStudents->fetch_assoc())) {
+    if (!in_array((string)$staleRow['SID'], $staleStudentIds, true)) {
+        $staleStudentIds[] = (string)$staleRow['SID'];
+    }
+}
+foreach ($staleStudentIds as $staleSid) {
+    $safeStaleSid = $db->real_escape_string($staleSid);
+    $db->query("DELETE FROM finance_student_sponsors WHERE student_id = '$safeStaleSid'");
+    $db->query("DELETE FROM course_registration WHERE Sid = '$safeStaleSid'");
+    $db->query("DELETE FROM student_courses WHERE student_id = '$safeStaleSid'");
+    $db->query("DELETE FROM semester_registration WHERE student_id = '$safeStaleSid' OR SID = '$safeStaleSid'");
+    $db->query("DELETE FROM portal_alerts WHERE user_id = '$safeStaleSid'");
+    $db->query("DELETE FROM invoices WHERE student_id = '$safeStaleSid'");
+    $db->query("DELETE FROM student_login WHERE Sid = '$safeStaleSid'");
+    $db->query("DELETE FROM student_program WHERE Sid = '$safeStaleSid'");
+    $db->query("DELETE FROM students WHERE SID = '$safeStaleSid'");
+}
 $db->query("DELETE FROM student_login WHERE Sid IN (SELECT SID FROM students WHERE email = '$email')");
 $db->query("DELETE FROM student_program WHERE Sid IN (SELECT SID FROM students WHERE email = '$email')");
 $db->query("DELETE FROM invoices WHERE student_id IN (SELECT SID FROM students WHERE email = '$email')");
@@ -34,14 +55,17 @@ $db->query("DELETE FROM students WHERE email = '$email'");
 // ── Stage 1: real registration handler ─────────────────────────────────────
 $input = [
     'fname' => 'Endtoend', 'lname' => 'Tester', 'gender' => 'M', 'dob' => '2002-03-15',
-    'program' => 'TEST-PROG', 'email' => $email, 'phone' => $phone, 'nrc' => $nrc,
+    'program' => $programCode, 'email' => $email, 'phone' => $phone, 'nrc' => $nrc,
     'semester' => '1', 'entry_year' => date('Y'), 'mode' => 'Full-time', 'sponsor' => 'Self',
     'nok_fname' => 'Next', 'nok_lname' => 'Kin', 'nok_relationship' => 'Parent', 'nok_phone' => '+260977654321',
 ];
 $result = handleNewStudentRegistration($db, $input, []);
 ok(!empty($result['success']), 'registration handler succeeded: ' . ($result['message'] ?? ''));
 $sid = $result['student_id'] ?? '';
-ok($sid !== '' && preg_match('/^ITC\d{2}T[1-3]\d{4}(\d{2})?$/', $sid), "generated SID is valid format: $sid");
+ok(
+    $sid !== '' && preg_match('/^(?:ITC\d{2}T[1-3]\d{4}(?:\d{2})?|[A-Z]{2,6}\d{8})$/', $sid),
+    "generated SID is valid programme student format: $sid"
+);
 
 // Verify all supporting rows
 $q = fn(string $sql) => $db->query($sql)->fetch_assoc();
@@ -111,8 +135,8 @@ $cp = httpReq("$BASE/students/change_password.php", [
     'csrf_token' => $cpCsrf, 'current_password' => $nrc,
     'new_password' => $newPw, 'confirm_password' => $newPw,
 ], $cookieJar);
-ok(in_array($cp['code'], [302, 303], true) && strpos($cp['location'], 'index.php') !== false,
-   'password change accepted, redirected to dashboard');
+ok(in_array($cp['code'], [302, 303], true) && strpos($cp['location'], 'students/certificate_portal.php') !== false,
+   'password change accepted, redirected to Certificate Portal (got: ' . $cp['location'] . ')');
 
 // ── Stage 4: dashboard access + re-login with the new password ──────────────
 $dash2 = httpReq("$BASE/students/index.php", null, $cookieJar);
@@ -130,10 +154,17 @@ ok(strpos($loginOld['location'], 'student_login.php') !== false, 'old NRC passwo
 $page3 = httpReq("$BASE/student_login.php", null, $jar2);
 $csrf3 = extractCsrf($page3['body']);
 $loginNew = httpReq("$BASE/studentLogin.php", ['csrf_token' => $csrf3, 'login' => '1', 'Sid' => $sid, 'Password' => $newPw], $jar2);
-ok(strpos($loginNew['location'], 'students/index.php') !== false,
-   'new password signs straight in to the dashboard (got: ' . $loginNew['location'] . ')');
+ok(strpos($loginNew['location'], 'portal_selection.php') !== false,
+   'new password signs in to the academic/eLearning portal selector (got: ' . $loginNew['location'] . ')');
+$certificate = httpReq("$BASE/students/certificate_portal.php", null, $jar2);
+ok($certificate['code'] === 200, 'authenticated student can open the assigned Certificate Portal');
 
 // ── Stage 5: cleanup ────────────────────────────────────────────────────────
+$db->query("DELETE FROM finance_student_sponsors WHERE student_id = '$sid'");
+$db->query("DELETE FROM course_registration WHERE Sid = '$sid'");
+$db->query("DELETE FROM student_courses WHERE student_id = '$sid'");
+$db->query("DELETE FROM semester_registration WHERE student_id = '$sid' OR SID = '$sid'");
+$db->query("DELETE FROM portal_alerts WHERE user_id = '$sid'");
 $db->query("DELETE FROM student_login WHERE Sid = '$sid'");
 $db->query("DELETE FROM student_program WHERE Sid = '$sid'");
 $db->query("DELETE FROM invoices WHERE student_id = '$sid'");

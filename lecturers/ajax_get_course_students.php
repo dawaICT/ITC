@@ -9,7 +9,7 @@ try {
     require_once __DIR__ . '/includes/guard.php';
     require_once dirname(__DIR__) . '/includes/ca_helpers.php';
     require_once dirname(__DIR__) . '/includes/elearning_access.php';
-} catch (Exception $e) {
+} catch (Throwable $e) {
     error_log('ajax_get_course_students bootstrap failed: ' . $e->getMessage());
     echo json_encode(['success' => false, 'error' => 'System error. Please try again or contact support.', 'students' => []]);
     exit;
@@ -88,6 +88,22 @@ try {
     $result = ca_fetch_course_students($db, $courseCode, $semester, $year);
     $students = $result['students'];
     $count = (int)$result['count'];
+
+    // Annotate payment eligibility for the selected academic period so lecturers
+    // see blockers before attempting save (not only after a failed POST).
+    if ($count > 0 && function_exists('is_student_allowed_ca')) {
+        foreach ($students as &$studentRow) {
+            $sid = (string)($studentRow['Sid'] ?? '');
+            $elig = $sid !== ''
+                ? is_student_allowed_ca($db, $sid, $year, $semester)
+                : ['allowed' => false, 'percent' => 0.0, 'required_percent' => 50.0, 'reason' => 'Missing student'];
+            $studentRow['ca_eligible'] = !empty($elig['allowed']);
+            $studentRow['payment_percent'] = (float)($elig['percent'] ?? 0);
+            $studentRow['required_percent'] = (float)($elig['required_percent'] ?? 50);
+            $studentRow['payment_reason'] = (string)($elig['reason'] ?? '');
+        }
+        unset($studentRow);
+    }
 
     $response = [
         'success' => true,

@@ -13,6 +13,13 @@ require_once dirname(__DIR__) . '/includes/security.php';
 // DML-only app user does not crash pages that still call CREATE TABLE at runtime.
 require_once dirname(__DIR__) . '/includes/schema_guard.php';
 
+// Stable reference-data cache (programs/departments/roles) — per-request memo
+// plus optional APCu. Safe to load on every connection; unused until called.
+require_once dirname(__DIR__) . '/includes/lookup_cache.php';
+
+// Lightweight request/SQL timing (opt-in via WUC_PERF_LOG=1).
+require_once dirname(__DIR__) . '/includes/perf_monitor.php';
+
 require_once dirname(__DIR__) . '/includes/portal_config.php';
 
 // Database configuration is environment-driven in production. Local XAMPP
@@ -50,10 +57,15 @@ try {
         throw new Exception('MySQL connection failed: ' . $db->connect_error);
     }
 
-    // Ensure consistent connection character set and collation to avoid collation mix errors
-    $db->set_charset("utf8mb4");
+    // Keep charset + connection collation in lockstep. Forcing collation_connection
+    // alone (without SET NAMES) breaks prepared comparisons like `? = ''` on this
+    // MariaDB build with "Illegal mix of collations (...general_ci...unicode_ci)".
+    $db->set_charset('utf8mb4');
     $db->query("SET NAMES 'utf8mb4' COLLATE 'utf8mb4_unicode_ci'");
-    $db->query("SET collation_connection = 'utf8mb4_unicode_ci'");
+
+    if (function_exists('wuc_perf_wrap_mysqli')) {
+        wuc_perf_wrap_mysqli($db);
+    }
 
 } catch (Exception $e) {
     error_log('DB connect error: ' . $e->getMessage());

@@ -20,6 +20,7 @@ $rows = wuc_public_select($db,
      LEFT JOIN departments d ON p.department_id = d.id
      WHERE COALESCE(p.is_active, 1) = 1
        AND p.program_code <> 'TEST-PROG'
+       AND p.program_code NOT IN ('CSE', 'ICT-002')
        AND p.program_name NOT LIKE '%seed%'
      ORDER BY p.program_name"
 );

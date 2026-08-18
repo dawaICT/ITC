@@ -11,15 +11,47 @@ require_once dirname(__DIR__) . '/includes/short_course_student.php';
 $sid = $_SESSION['Sid'] ?? '';
 $enrolments = $sid !== '' ? sc_student_enrolments($db, $sid) : [];
 
-// Map enrolled short_course_id => enrolment row (for access checks + display).
+// Map enrolled short_course_id and course_code => enrolment row (for access checks + display).
 $enrolledById = [];
+$enrolledByCode = [];
 foreach ($enrolments as $e) {
-    $enrolledById[(int)$e['short_course_id']] = $e;
+    if (!empty($e['short_course_id'])) {
+        $enrolledById[(int)$e['short_course_id']] = $e;
+    }
+    if (!empty($e['course_code'])) {
+        $enrolledByCode[strtoupper(trim((string)$e['course_code']))] = $e;
+    }
 }
 
 $viewId = (int)($_GET['id'] ?? 0);
-$activeCourse = ($viewId > 0 && isset($enrolledById[$viewId])) ? $enrolledById[$viewId] : null;
-$accessDenied = ($viewId > 0 && $activeCourse === null);
+$viewCode = strtoupper(trim((string)($_GET['code'] ?? '')));
+$activeCourse = null;
+if ($viewId > 0 && isset($enrolledById[$viewId])) {
+    $activeCourse = $enrolledById[$viewId];
+} elseif ($viewCode !== '' && isset($enrolledByCode[$viewCode])) {
+    $activeCourse = $enrolledByCode[$viewCode];
+    $viewId = (int)($activeCourse['short_course_id'] ?? 0);
+}
+$accessDenied = (($viewId > 0 || $viewCode !== '') && $activeCourse === null);
+
+// CA marks per enrolled short course. Dual-enrolled long-programme students
+// never reach the short-course branch of continuousAssessment.php, so their
+// short-course marks are surfaced here instead.
+$caByCourseId = [];
+if ($sid !== '' && $enrolments) {
+    $tbl = $db->query("SHOW TABLES LIKE 'short_course_assessment'");
+    $hasCaTable = $tbl && $tbl->num_rows > 0;
+    if ($tbl) { $tbl->free(); }
+    if ($hasCaTable && ($caStmt = $db->prepare('SELECT short_course_id, A1, A2, T1, T2, Total_CA FROM short_course_assessment WHERE student_id = ?'))) {
+        $caStmt->bind_param('s', $sid);
+        $caStmt->execute();
+        $caRes = $caStmt->get_result();
+        while ($caRow = $caRes->fetch_assoc()) {
+            $caByCourseId[(int)$caRow['short_course_id']] = $caRow;
+        }
+        $caStmt->close();
+    }
+}
 
 // Load published modules + materials for the selected course.
 $modules = [];
@@ -115,6 +147,34 @@ function sc_safe_module_html(?string $html): string {
             </div>
         </div>
 
+        <?php $caRow = $caByCourseId[(int)$activeCourse['short_course_id']] ?? null; ?>
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body">
+                <h6 class="mb-3"><i class="fas fa-chart-line text-primary me-2"></i>Continuous Assessment</h6>
+                <?php if ($caRow === null): ?>
+                    <div class="text-muted small"><i class="fas fa-info-circle me-1"></i>No CA marks recorded for you yet. Check back after your instructor uploads them.</div>
+                <?php else: ?>
+                    <?php $fmtCa = static function ($v): string { return ($v === null || $v === '') ? '&mdash;' : number_format((float)$v, 1) . '%'; }; ?>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered align-middle mb-1">
+                            <thead class="table-light">
+                                <tr><th>Assignment 1</th><th>Assignment 2</th><th>Test 1</th><th>Test 2</th><th class="text-end">Total CA</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><?= $fmtCa($caRow['A1']) ?></td>
+                                    <td><?= $fmtCa($caRow['A2']) ?></td>
+                                    <td><?= $fmtCa($caRow['T1']) ?></td>
+                                    <td><?= $fmtCa($caRow['T2']) ?></td>
+                                    <td class="text-end fw-semibold"><?= $fmtCa($caRow['Total_CA']) ?></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+
         <?php if (empty($moduleList)): ?>
             <div class="empty"><i class="fas fa-book-open"></i><h5 class="text-muted">No content published yet</h5>
                 <p>Your instructor hasn't published modules for this course yet. Check back later.</p></div>
@@ -164,10 +224,15 @@ function sc_safe_module_html(?string $html): string {
                         <div class="body">
                             <div class="mb-2">
                                 <?= sc_status_badge((string)$e['status']) ?>
+                                <?php $cardCa = $caByCourseId[(int)$e['short_course_id']] ?? null; ?>
+                                <?php if ($cardCa && $cardCa['Total_CA'] !== null && $cardCa['Total_CA'] !== ''): ?>
+                                    <span class="badge bg-success-subtle text-success border ms-1" title="Total CA"><i class="fas fa-chart-line me-1"></i>CA <?= number_format((float)$cardCa['Total_CA'], 1) ?>%</span>
+                                <?php endif; ?>
                                 <?php $dur = sc_format_duration($e['duration_value'], $e['duration_unit']); ?>
                                 <?php if ($dur): ?><span class="text-muted small ms-1"><i class="fas fa-clock me-1"></i><?= htmlspecialchars($dur) ?></span><?php endif; ?>
                             </div>
-                            <a href="short_courses.php?id=<?= (int)$e['short_course_id'] ?>" class="btn btn-primary btn-sm w-100">
+                            <?php $openUrl = !empty($e['short_course_id']) ? 'short_courses.php?id=' . (int)$e['short_course_id'] : 'short_courses.php?code=' . urlencode((string)$e['course_code']); ?>
+                            <a href="<?= htmlspecialchars($openUrl) ?>" class="btn btn-primary btn-sm w-100">
                                 <i class="fas fa-folder-open me-1"></i>Open Content
                             </a>
                         </div>

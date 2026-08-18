@@ -50,6 +50,9 @@ if (!function_exists('wuc_notify_portal')) {
             'entity_type' => $entityType,
             'entity_id' => isset($payload['entity_id']) ? (string)$payload['entity_id'] : null,
             'action_url' => isset($payload['action_url']) ? (string)$payload['action_url'] : null,
+            'source_portal' => isset($payload['source_portal']) ? (string)$payload['source_portal'] : null,
+            'target_portal' => isset($payload['target_portal']) ? (string)$payload['target_portal'] : null,
+            'expires_at' => isset($payload['expires_at']) ? (string)$payload['expires_at'] : null,
             'dedupe_days' => isset($payload['dedupe_days']) ? (int)$payload['dedupe_days'] : 7,
         ]);
     }
@@ -430,6 +433,11 @@ if (!function_exists('wuc_portal_alerts_sync_el_student')) {
                 $body = trim((string)($row['body'] ?? ''));
                 $url = trim((string)($row['url'] ?? ''));
                 if ($title === '' || $body === '') {
+                    continue;
+                }
+                // Academic risk is written directly to portal_alerts by the
+                // risk engine. Mirroring it again creates duplicate notices.
+                if (strtolower($type) === 'academic_risk') {
                     continue;
                 }
                 if ($url !== '' && $url[0] !== '/') {

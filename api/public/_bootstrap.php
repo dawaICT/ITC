@@ -26,13 +26,40 @@ if (!defined('WUC_PUBLIC_API')) {
 
 // ---------------------------------------------------------------------------
 // Read-only database credentials (SELECT on approved public tables only).
-// This user is intentionally NOT the portal application user. Even if this
-// file were exposed, the credentials grant nothing but public reads.
+// Loaded from environment / external config — never commit secrets here.
 // ---------------------------------------------------------------------------
-const WUC_PUBLIC_DB_HOST = '127.0.0.1';
-const WUC_PUBLIC_DB_USER = 'itc_public';
-const WUC_PUBLIC_DB_PASS = 'itcPublic#2026_ro';
-const WUC_PUBLIC_DB_NAME = 'wucportal';
+require_once dirname(__DIR__, 2) . '/includes/portal_config.php';
+
+if (!function_exists('wuc_public_db_config')) {
+    function wuc_public_db_config(string $key, ?string $default = null): ?string
+    {
+        $envKey = 'WUC_PUBLIC_DB_' . strtoupper($key);
+        $value = wuc_portal_env($envKey);
+        if ($value !== null && $value !== '') {
+            return $value;
+        }
+
+        if ($key === 'host') {
+            return wuc_portal_env('WUC_DB_HOST', $default ?? '127.0.0.1');
+        }
+        if ($key === 'name') {
+            return wuc_portal_env('WUC_DB_NAME', $default ?? 'wucportal');
+        }
+
+        // Local development may reuse the main app DB user when no dedicated
+        // read-only public user is configured. Production must set WUC_PUBLIC_DB_*.
+        if (defined('APP_ENV') && APP_ENV === 'development') {
+            if ($key === 'user') {
+                return wuc_portal_env('WUC_DB_USER', $default);
+            }
+            if ($key === 'password') {
+                return wuc_portal_env('WUC_DB_PASSWORD', $default ?? '');
+            }
+        }
+
+        return $default;
+    }
+}
 
 // Origins allowed to call this API from a browser (CORS). In local dev the
 // website and portal share the localhost origin, so CORS is a no-op; in
@@ -135,7 +162,41 @@ function wuc_public_db(): mysqli
         return $db;
     }
     mysqli_report(MYSQLI_REPORT_OFF);
-    $db = @new mysqli(WUC_PUBLIC_DB_HOST, WUC_PUBLIC_DB_USER, WUC_PUBLIC_DB_PASS, WUC_PUBLIC_DB_NAME);
+
+    // Read the machine-local env file directly and prefer it for the public
+    // API credentials. Background: on the threaded Windows MPM, Apache hands
+    // each request a per-request environment whose contents can be clobbered
+    // mid-flight by concurrent requests, so getenv('WUC_PUBLIC_DB_*') is not
+    // reliable here. The env file is the deterministic source of truth.
+    $apiEnv = [];
+    foreach ([
+        getenv('WUC_CONFIG_FILE') ?: null,
+        dirname(__DIR__, 3) . '/wucportal-var/config/environment.php',
+        dirname(__DIR__, 2) . '/config/environment.local.php',
+    ] as $envFile) {
+        if (is_string($envFile) && $envFile !== '' && is_file($envFile)) {
+            $values = require $envFile;
+            if (is_array($values)) {
+                $apiEnv = $values + $apiEnv;
+            }
+        }
+    }
+    $apiEnvValue = static function (string $key) use ($apiEnv): ?string {
+        $v = $apiEnv[$key] ?? null;
+        return (is_string($v) && $v !== '') ? $v : null;
+    };
+
+    $host = $apiEnvValue('WUC_PUBLIC_DB_HOST') ?? (string) wuc_public_db_config('host', '127.0.0.1');
+    $user = $apiEnvValue('WUC_PUBLIC_DB_USER') ?? (string) wuc_public_db_config('user', '');
+    $pass = $apiEnvValue('WUC_PUBLIC_DB_PASSWORD') ?? (string) wuc_public_db_config('password', '');
+    $name = $apiEnvValue('WUC_PUBLIC_DB_NAME') ?? (string) wuc_public_db_config('name', 'wucportal');
+
+    if ($user === '' || $pass === '') {
+        error_log('[public-api] WUC_PUBLIC_DB_USER / WUC_PUBLIC_DB_PASSWORD are not configured.');
+        wuc_public_error('Service temporarily unavailable.', 503);
+    }
+
+    $db = @new mysqli($host, $user, $pass, $name);
     if ($db->connect_errno) {
         error_log('[public-api] DB connect failed: ' . $db->connect_error);
         wuc_public_error('Service temporarily unavailable.', 503);

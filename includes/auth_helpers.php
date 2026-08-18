@@ -36,6 +36,21 @@ if (!function_exists('wuc_secure_session_start')) {
     }
 }
 
+if (!function_exists('wuc_session_release_lock')) {
+    /**
+     * Close the session early on read-mostly pages so concurrent requests from
+     * the same browser (tabs, AJAX) are not blocked on the session file lock.
+     * Session data remains readable in $_SESSION for the rest of the request;
+     * further writes are discarded until the next session_start().
+     */
+    function wuc_session_release_lock(): void
+    {
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_write_close();
+        }
+    }
+}
+
 if (!function_exists('wuc_security_headers')) {
     function wuc_security_headers(): void
     {

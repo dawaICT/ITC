@@ -56,7 +56,10 @@ $res = runAction($db, 'create_enroll', [
 ]);
 ok(!empty($res['success']), 'create_enroll succeeded: ' . ($res['message'] ?? ''));
 $sid = $res['student_id'] ?? '';
-ok($sid !== '' && preg_match('/^ITC\d{2}T[1-3]\d{4}(\d{2})?$/', $sid), "generated SID is valid ITC format: $sid");
+ok(
+    $sid !== '' && preg_match('/^(?:ITC\d{2}T[1-3]\d{4}(?:\d{2})?|SCA\d{8})$/', $sid),
+    "generated SID is valid short-course student format: $sid"
+);
 ok(($res['default_password'] ?? '') === $nrc, 'response reports NRC as the initial password');
 
 $q = fn(string $sql) => $db->query($sql)->fetch_assoc();
@@ -111,7 +114,11 @@ $cp = httpReq("$BASE/students/change_password.php", [
     'csrf_token' => $csrfOf($cpPage['body']), 'current_password' => $nrc,
     'new_password' => $newPw, 'confirm_password' => $newPw,
 ], $cookieJar);
-ok(in_array($cp['code'], [302, 303], true) && strpos($cp['location'], 'index.php') !== false, 'password change accepted');
+ok(
+    in_array($cp['code'], [302, 303], true)
+        && strpos($cp['location'], 'students/short_course_portal.php') !== false,
+    'password change accepted and routed to the short-course portal'
+);
 
 $dash = httpReq("$BASE/students/index.php", null, $cookieJar);
 ok($dash['code'] === 200, 'dashboard loads (200) for short-course-only student');

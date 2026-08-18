@@ -238,10 +238,26 @@ function canAccessAdmissions(): bool {
  *
  * Registrar is a staff role rather than a standalone module_key in the current
  * RBAC schema; page-level actions still check their module permissions.
+ * Systems administrators always inherit registrar access (role-first, same
+ * pattern as canAccessAcademics — do not require user_id_db for role grants).
  */
 function canAccessRegistrar(): bool {
-    $userIdDb = $_SESSION['user_id_db'] ?? null;
-    return $userIdDb !== null && (hasRole(ROLE_REGISTRAR) || hasRole(ROLE_SYSTEMS_ADMIN));
+    // Registrar portal is for the Registrar role only.
+    // Systems Admin must use /admin/ (canManageAcademicOfficeOps / admin pages),
+    // not switch into Registrar for platform administration.
+    if (hasRole(ROLE_REGISTRAR)) {
+        return true;
+    }
+    $sessionRole = wuc_normalize_staff_role((string)($_SESSION['role'] ?? ''), false);
+    return $sessionRole === 'registrar';
+}
+
+/**
+ * Admin-portal capability for academic-office / registrar-style operations.
+ * Uses Admin permissions - never requires role = registrar.
+ */
+function canManageAcademicOfficeOps(): bool {
+    return function_exists('canAccessAdmin') && canAccessAdmin();
 }
 
 /**

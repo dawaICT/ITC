@@ -1,0 +1,3 @@
+# Payment proofs contain private financial information. They may only be
+# downloaded through the authenticated finance controller.
+Require all denied

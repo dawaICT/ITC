@@ -11,30 +11,21 @@ require dirname(__DIR__) . '/db/connect.php';
 $page_title = 'Upload Assessments';
 require __DIR__ . '/includes/nav.php';
 
-// Access control: only Registrar (and Systems Admin) can access
+// Access control: Registrar or Systems Admin (canonical RBAC).
+// Nav already gates via canAccessRegistrar(); keep an explicit check for direct hits.
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-if (!isset($_SESSION['staff_id'])) {
+if (!isset($_SESSION['staff_id']) && !isset($_SESSION['user_id'])) {
     $_SESSION['loginMaster'] = 'Please you need to login!';
-    header('Location: /wucportal/index.php');
+    header('Location: /wucportal/staff_login.php');
     exit;
 }
-
-$allowedRoles = array('Registrar', 'Systems Admin');
-$userRole = null;
-if ($stmt = $db->prepare("SELECT ar.assigned_access FROM access_right ar WHERE ar.staff_id = ? LIMIT 1")) {
-    $stmt->bind_param('s', $_SESSION['staff_id']);
-    $stmt->execute();
-    $res = $stmt->get_result();
-    if ($res && $res->num_rows) {
-        $row = $res->fetch_assoc();
-        $userRole = $row['assigned_access'];
-    }
-    $stmt->close();
+if (!function_exists('canAccessRegistrar')) {
+    require_once dirname(__DIR__) . '/includes/role_helpers.php';
 }
-if ($userRole !== null && !in_array($userRole, $allowedRoles, true)) {
-    header('Location: /wucportal/error/404.php');
+if (!canAccessRegistrar()) {
+    header('Location: /wucportal/portal_selection.php');
     exit;
 }
 

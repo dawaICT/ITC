@@ -1,105 +1,62 @@
 <?php
-require "includes/nav.php";
-error_reporting(0);
+declare(strict_types=1);
 
-if(isset($_POST['submit']))
-{
-        $title = trim($_POST["title"]);
-        $Fname = trim($_POST["Fname"]);
-        $Lname = trim($_POST["Lname"]);
-        $sex = trim($_POST["sex"]);
-        $nrc_pass = trim($_POST["nrc_pass"]);
-        $country = trim($_POST["country"]);
-        $dob = trim($_POST["dob"]);
-        $mobile = trim($_POST["mobile"]);
-        $email = trim($_POST["email"]);
-        $status = trim($_POST["status"]);
-        $h_addre = trim($_POST["h_addre"]);
-        $p_addre = trim($_POST["p_addre"]);
-        $sponsor = trim($_POST["sponsor"]);
-        $next_kin = trim($_POST["next_kin"]);
-        $next_kin_mobile = trim($_POST["next_kin_mobile"]);
-        $relat = trim($_POST["relat"]);
-        $program = trim($_POST["program"]);
-        $intake = trim($_POST["intake"]);
-        $mode = trim($_POST["mode"]);
-        $year = trim($_POST["year"]);
+require_once dirname(__DIR__) . '/includes/auth_helpers.php';
+wuc_secure_session_start();
+wuc_security_headers();
+require_once dirname(__DIR__) . '/db/connect.php';
+require_once dirname(__DIR__) . '/includes/online_application.php';
+require_once dirname(__DIR__) . '/includes/audit.php';
 
-        // ---- Robust, safe file uploads --------------------------------------
-        // Save each upload under a generated name (results_<time>_<rand>.<ext>)
-        // so original filenames cannot collide, overwrite, or break the link.
-        $upload_dir = __DIR__ . "/uploads/";
-        if (!is_dir($upload_dir)) { @mkdir($upload_dir, 0775, true); }
-        $allowed_ext = ['jpg', 'jpeg', 'png', 'pdf'];
-
-        /**
-         * Move one optional upload, validating its extension, and return the
-         * stored (generated) filename or '' when nothing was uploaded.
-         * Throws on a real failure so the whole submission can be aborted.
-         */
-        $store_upload = function ($field, $prefix) use ($upload_dir, $allowed_ext) {
-            if (empty($_FILES[$field]) || ($_FILES[$field]['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
-                return '';
-            }
-            if ($_FILES[$field]['error'] !== UPLOAD_ERR_OK) {
-                throw new Exception("Upload failed for {$field}.");
-            }
-            $ext = strtolower(pathinfo($_FILES[$field]['name'], PATHINFO_EXTENSION));
-            if (!in_array($ext, $allowed_ext, true)) {
-                throw new Exception("Invalid file format. Upload files in pdf, png or jpg.");
-            }
-            $name = $prefix . '_' . time() . '_' . mt_rand(1000, 9999) . '.' . $ext;
-            if (!move_uploaded_file($_FILES[$field]['tmp_name'], $upload_dir . $name)) {
-                throw new Exception("Could not save the uploaded {$field}.");
-            }
-            return $name;
-        };
-
-        try {
-            $tem  = $store_upload('results', 'results');       // results transcript
-            $tem2 = $store_upload('nrc_file', 'nrc');          // NRC / passport
-            $tem3 = $store_upload('deposit_slip', 'deposit');  // deposit slip
-
-            $insert = "INSERT INTO online_applicants (title, Fname, Lname, sex, nrc_pass, country, dob,
-              mobile, email, status, h_addre, p_addre, sponsor, next_kin, next_kin_mobile, relat, program,
-              intake, mode, year, results, nrc_file, deposit_slip, dte_adm)
-              VALUES (?,?,?,?,?,?,?,?,?,'pending',?,?,?,?,?,?,?,?,?,?,?,?,?, NOW())";
-
-            $stmt = mysqli_prepare($db, $insert);
-            if (!$stmt) {
-                throw new Exception("Could not prepare application: " . mysqli_error($db));
-            }
-            mysqli_stmt_bind_param(
-                $stmt,
-                str_repeat('s', 23),
-                $title, $Fname, $Lname, $sex, $nrc_pass, $country, $dob,
-                $mobile, $email, $h_addre, $p_addre, $sponsor, $next_kin,
-                $next_kin_mobile, $relat, $program, $intake, $mode, $year,
-                $tem, $tem2, $tem3
-            );
-            if (!mysqli_stmt_execute($stmt)) {
-                throw new Exception("Could not save application: " . mysqli_stmt_error($stmt));
-            }
-            mysqli_stmt_close($stmt);
-
-            echo "<script>alert('Your application was successfully submitted. Log in to the Applicant Portal to track your status.')</script>";
-            echo "<script>window.open('../','_self')</script>";
-        } catch (Exception $e) {
-            error_log("Online application submission failed: " . $e->getMessage());
-            $msg = htmlspecialchars($e->getMessage(), ENT_QUOTES);
-            echo "<script>alert(" . json_encode($msg) . ")</script>";
-            echo "<script>window.open('index.php','_self')</script>";
-        }
-
+$csrfToken = wuc_csrf_token();
+$applicationResult = null;
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+    $postedToken = (string)($_POST['csrf_token'] ?? '');
+    if ($postedToken === '' || !hash_equals($csrfToken, $postedToken)) {
+        $applicationResult = ['success' => false, 'message' => 'Your session token is invalid. Refresh the page and try again.'];
+    } else {
+        $applicationResult = wuc_submit_online_application($db, $_POST, $_FILES, __DIR__ . '/uploads');
     }
-
+}
+audit_log_page_view($db);
 ?>
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="en">
 <head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Apply Online | ITC Portal</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/wucportal/css/wuc-premium.css">
   <link rel="stylesheet" href="assets/vendor/sweetalert2/dist/sweetalert2.min.css">
+  <style>
+    body.application-page { background: #f7f5fb; color: #252033; font-family: Inter, sans-serif; min-height: 100vh; }
+    .application-nav { background: linear-gradient(135deg, #4e2a84, #6f42c1); box-shadow: 0 8px 25px rgba(55, 28, 97, .18); }
+    .application-nav .navbar-brand small { font-size: .68rem; letter-spacing: .08em; text-transform: uppercase; opacity: .75; }
+    .application-nav .navbar-brand img { object-fit: contain; background: #fff; border-radius: 50%; padding: 3px; }
+    .application-page .w3-container { max-width: 980px; margin: 0 auto; padding: 2.5rem 1rem 4rem; }
+    .application-page .row { justify-content: center; }
+    .application-page .col-sm-1 { display: none; }
+    .application-page .col-sm-8 { width: 100%; }
+    .application-page .card-4 { background: #fff; border: 1px solid rgba(111,66,193,.1); border-radius: 18px; box-shadow: 0 18px 50px rgba(44, 29, 70, .08); overflow: hidden; }
+    .application-page .jumbotron { padding: 0; margin: 0; background: transparent; }
+    .application-page .jumbotron > .container { padding: 2rem clamp(1.25rem, 4vw, 3rem); }
+    .application-page h4 { color: #4e2a84; font-size: clamp(1.35rem, 3vw, 2rem); margin-bottom: 1.75rem; }
+    .application-page form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem 1.25rem; }
+    .application-page .form-group { margin: 0; }
+    .application-page .form-group:has(textarea), .application-page .form-group:has(input[type="file"]), .application-page .form-group:last-child { grid-column: 1 / -1; }
+    .application-page .form-control { border-radius: 10px; border-color: #ddd6e8; min-height: 45px; }
+    .application-page .form-control:focus { border-color: #6f42c1; box-shadow: 0 0 0 .2rem rgba(111,66,193,.13); }
+    .application-page label { font-weight: 600; margin-bottom: .4rem; }
+    .application-page .btn-success { background: #6f42c1; border-color: #6f42c1; border-radius: 10px; padding: .8rem 1.25rem; font-weight: 700; width: 100%; }
+    .application-page .btn-success:hover { background: #5a32a3; border-color: #5a32a3; }
+    @media (max-width: 767px) { .application-page form { grid-template-columns: 1fr; } .application-page .form-group { grid-column: 1; } }
+  </style>
 </head>   
-<body>
+<body class="application-page">
+      <?php require __DIR__ . '/includes/nav.php'; ?>
       <div class="w3-container">
         <div class="row">
             <div class="col-sm-1"></div>
@@ -107,7 +64,21 @@ if(isset($_POST['submit']))
                     <div class="jumbotron">
                         <div class="container">
                             <h4 class="w3-center"><strong>Apply now by filling in the form below.</strong></h4>
+                        <?php if (is_array($applicationResult)): ?>
+                            <div class="alert <?= !empty($applicationResult['success']) ? 'alert-success' : 'alert-danger' ?>" role="alert">
+                                <?= htmlspecialchars((string)$applicationResult['message'], ENT_QUOTES, 'UTF-8') ?>
+                                <?php if (!empty($applicationResult['application_id'])): ?>
+                                    <strong> Reference: APP-<?= (int)$applicationResult['application_id'] ?></strong>
+                                    <div class="mt-2">
+                                        Your Applicant Portal username is
+                                        <strong><?= htmlspecialchars((string)($applicationResult['account_username'] ?? ''), ENT_QUOTES, 'UTF-8') ?></strong>.
+                                        <a href="/wucportal/applicant_login.php" class="alert-link">Sign in to track your application</a>.
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        <?php endif; ?>
                         <form action="index.php" method="post" role="form" enctype="multipart/form-data">
+                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>">
                                 <div class="form-group">
                                   <label for="title">Title:</label><br>
                                       <select class="form-control" name="title" id="title">
@@ -413,8 +384,20 @@ if(isset($_POST['submit']))
                                 </div>
                                 <div class="form-group">
                                   <label for="email">Email:</label><br>
-                                  <input type="text" class="form-control" name="email" autofocus id="email" 
-                                  value="optional" autocomplete="off">
+                                  <input type="email" class="form-control" name="email" id="email"
+                                  placeholder="you@example.com" autocomplete="email" maxlength="100" required>
+                                </div>
+                                <div class="form-group">
+                                  <label for="account_password">Applicant Portal Password:</label><br>
+                                  <input type="password" class="form-control" name="account_password" id="account_password"
+                                  autocomplete="new-password" minlength="10" required
+                                  aria-describedby="account_password_help">
+                                  <small id="account_password_help" class="form-text text-muted">At least 10 characters with upper- and lower-case letters, a number, and a symbol.</small>
+                                </div>
+                                <div class="form-group">
+                                  <label for="account_password_confirmation">Confirm Password:</label><br>
+                                  <input type="password" class="form-control" name="account_password_confirmation" id="account_password_confirmation"
+                                  autocomplete="new-password" minlength="10" required>
                                 </div>
                                   <div class="form-group">
                                   <label for="status">Marital Status:</label><br>
@@ -530,17 +513,17 @@ if(isset($_POST['submit']))
                                 </div>
                                 <div class="form-group">
                                   <label for="results">Results:<small class="w3-text-red">Upload results in one file</small></label><br>
-                                    <input type="file" class="form-control" name="results" id="results" 
+                                    <input type="file" class="form-control" name="results" id="results" accept=".pdf,.jpg,.jpeg,.png,.webp"
                                     placeholder="#" required>
                                 </div>
                                 <div class="form-group">
                                   <label for="nrc_file">NRC Copy:</label><br>
-                                    <input type="file" class="form-control" name="nrc_file" id="nrc_file" 
+                                    <input type="file" class="form-control" name="nrc_file" id="nrc_file" accept=".pdf,.jpg,.jpeg,.png,.webp"
                                     placeholder="#" required>
                                 </div>
                                 <div class="form-group">
                                   <label for="deposit_slip">Bank Deposit slip:</label><br>
-                                    <input type="file" class="form-control" name="deposit_slip" id="deposit_slip" 
+                                    <input type="file" class="form-control" name="deposit_slip" id="deposit_slip" accept=".pdf,.jpg,.jpeg,.png,.webp"
                                     placeholder="#" required>
                                 </div><br><br>
                             <div class="form-group">
@@ -554,7 +537,8 @@ if(isset($_POST['submit']))
         <div class="col-sm-1"></div>
         </div>      
       </div>
-</body>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="assets/vendor/sweetalert2/dist/sweetalert2.min.js"></script>
+</body>
 <!-- Mirrored from www.w3schools.com/w3css/tryit.asp?filename=tryw3css_bar_mobile by HTTrack Website Copier/3.x [XR&CO'2014], Mon, 08 Mar 2021 17:15:51 GMT -->
 </html>

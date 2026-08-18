@@ -35,6 +35,8 @@ Thumbs.db
 # XAMPP/local files
 *.sql
 !migrations/*.sql
+!admin/setup_database.sql
+!fix_tables.sql
 *.zip
 *.rar
 
@@ -46,3 +48,14 @@ temp/
 
 # Uploaded files, optional
 uploads/
+
+# Keep the server-side access control for private payment proofs while all
+# uploaded proof content remains ignored.
+!uploads/
+uploads/*
+!uploads/payment_proofs/
+uploads/payment_proofs/*
+!uploads/payment_proofs/.htaccess
+
+# Machine-local public-API credentials (contains secrets)
+/config/environment.local.php

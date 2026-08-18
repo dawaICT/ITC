@@ -101,33 +101,9 @@ if (!function_exists('sc_run_enrollment_action')) {
                     return;
                 }
 
-                $capCheck = $db->prepare("
-                    SELECT sc.max_capacity,
-                           (SELECT COUNT(*) FROM short_course_enrollments WHERE short_course_id = sc.id AND status IN ('enrolled','active')) AS enrolled
-                    FROM short_courses sc WHERE sc.id = ?
-                ");
-                $capCheck->bind_param('i', $courseId);
-                $capCheck->execute();
-                $capRow = $capCheck->get_result()->fetch_assoc();
-                $capCheck->close();
-
-                if ($capRow && $capRow['enrolled'] >= $capRow['max_capacity']) {
-                    echo json_encode(['success' => false, 'message' => 'Course is at full capacity.']);
-                    return;
-                }
-
-                $stmt = $db->prepare("
-                    INSERT INTO short_course_enrollments (short_course_id, student_id, enrolled_by, notes)
-                    VALUES (?, ?, ?, ?)
-                ");
-                $stmt->bind_param('isss', $courseId, $studentId, $staffId, $notes);
-
-                if ($stmt->execute()) {
-                    // FIX: an existing student enrolled into a short course may
-                    // predate the credential pipeline and have no student_login
-                    // row. Create one if missing (initial password = NRC,
-                    // forced change on first login) — never touches an existing
-                    // account.
+                $result = sc_enroll_student_locked($db, $courseId, $studentId, $staffId, $notes);
+                if (!empty($result['success'])) {
+                    // Ensure login exists for the enrolled student (create-if-missing).
                     if ($cred = $db->prepare('SELECT nrc_pass, email FROM students WHERE SID = ? LIMIT 1')) {
                         $cred->bind_param('s', $studentId);
                         $cred->execute();
@@ -137,13 +113,8 @@ if (!function_exists('sc_run_enrollment_action')) {
                             admissionsEnsureStudentLogin($db, $studentId, (string)($credRow['nrc_pass'] ?? ''), $credRow['email'] ?? null);
                         }
                     }
-                    echo json_encode(['success' => true, 'message' => 'Student enrolled successfully.']);
-                } else {
-                    echo json_encode(['success' => false, 'message' => $db->errno === 1062
-                        ? 'Student is already enrolled in this course.'
-                        : 'Database error: ' . $db->error]);
                 }
-                $stmt->close();
+                echo json_encode($result);
                 return;
 
             // ─── Create new student and enroll ─────────────────────────────
@@ -215,27 +186,33 @@ if (!function_exists('sc_run_enrollment_action')) {
                     //    registration path), forced change on first login.
                     $defaultPw = $nrc;
                     admissionsEnsureStudentLogin($db, $SID, $nrc, $email !== '' ? $email : null);
-
-                    // 3. Enroll in short course
-                    $enroll = $db->prepare("
-                        INSERT INTO short_course_enrollments (short_course_id, student_id, enrolled_by, notes)
-                        VALUES (?, ?, ?, ?)
-                    ");
-                    $enroll->bind_param('isss', $courseId, $SID, $staffId, $notes);
-                    $enroll->execute();
-                    $enroll->close();
-
                     $db->commit();
-                    echo json_encode([
-                        'success' => true,
-                        'message' => "Student created (ID: $SID) and enrolled. Initial portal password = their NRC; they must change it on first login.",
-                        'student_id' => $SID,
-                        'default_password' => $defaultPw,
-                    ]);
                 } catch (Throwable $e) {
                     $db->rollback();
                     echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
+                    return;
                 }
+
+                // 3. Capacity-safe enroll (own transaction — must run after student commit)
+                $enrollResult = sc_enroll_student_locked($db, $courseId, $SID, $staffId, $notes);
+                if (empty($enrollResult['success'])) {
+                    echo json_encode([
+                        'success' => false,
+                        'message' => 'Student created (ID: ' . $SID . ') but enrollment failed: '
+                            . ($enrollResult['message'] ?? 'unknown error')
+                            . '. Use Enroll Existing Student to finish.',
+                        'student_id' => $SID,
+                        'default_password' => $defaultPw,
+                    ]);
+                    return;
+                }
+
+                echo json_encode([
+                    'success' => true,
+                    'message' => "Student created (ID: $SID) and enrolled. Initial portal password = their NRC; they must change it on first login.",
+                    'student_id' => $SID,
+                    'default_password' => $defaultPw,
+                ]);
                 return;
 
             // ─── Get enrollments for a course ──────────────────────────────
@@ -381,51 +358,8 @@ if (!function_exists('sc_run_enrollment_action')) {
             case 'assign_lecturer':
                 $courseId   = (int)($_POST['course_id'] ?? 0);
                 $lecturerId = trim($_POST['staff_id'] ?? '');
-                $code = sc_action_course_code($db, $courseId);
-                if ($code === null || $lecturerId === '') {
-                    echo json_encode(['success' => false, 'message' => 'Course and lecturer are required.']);
-                    return;
-                }
-                // course_lecturer.course_code is varchar(20); refuse a code that
-                // would be silently truncated (it would never match on CA lookup).
-                if (strlen($code) > 20) {
-                    echo json_encode(['success' => false, 'message' => 'Course code is too long to assign a lecturer (max 20 chars).']);
-                    return;
-                }
-                // Lecturer must exist.
-                $okStaff = false;
-                if ($stmt = $db->prepare("SELECT 1 FROM staff WHERE staff_id = ? LIMIT 1")) {
-                    $stmt->bind_param('s', $lecturerId);
-                    $stmt->execute();
-                    $stmt->store_result();
-                    $okStaff = $stmt->num_rows > 0;
-                    $stmt->close();
-                }
-                if (!$okStaff) {
-                    echo json_encode(['success' => false, 'message' => 'Unknown lecturer.']);
-                    return;
-                }
-                // No duplicate assignment for this (course, lecturer).
-                $exists = false;
-                if ($stmt = $db->prepare("SELECT 1 FROM course_lecturer WHERE course_code = ? AND staff_id = ? LIMIT 1")) {
-                    $stmt->bind_param('ss', $code, $lecturerId);
-                    $stmt->execute();
-                    $stmt->store_result();
-                    $exists = $stmt->num_rows > 0;
-                    $stmt->close();
-                }
-                if ($exists) {
-                    echo json_encode(['success' => false, 'message' => 'That lecturer is already assigned to this course.']);
-                    return;
-                }
-                $curAy = sc_action_current_academic_year($db);
-                $ok = false;
-                if ($stmt = $db->prepare("INSERT INTO course_lecturer (course_code, staff_id, academic_year, status) VALUES (?,?,?,'active')")) {
-                    $stmt->bind_param('sss', $code, $lecturerId, $curAy);
-                    $ok = $stmt->execute();
-                    $stmt->close();
-                }
-                echo json_encode(['success' => $ok, 'message' => $ok ? 'Lecturer assigned. They can now enter CA for this course.' : 'Could not assign lecturer.']);
+                $result = sc_assign_lecturer_to_short_course($db, $courseId, $lecturerId);
+                echo json_encode($result);
                 return;
 
             case 'unassign_lecturer':

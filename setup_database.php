@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/includes/production_guards.php';
+wuc_require_cli_only();
 require "db/connect.php";
 
 // Drop existing tables in correct order

@@ -310,7 +310,7 @@ if (isset($_SESSION['_upload_log'])) {
             <div class="alert alert-info">
                 <i class="fas fa-info-circle me-2"></i>
                 <strong>Format:</strong> SID, Course_Code, A1, A2, A3, T1, T2, semester, Year<br>
-                <small>First row is the header. Enter each local CA component out of 100 and leave blank values for components that do not apply.</small>
+                <small>First row is the header. Enter each raw CA component out of 100; weighting and the annual 100% ceiling are applied automatically. Leave non-applicable components blank.</small>
             </div>
             <form action="upload_ca_csv.php" method="post" enctype="multipart/form-data">
                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">

@@ -1,7 +1,6 @@
 <?php
 $page_title = 'Hostels';
 include "includes/admin.php";
-include 'add_student.php';
 error_reporting(0);
 
 ?>

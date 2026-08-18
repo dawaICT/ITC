@@ -137,6 +137,7 @@ $baseMenuSections = $isNonAcademicHosSection ? array(
 			array('href' => 'students.php', 'icon' => 'fas fa-user-graduate', 'label' => 'Students', 'active_on' => 'students.php'),
 			array('href' => 'staff.php', 'icon' => 'fas fa-user-tie', 'label' => 'Staff', 'active_on' => 'staff.php'),
 			array('href' => 'courses.php', 'icon' => 'fas fa-book', 'label' => 'Courses', 'active_on' => 'courses.php'),
+			array('href' => 'ai_support_cases.php', 'icon' => 'fas fa-headset', 'label' => 'AI Support Escalations', 'active_on' => 'ai_support_cases.php'),
 		),
 	),
 	array(
@@ -144,6 +145,7 @@ $baseMenuSections = $isNonAcademicHosSection ? array(
 		'items' => array(
 			array('href' => 'CAmanager.php', 'icon' => 'fas fa-tasks', 'label' => 'CA Manager', 'active_on' => 'CAmanager.php'),
 			array('href' => 'approvedCA.php', 'icon' => 'fas fa-check-circle', 'label' => 'Approved CAs', 'active_on' => 'approvedCA.php'),
+			array('href' => 'progression.php', 'icon' => 'fas fa-arrow-up-right-dots', 'label' => 'Student Progression', 'active_on' => 'progression.php'),
 			array('href' => 'hod_dashboard.php', 'icon' => 'fas fa-clipboard-check', 'label' => 'Exam Approvals', 'active_on' => 'hod_dashboard.php'),
 			array('href' => 'adminSlip.php', 'icon' => 'fas fa-file-alt', 'label' => 'Admin Slip', 'active_on' => 'adminSlip.php'),
 		),
@@ -158,6 +160,7 @@ $baseMenuSections = $isNonAcademicHosSection ? array(
 			array('href' => 'online_class_reports.php', 'icon' => 'fas fa-video', 'label' => 'Online Classes', 'active_on' => 'online_class_reports.php'),
 			array('href' => 'calendar.php', 'icon' => 'fas fa-calendar-alt', 'label' => 'Calendar', 'active_on' => 'calendar.php'),
 			array('href' => 'timetable_settings.php', 'icon' => 'fas fa-clock', 'label' => 'Timetable Settings', 'active_on' => 'timetable_settings.php'),
+			array('href' => 'test_timetable.php', 'icon' => 'fas fa-calendar-check', 'label' => 'Test Timetable', 'active_on' => 'test_timetable.php'),
 			array('href' => 'teaching_planner.php', 'icon' => 'fas fa-file-signature', 'label' => 'Teaching Planner', 'active_on' => 'teaching_planner.php'),
 			array('href' => 'quality_assurance.php', 'icon' => 'fas fa-award', 'label' => 'QA Reports', 'active_on' => 'quality_assurance.php'),
 		),

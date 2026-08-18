@@ -281,14 +281,74 @@ if (!function_exists('wuc_student_payment_eligibility')) {
     }
 }
 
+if (!function_exists('wuc_resolve_student_calendar_type')) {
+    /** Best-effort programme calendar for fee thresholds: term | semester | short_course. */
+    function wuc_resolve_student_calendar_type(mysqli $db, string $sid): string
+    {
+        $sid = trim($sid);
+        if ($sid === '') {
+            return 'semester';
+        }
+        if (wuc_table_exists($db, 'student_program') && wuc_table_exists($db, 'programs')) {
+            $sql = "SELECT COALESCE(NULLIF(p.period_mode, ''), NULLIF(p.academic_structure, ''), 'semester') AS calendar_type
+                    FROM student_program sp
+                    INNER JOIN programs p ON p.program_code = sp.program_code
+                    WHERE sp.Sid = ?
+                      AND (sp.status IS NULL OR sp.status = '' OR LOWER(sp.status) = 'active')
+                    ORDER BY sp.id DESC
+                    LIMIT 1";
+            if ($stmt = @$db->prepare($sql)) {
+                $stmt->bind_param('s', $sid);
+                if ($stmt->execute()) {
+                    $row = $stmt->get_result()->fetch_assoc();
+                    $stmt->close();
+                    $type = strtolower(trim((string)($row['calendar_type'] ?? 'semester')));
+                    if (in_array($type, ['term', 'semester', 'short_course'], true)) {
+                        return $type;
+                    }
+                    if (str_contains($type, 'term')) {
+                        return 'term';
+                    }
+                    if (str_contains($type, 'short')) {
+                        return 'short_course';
+                    }
+                } else {
+                    $stmt->close();
+                }
+            }
+        }
+        return 'semester';
+    }
+}
+
 if (!function_exists('wuc_period_required_payment_percent')) {
-    /** Period-based threshold (50% first period, 100% later) from the workflow service. */
-    function wuc_period_required_payment_percent(mysqli $db, string $sid, float $fallback = 50.0): float {
+    /**
+     * Period-based threshold (50% first period, 100% later).
+     * When $periodNumber is supplied (e.g. CA upload for Term/Semester 1), use that
+     * period — not the student's currently active academic period — so lecturers can
+     * enter marks for an earlier period under the correct fee gate.
+     */
+    function wuc_period_required_payment_percent(
+        mysqli $db,
+        string $sid,
+        float $fallback = 50.0,
+        ?int $periodNumber = null,
+        ?string $calendarType = null
+    ): float {
         $workflowPath = dirname(__DIR__) . '/students/includes/StudentAcademicWorkflowService.php';
         if (!is_file($workflowPath)) {
             return $fallback;
         }
         require_once $workflowPath;
+
+        if ($periodNumber !== null && $periodNumber > 0) {
+            $type = strtolower(trim((string)($calendarType ?? '')));
+            if ($type === '') {
+                $type = wuc_resolve_student_calendar_type($db, $sid);
+            }
+            return StudentAcademicWorkflowService::requiredFeePercentage($type, $periodNumber);
+        }
+
         $svc = new StudentAcademicWorkflowService($db);
         $period = $svc->getActiveAcademicPeriod($sid);
         if (!$period['ok']) {
@@ -302,11 +362,22 @@ if (!function_exists('wuc_period_required_payment_percent')) {
 }
 
 if (!function_exists('is_student_allowed_ca')) {
-    /** Continuous Assessment gate: uses centralized period-based fee threshold. */
+    /**
+     * Continuous Assessment gate: uses period-based fee threshold for the
+     * academic period being uploaded ($semester), not only the active period.
+     *
+     * @return array{allowed:bool,percent:float,reason:string,required_percent?:float}
+     */
     function is_student_allowed_ca(mysqli $db, string $sid, ?string $academicYear = null, ?string $semester = null): array {
         $enforce = wuc_get_setting($db, 'enforce_ca_payment', '1') === '1';
-        $minPercent = wuc_period_required_payment_percent($db, $sid, wuc_payment_rule_percent($db, 'assessment.ca.minimum_payment_percent', 'min_ca_paid_percent', 50.0));
-        return wuc_student_payment_eligibility($db, $sid, $academicYear, $semester, $minPercent, $enforce);
+        $fallback = wuc_payment_rule_percent($db, 'assessment.ca.minimum_payment_percent', 'min_ca_paid_percent', 50.0);
+        $periodNumber = ($semester !== null && $semester !== '' && is_numeric($semester))
+            ? (int)$semester
+            : null;
+        $minPercent = wuc_period_required_payment_percent($db, $sid, $fallback, $periodNumber);
+        $result = wuc_student_payment_eligibility($db, $sid, $academicYear, $semester, $minPercent, $enforce);
+        $result['required_percent'] = $minPercent;
+        return $result;
     }
 }
 
@@ -314,8 +385,14 @@ if (!function_exists('is_student_allowed_exam')) {
     /** Exam / test gate: same period-based threshold as registration and exam slip. */
     function is_student_allowed_exam(mysqli $db, string $sid, ?string $academicYear = null, ?string $semester = null): array {
         $enforce = wuc_get_setting($db, 'enforce_exam_payment', '1') === '1';
-        $minPercent = wuc_period_required_payment_percent($db, $sid, wuc_payment_rule_percent($db, 'assessment.exam.minimum_payment_percent', 'min_exam_paid_percent', 100.0));
-        return wuc_student_payment_eligibility($db, $sid, $academicYear, $semester, $minPercent, $enforce);
+        $fallback = wuc_payment_rule_percent($db, 'assessment.exam.minimum_payment_percent', 'min_exam_paid_percent', 100.0);
+        $periodNumber = ($semester !== null && $semester !== '' && is_numeric($semester))
+            ? (int)$semester
+            : null;
+        $minPercent = wuc_period_required_payment_percent($db, $sid, $fallback, $periodNumber);
+        $result = wuc_student_payment_eligibility($db, $sid, $academicYear, $semester, $minPercent, $enforce);
+        $result['required_percent'] = $minPercent;
+        return $result;
     }
 }
 ?>

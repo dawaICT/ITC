@@ -16,6 +16,7 @@
 require_once __DIR__ . '/../db/connect.php';    // provides $db (mysqli)
 require_once __DIR__ . '/../includes/audit.php'; // audit_log() helper
 require_once __DIR__ . '/../includes/helpers/academic_structure_helpers.php';
+require_once __DIR__ . '/../includes/cse_progression.php';
 
 require_once __DIR__ . '/../includes/role_helpers.php';
 
@@ -101,6 +102,12 @@ if ($program_result->num_rows === 0) {
 }
 $program = $program_result->fetch_assoc();
 $stmt->close();
+
+if ($stageError = wuc_cse_direct_assignment_error($new_program_id)) {
+    $_SESSION['errorMssg'] = $stageError;
+    header('Location: students_by_admin.php');
+    exit;
+}
 
 /* ── Fetch old program code for audit trail ─────────────────────────────── */
 $old_program_code = null;

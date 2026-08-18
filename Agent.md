@@ -19,6 +19,16 @@ Main priorities:
 6. Preserve ITC identity and remove incorrect WUC naming where appropriate.
 7. Verify changes against actual files and database logic.
 
+## Skills and Enterprise Portal — institution-led connections
+
+The portal must act as an **active institutional bridge** between participants and employers, businesses, buyers, mentors, and development partners—not a passive listing where students wait for enquiries.
+
+For any work under `/enterprise/`, `/opportunities/`, or `includes/enterprise_portal/`, follow the authoritative specification:
+
+- **`docs/enterprise_portal_institution_led_connections.md`** (partners, external opportunities, matching, referrals, consent, quotations, outcomes, permissions, services, acceptance criteria)
+
+Cursor rule: `.cursor/rules/enterprise-institution-led-connections.mdc`
+
 Before implementation, inspect the current files and explain the implementation plan.
 
 After implementation, provide:

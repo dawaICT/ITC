@@ -1,0 +1,32 @@
+---
+description: Institution-led employer and business connections (Skills and Enterprise Portal)
+globs: enterprise/**/*,opportunities/**/*,includes/enterprise_portal/**/*,docs/enterprise_portal*.md,migrations/*enterprise*
+alwaysApply: false
+---
+
+# Institution-led employer and business connections
+
+When designing, implementing, or extending the **Skills and Enterprise Portal** (partners, external opportunities, matching, referrals, consent, quotations, outcomes), read and follow the full specification:
+
+**`docs/enterprise_portal_institution_led_connections.md`**
+
+Related docs: `docs/enterprise_portal_architecture.md`, `docs/enterprise_portal_business_model.md`, `docs/enterprise_portal_privacy_and_consent.md`, `docs/enterprise_portal_permissions.md`.
+
+## Non-negotiable principles
+
+- The institution is an **active intermediary**, not a passive public directory. This is **permanent** functionality—not event-specific.
+- **No** automatic transmission of private student data to employers or partners without **participant consent** and **institutional authorization**.
+- **Match ≠ referral ≠ interview ≠ offer ≠ employment start.** **Quotation ≠ order.** Measure and report stages separately.
+- Partner-created and external opportunities require **verification and institutional approval** before matching or referral.
+- Business logic belongs in **centralized services** (e.g. `EnterpriseMatchingService`, `EnterpriseReferralService`), not in page templates.
+- Partners must **not** browse the full student database; only **referred** or explicitly approved visibility.
+- Preserve separation from Academic and eLearning portals and permissions.
+- Verify table/column names against the live schema before SQL; use prepared statements and audit logging for referral and sharing actions.
+
+## Core institutional workflow
+
+```text
+Partner / need → record & verify opportunity → recommend matches → officer review → student consent → referral → engagement → feedback → recorded outcome
+```
+
+If a task conflicts with the spec, implement the spec (or ask the user before narrowing scope).

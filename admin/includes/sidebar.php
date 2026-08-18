@@ -65,8 +65,8 @@ $is_transport = strpos($request_path, '/wucportal/transport/') === 0;
 				<span>Dashboard</span>
 			</a>
 			<a href="<?php echo $base_url; ?>/analytics_dashboard.php" class="nav-item <?php echo basename($_SERVER['PHP_SELF']) == 'analytics_dashboard.php' ? 'active' : ''; ?>">
-				<i class="fas fa-chart-bar"></i>
-				<span>Decision Support</span>
+				<i class="fas fa-chart-line"></i>
+				<span>Predictive Analytics</span>
 			</a>
 		</div>
 
@@ -247,6 +247,20 @@ $is_transport = strpos($request_path, '/wucportal/transport/') === 0;
 				<i class="fas fa-upload"></i>
 				<span>Upload CA</span>
 			</a>
+			<?php if (function_exists('canManageAcademicOfficeOps') && canManageAcademicOfficeOps()): ?>
+			<a href="<?php echo $base_url; ?>/test_timetable.php" class="nav-item <?php echo basename($_SERVER['PHP_SELF']) == 'test_timetable.php' ? 'active' : ''; ?>">
+				<i class="fas fa-calendar-check"></i>
+				<span>Test Timetable</span>
+			</a>
+			<a href="<?php echo $base_url; ?>/risk_watchlist.php" class="nav-item <?php echo basename($_SERVER['PHP_SELF']) == 'risk_watchlist.php' ? 'active' : ''; ?>">
+				<i class="fas fa-heart-pulse"></i>
+				<span>Risk Watchlist</span>
+			</a>
+			<a href="<?php echo $base_url; ?>/teaching_planner_monitor.php" class="nav-item <?php echo basename($_SERVER['PHP_SELF']) == 'teaching_planner_monitor.php' ? 'active' : ''; ?>">
+				<i class="fas fa-chart-line"></i>
+				<span>Teaching Plan Monitor</span>
+			</a>
+			<?php endif; ?>
 		</div>
 
 		<div class="nav-section">

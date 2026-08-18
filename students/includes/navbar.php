@@ -5,6 +5,7 @@ require_once __DIR__ . '/guard.php';
 require_once dirname(__DIR__, 2) . '/db/connect.php';
 require_once dirname(__DIR__, 2) . '/includes/audit.php';
 require_once dirname(__DIR__, 2) . '/includes/short_course_student.php';
+require_once dirname(__DIR__, 2) . '/includes/student_program_portal.php';
 require_once dirname(__DIR__, 2) . '/includes/city_guilds_helpers.php';
 require_once dirname(__DIR__, 2) . '/includes/portal_context.php';
 require_once dirname(__DIR__, 2) . '/includes/portal_switch.php';
@@ -17,8 +18,25 @@ $navScript = basename((string)($_SERVER['PHP_SELF'] ?? ''));
 $studentPortalContext = wuc_current_portal_context(wuc_portal_context_from_request($navRequestUri));
 $studentInElearningPortal = $studentPortalContext === 'student_elearning';
 $studentInAcademicPortal = !$studentInElearningPortal;
-$studentDashboardHref = $studentInElearningPortal ? '/wucportal/students/elearning/index.php' : '/wucportal/students/index.php';
-$studentDashboardLabel = $studentInElearningPortal ? 'Learning Dashboard' : 'Dashboard';
+$navProgramPortal = (!$studentInElearningPortal && $navStudentId !== '' && isset($db) && $db instanceof mysqli)
+    ? wuc_student_program_portal_profile($db, $navStudentId)
+    : null;
+$studentDashboardHref = $studentInElearningPortal
+    ? '/wucportal/students/elearning/index.php'
+    : (string)($navProgramPortal['route'] ?? '/wucportal/students/index.php');
+$studentDashboardLabel = $studentInElearningPortal
+    ? 'Learning Dashboard'
+    : (string)($navProgramPortal['dashboard_label'] ?? 'Dashboard');
+$navAcademicSectionTitle = match ((string)($navProgramPortal['type'] ?? 'academic')) {
+    'certificate' => 'Certificate academics',
+    'diploma' => 'Diploma academics',
+    'trade_test' => 'Trade test',
+    'short_course' => 'Short courses',
+    'degree' => 'Degree academics',
+    'postgraduate' => 'Postgraduate academics',
+    default => !empty($navProgramPortal['label']) ? str_replace(' Portal', ' academics', (string)$navProgramPortal['label']) : 'Academics',
+};
+$navIsCertificatePortal = (string)($navProgramPortal['type'] ?? '') === 'certificate';
 
 $navPeriodLabel = 'Semester';
 $navIsShortCourse = false;
@@ -70,9 +88,16 @@ if ($navStudentId !== '' && isset($db) && $db instanceof mysqli) {
     }
 
     if (!isset($_SESSION['nav_flags']) || !is_array($_SESSION['nav_flags']) || (int)($_SESSION['nav_flags_at'] ?? 0) < time() - 600) {
+        $portalMode = function_exists('sc_student_portal_mode')
+            ? sc_student_portal_mode($db, $navStudentId)
+            : ((function_exists('isShortCourseStudent') && isShortCourseStudent($db, $navStudentId)) ? 'short_course' : 'long_program');
+        $hasScEnrol = function_exists('sc_student_enrolments') && sc_student_enrolments($db, $navStudentId) !== [];
         $_SESSION['nav_flags'] = [
-            'isShortCourse' => function_exists('isShortCourseStudent') && isShortCourseStudent($db, $navStudentId),
-            'hasShortCourses' => function_exists('sc_student_enrolments') && sc_student_enrolments($db, $navStudentId) !== [],
+            // Primary portal: short-course-only students never share long-term nav.
+            'isShortCourse' => $portalMode === 'short_course',
+            'isLongProgram' => $portalMode === 'long_program',
+            // Secondary short-course link only for long-programme students who also enrol SC.
+            'hasShortCourses' => $portalMode === 'long_program' && $hasScEnrol,
             'hasExamTranscript' => student_nav_has_rows_for_sid($db, 'exams', 'Sid', $navStudentId),
             'hasCaReport' => student_nav_has_rows_for_sid($db, 'semester_assessment', 'Sid', $navStudentId),
             'hasExternalReg' => student_nav_has_rows_for_sid($db, 'exam_registration', 'Sid', $navStudentId),
@@ -83,11 +108,20 @@ if ($navStudentId !== '' && isset($db) && $db instanceof mysqli) {
 
     $navFlags = $_SESSION['nav_flags'] ?? [];
     $navIsShortCourse = !empty($navFlags['isShortCourse']);
+    $navIsLongProgram = !empty($navFlags['isLongProgram']);
     $navHasShortCourses = !empty($navFlags['hasShortCourses']);
     $navHasExamTranscript = !empty($navFlags['hasExamTranscript']);
     $navHasCaReport = !empty($navFlags['hasCaReport']);
     $navHasExternalRegistration = !empty($navFlags['hasExternalReg']);
     $navHasCityGuilds = !empty($navFlags['hasCityGuilds']);
+
+    // Enrolments can be added or removed by staff while a student is logged in.
+    // Refresh this data-backed flag on every request so the Short Courses link
+    // does not remain visible for up to ten minutes after an enrolment removal.
+    if (function_exists('sc_student_enrolments')) {
+        $navHasShortCourses = !$navIsShortCourse && sc_student_enrolments($db, $navStudentId) !== [];
+        $_SESSION['nav_flags']['hasShortCourses'] = $navHasShortCourses;
+    }
 
     if (function_exists('cg_student_has_access')) {
         $navHasCityGuilds = cg_student_has_access($db, $navStudentId);
@@ -124,6 +158,20 @@ if ($navStudentId !== '' && (!isset($_SESSION['student_name']) || !isset($_SESSI
 
 function student_nav_active(string $target, string $navScript, string $navPath): string
 {
+    $dashboardPages = [
+        'index.php',
+        'short_course_portal.php',
+        'diploma_portal.php',
+        'certificate_portal.php',
+        'trade_test_portal.php',
+        'degree_portal.php',
+        'postgraduate_portal.php',
+        'program_portal.php',
+    ];
+    $targetBasename = basename($target);
+    if (in_array($targetBasename, $dashboardPages, true) && in_array($navScript, $dashboardPages, true)) {
+        return 'active';
+    }
     if (strpos($target, '/') !== false) {
         return substr(str_replace('\\', '/', $navPath), -strlen($target)) === $target ? 'active' : '';
     }
@@ -131,7 +179,7 @@ function student_nav_active(string $target, string $navScript, string $navPath):
 }
 ?>
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="/wucportal/assets/vendor/bootstrap/5.3.2/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="/wucportal/css/ui-portal.css">
 <link rel="stylesheet" href="/wucportal/css/admin-style.css">
 <link rel="stylesheet" href="/wucportal/css/portal-dashboard.css">
@@ -140,13 +188,14 @@ function student_nav_active(string $target, string $navScript, string $navPath):
 <link rel="stylesheet" href="/wucportal/assets/css/dashboard.css">
 <!-- forms.css and tables.css are @imported by main.css above; not re-linked. -->
 <!-- students-sidebar.css @imports unified-sidebar.css; do not also load css/sidebar.css (legacy light theme). -->
-<link rel="stylesheet" href="/wucportal/students/css/students-sidebar.css?v=20260702">
-<link rel="stylesheet" href="/wucportal/students/css/student-unified.css?v=20260522b">
+<link rel="stylesheet" href="/wucportal/students/css/students-sidebar.css?v=20260712-dashboard-responsive-v1">
 <link rel="stylesheet" href="/wucportal/css/typography-override.css">
 <link rel="stylesheet" href="/wucportal/css/consistent-styles.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/wucportal/assets/vendor/fontawesome/6.4.0/css/all.min.css">
 <link rel="stylesheet" href="/wucportal/css/wuc-premium.css?v=20260613">
+<!-- Keep the student design-system layer last so every student route uses the
+     same timetable-derived shell, controls, cards, tables, and responsive rules. -->
+<link rel="stylesheet" href="/wucportal/students/css/student-unified.css?v=20260720-shell-v2">
 <script src="/wucportal/js/wuc-premium.js?v=20260613" defer></script>
 <script src="/wucportal/js/wuc-print-fit.js?v=20260613" defer></script>
 <!-- Collapsible sidebar categories (shared controller; same behaviour as staff modules) -->
@@ -175,7 +224,7 @@ try {
 })();
 </script>
 
-<button type="button" class="sidebar-toggle d-lg-none" aria-label="Open sidebar" aria-controls="studentSidebar" aria-expanded="false">
+<button type="button" class="sidebar-toggle" aria-label="Open sidebar" aria-controls="studentSidebar" aria-expanded="false">
     <i class="fas fa-bars"></i>
 </button>
 <div class="sidebar-backdrop" data-student-sidebar-backdrop></div>
@@ -191,7 +240,7 @@ try {
     <div class="sidebar-content">
         <div class="nav-section">
             <div class="nav-section-title">Main</div>
-            <a href="<?php echo htmlspecialchars($studentDashboardHref, ENT_QUOTES, 'UTF-8'); ?>" class="nav-item <?php echo student_nav_active($studentInElearningPortal ? '/students/elearning/index.php' : 'index.php', $navScript, $navPath); ?>">
+            <a href="<?php echo htmlspecialchars($studentDashboardHref, ENT_QUOTES, 'UTF-8'); ?>" class="nav-item <?php echo student_nav_active($studentInElearningPortal ? '/students/elearning/index.php' : basename($studentDashboardHref), $navScript, $navPath); ?>">
                 <i class="fas fa-tachometer-alt"></i>
                 <span><?php echo htmlspecialchars($studentDashboardLabel, ENT_QUOTES, 'UTF-8'); ?></span>
             </a>
@@ -225,13 +274,18 @@ try {
 
         <?php if ($studentInAcademicPortal): ?>
         <div class="nav-section">
-            <div class="nav-section-title">Academics</div>
+            <div class="nav-section-title"><?php echo htmlspecialchars($navAcademicSectionTitle, ENT_QUOTES, 'UTF-8'); ?></div>
             <?php if ($navIsShortCourse): ?>
-            <a href="/wucportal/students/registration.php" class="nav-item <?php echo student_nav_active('registration.php', $navScript, $navPath); ?>"><i class="fas fa-certificate"></i><span>My Short Course</span></a>
+            <?php // Short-course portal — do not expose long-term term registration / annual CA. ?>
+            <a href="/wucportal/students/short_courses.php" class="nav-item <?php echo student_nav_active('short_courses.php', $navScript, $navPath); ?>"><i class="fas fa-certificate"></i><span>My Short Courses</span></a>
+            <a href="/wucportal/students/registration.php" class="nav-item <?php echo student_nav_active('registration.php', $navScript, $navPath); ?>"><i class="fas fa-id-card"></i><span>Enrolment status</span></a>
+            <a href="/wucportal/students/continuousAssessment.php" class="nav-item <?php echo student_nav_active('continuousAssessment.php', $navScript, $navPath); ?>"><i class="fas fa-chart-line"></i><span>Short Course CA</span></a>
             <?php else: ?>
+            <?php // Long-term academic portal. ?>
             <a href="/wucportal/students/registration.php" class="nav-item <?php echo student_nav_active('registration.php', $navScript, $navPath); ?>"><i class="fas fa-user-graduate"></i><span><?php echo htmlspecialchars($navPeriodLabel, ENT_QUOTES, 'UTF-8'); ?> Registration</span></a>
+            <a href="/wucportal/students/courseReg.php" class="nav-item <?php echo student_nav_active('courseReg.php', $navScript, $navPath); ?>"><i class="fas fa-clipboard-list"></i><span>Course Enrolment</span></a>
             <a href="/wucportal/students/ai_course_advisor.php" class="nav-item <?php echo student_nav_active('ai_course_advisor.php', $navScript, $navPath); ?>"><i class="fas fa-wand-magic-sparkles"></i><span>AI Course Advisor</span></a>
-            <?php endif; ?>
+            <a href="/wucportal/students/learning_assistant.php" class="nav-item <?php echo student_nav_active('learning_assistant.php', $navScript, $navPath); ?>"><i class="fas fa-graduation-cap"></i><span>My Learning Assistant</span></a>
             <a href="/wucportal/students/myCourses.php" class="nav-item <?php echo student_nav_active('myCourses.php', $navScript, $navPath); ?>"><i class="fas fa-book-open"></i><span>My Courses</span></a>
             <a href="/wucportal/students/continuousAssessment.php" class="nav-item <?php echo student_nav_active('continuousAssessment.php', $navScript, $navPath); ?>"><i class="fas fa-chart-line"></i><span>Continuous Assessment</span></a>
             <a href="/wucportal/students/examTranscript.php" class="nav-item <?php echo student_nav_active('examTranscript.php', $navScript, $navPath); ?>"><i class="fas fa-file-alt"></i><span><?php echo htmlspecialchars($navReportLabel, ENT_QUOTES, 'UTF-8'); ?></span></a>
@@ -239,8 +293,20 @@ try {
             <a href="/wucportal/students/short_courses.php" class="nav-item <?php echo student_nav_active('short_courses.php', $navScript, $navPath); ?>"><i class="fas fa-certificate"></i><span>Short Courses</span></a>
             <?php endif; ?>
             <a href="/wucportal/students/timetable.php" class="nav-item <?php echo student_nav_active('timetable.php', $navScript, $navPath); ?>"><i class="fas fa-calendar-alt"></i><span>My Timetable</span></a>
+            <?php
+            $navShowTestTimetable = false;
+            if (isset($db) && $db instanceof mysqli) {
+                require_once dirname(__DIR__, 2) . '/includes/test_timetable.php';
+                $navShowTestTimetable = tt_current_student_visible_period($db) !== null;
+            }
+            if ($navShowTestTimetable):
+            ?>
+            <a href="/wucportal/students/test_timetable.php" class="nav-item <?php echo student_nav_active('test_timetable.php', $navScript, $navPath); ?>"><i class="fas fa-calendar-check"></i><span>Test Timetable</span></a>
+            <?php endif; ?>
+            <a href="/wucportal/students/previous_test_timetables.php" class="nav-item <?php echo student_nav_active('previous_test_timetables.php', $navScript, $navPath); ?>"><i class="fas fa-history"></i><span>Previous Timetables</span></a>
             <?php if ($navHasCityGuilds): ?>
             <a href="/wucportal/students/city_guilds.php" class="nav-item <?php echo student_nav_active('city_guilds.php', $navScript, $navPath); ?>"><i class="fas fa-certificate"></i><span>City &amp; Guilds</span></a>
+            <?php endif; ?>
             <?php endif; ?>
         </div>
         <?php endif; ?>
@@ -253,6 +319,7 @@ try {
             <a href="/wucportal/students/elearning/assignment.php" class="nav-item <?php echo (strpos($navPath, '/students/elearning/assignment.php') !== false || strpos($navPath, '/students/elearning/quiz.php') !== false) ? 'active' : ''; ?>"><i class="fas fa-clipboard-check"></i><span>Assignments &amp; Quizzes</span></a>
             <a href="/wucportal/students/elearning/student_forum.php" class="nav-item <?php echo (strpos($navPath, '/students/elearning/student_forum.php') !== false || strpos($navPath, '/students/elearning/student_thread.php') !== false) ? 'active' : ''; ?>"><i class="fas fa-comments"></i><span>Discussion Forum</span></a>
             <a href="/wucportal/students/elearning/progress.php" class="nav-item <?php echo student_nav_active('/students/elearning/progress.php', $navScript, $navPath); ?>"><i class="fas fa-chart-simple"></i><span>Learning Progress</span></a>
+            <a href="/wucportal/students/learning_assistant.php?portal=elearning" class="nav-item <?php echo student_nav_active('learning_assistant.php', $navScript, $navPath); ?>"><i class="fas fa-graduation-cap"></i><span>My Learning Assistant</span></a>
             <a href="/wucportal/students/ai_study_assistant.php?portal=elearning" class="nav-item <?php echo student_nav_active('ai_study_assistant.php', $navScript, $navPath); ?>"><i class="fas fa-wand-magic-sparkles"></i><span>AI Study Assistant</span></a>
         </div>
         <?php endif; ?>
@@ -261,7 +328,9 @@ try {
         <div class="nav-section">
             <div class="nav-section-title">Student Services</div>
             <a href="/wucportal/students/ai_personal_assistant.php" class="nav-item <?php echo student_nav_active('ai_personal_assistant.php', $navScript, $navPath); ?>"><i class="fas fa-robot"></i><span>AI Personal Assistant</span></a>
+            <?php if (!$navIsCertificatePortal): ?>
             <a href="/wucportal/students/skill_discovery.php" class="nav-item <?php echo student_nav_active('skill_discovery.php', $navScript, $navPath); ?>"><i class="fas fa-wand-magic-sparkles"></i><span>Skill Discovery</span></a>
+            <?php endif; ?>
             <a href="/wucportal/students/njila.php" class="nav-item <?php echo student_nav_active('njila.php', $navScript, $navPath); ?>"><i class="fas fa-brain"></i><span>Njila AI</span></a>
             <a href="/wucportal/students/fees.php" class="nav-item <?php echo (student_nav_active('fees.php', $navScript, $navPath) !== '' || strpos($navPath, '/accounts/fees_statement.php') !== false || strpos($navPath, '/students/payments/') !== false) ? 'active' : ''; ?>"><i class="fas fa-credit-card"></i><span>Fees</span></a>
             <a href="/wucportal/students/boardingApp.php" class="nav-item <?php echo student_nav_active('boardingApp.php', $navScript, $navPath); ?>"><i class="fas fa-bed"></i><span>Accommodation</span></a>

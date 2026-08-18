@@ -10,6 +10,7 @@ require_once __DIR__ . '/includes/portal_alerts.php';
 require_once __DIR__ . '/includes/notification_integrations.php';
 require_once __DIR__ . '/includes/page_meta.php';
 require_once __DIR__ . '/includes/role_helpers.php';
+require_once __DIR__ . '/includes/portal_access.php';
 
 wuc_guard_start_session('notifications-center');
 wuc_guard_sync_session_aliases(['staff_id', 'user_id']);
@@ -26,6 +27,10 @@ $viewerKind = $viewer['kind'];
 $dashboardUrl = $viewer['dashboard_url'];
 $viewerName = $viewer['display_name'];
 $loginUrl = $viewerKind === 'student' ? '/wucportal/student_login.php' : '/wucportal/staff_login.php';
+$portalHint = strtolower(trim((string)($_GET['portal'] ?? '')));
+if ($portalHint === 'elearning' && $viewerKind !== 'student') {
+    $dashboardUrl = '/wucportal/lecturers/elearning/index.php';
+}
 
 $statusFilter = (string)($_GET['status'] ?? 'active');
 if (!in_array($statusFilter, ['active', 'unread', 'read', 'dismissed', 'all'], true)) {
@@ -37,6 +42,9 @@ if (!in_array($severityFilter, ['', 'info', 'warning', 'critical'], true)) {
 }
 
 $selfQuery = [];
+if ($portalHint === 'elearning') {
+    $selfQuery['portal'] = 'elearning';
+}
 if ($statusFilter !== 'active') {
     $selfQuery['status'] = $statusFilter;
 }
@@ -53,7 +61,16 @@ if ($openId > 0 && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET') {
         wuc_portal_alert_set_status($db, $viewerId, $openId, 'read', $viewerRole);
         $target = wuc_notifications_safe_url($owned['action_url'] ?? null);
         if ($target !== '') {
-            wuc_safe_redirect($target, 302, $dashboardUrl);
+            $targetPortal = strtolower(trim((string)($owned['target_portal'] ?? '')));
+            $portalUserId = wuc_resolve_session_user_id($db);
+            if ($targetPortal === '' || ($portalUserId > 0 && wuc_user_has_portal_access($db, $portalUserId, $targetPortal))) {
+                $_SESSION['current_portal'] = $targetPortal !== '' ? $targetPortal : ($_SESSION['current_portal'] ?? '');
+                wuc_safe_redirect($target, 302, $dashboardUrl);
+            }
+            $_SESSION['notif_center_flash'] = [
+                'type' => 'warning',
+                'text' => 'This notification belongs to a portal you cannot currently access.',
+            ];
         }
     }
     wuc_safe_redirect($selfUrl, 302, '/wucportal/notifications.php');
@@ -256,6 +273,9 @@ if ($isStudentViewer) {
     <section class="notification-card data-table-card">
         <div class="p-3 border-bottom">
             <form method="get" class="row g-2 align-items-end">
+                <?php if ($portalHint === 'elearning'): ?>
+                    <input type="hidden" name="portal" value="elearning">
+                <?php endif; ?>
                 <div class="col-md-4">
                     <label for="status" class="form-label fw-semibold">Status</label>
                     <select class="form-select" id="status" name="status">

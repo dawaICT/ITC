@@ -2,6 +2,7 @@
 require_once 'includes/admin.php'; // Handles session and DB connection
 require_once dirname(__DIR__) . '/includes/auth_helpers.php';
 require_once dirname(__DIR__) . '/includes/action_confirmation.php';
+require_once dirname(__DIR__) . '/includes/exhibition_mode.php';
 
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && !empty($_GET['sid'])) {
     wuc_render_action_confirmation('Delete student?', 'This permanently removes the student and their program/login records.', 'delete_student.php', ['sid' => trim((string)$_GET['sid'])]);
@@ -14,6 +15,13 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST' || !wuc_validate_csrf($_POST['
 
 if (!empty($_POST['sid'])) {
     $sid = trim((string)$_POST['sid']);
+    try {
+        wuc_exhibition_assert_destructive_target($db, $sid);
+    } catch (DomainException $e) {
+        $_SESSION['error'] = $e->getMessage();
+        header('Location: students_by_admin.php', true, 303);
+        exit;
+    }
 
     // 1. Prepare the statement to prevent SQL Injection
     // We use a transaction because we need to delete from student_program AND students

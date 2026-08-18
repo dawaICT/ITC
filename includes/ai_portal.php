@@ -215,26 +215,37 @@ if (!function_exists('wuc_ai_local_status')) {
         } elseif ($provider === 'cloud') {
             $effModel   = wuc_ai_cloud_label();
             $modelReady = true;
-            $message    = 'Cloud AI service is configured (' . $effModel . ').';
+            $message = 'Cloud AI service is configured (' . $effModel . ').';
         } else {
-            $provider   = 'local';
+            $provider   = 'none';
             $effModel   = $model;
             $modelReady = false;
-            $message   .= ' Add a free cloud API key to ai/cloud_key.txt to enable AI without a local install.';
+            if ($localModelReady) {
+                // unreachable — local would have been selected above
+                $provider = 'local';
+                $modelReady = true;
+            } else {
+                $hint = function_exists('wuc_ai_cloud_setup_hint')
+                    ? wuc_ai_cloud_setup_hint()
+                    : 'Add a free cloud API key to ai/cloud_key.txt or start Ollama.';
+                $message = 'No usable AI provider. ' . $hint;
+            }
         }
 
         return [
-            'available' => $available || $cloudEnabled,
+            'available' => $localModelReady || wuc_ai_cloud_enabled(),
             'model_ready' => $modelReady,
             'model' => $effModel,
-            'provider' => $provider,
+            'provider' => $provider === 'none' ? 'none' : $provider,
             'local_ready' => $localModelReady,
-            'cloud_enabled' => $cloudEnabled,
+            'cloud_enabled' => wuc_ai_cloud_enabled(),
             'message' => $message,
             'installed_models' => $installedNames,
-            'install_hint' => $cloudEnabled
+            'install_hint' => wuc_ai_cloud_enabled()
                 ? 'Cloud AI active (' . wuc_ai_cloud_label() . ')'
-                : 'ollama pull ' . AI_CHAT_MODEL . '  — or add a key to ai/cloud_key.txt',
+                : (function_exists('wuc_ai_cloud_setup_hint')
+                    ? wuc_ai_cloud_setup_hint()
+                    : ('ollama pull ' . AI_CHAT_MODEL . '  — or add a key to ai/cloud_key.txt')),
         ];
     }
 }
@@ -244,25 +255,35 @@ if (!function_exists('wuc_ai_fallback_notice')) {
     {
         $status = (string)($result['status'] ?? 'fallback');
         $model = (string)($result['model'] ?? AI_CHAT_MODEL);
+        $provider = (string)($result['provider'] ?? 'local');
         $error = trim((string)($result['error'] ?? ''));
+        $isCloud = $provider === 'cloud' || str_contains(strtolower($error), 'cloud') || str_contains(strtolower($error), 'pollinations') || str_contains(strtolower($error), 'groq');
 
         if ($status === 'model_missing') {
-            return 'Fallback response used because Ollama has no installed chat model for "' . $model . '". Run: ollama pull ' . AI_CHAT_MODEL;
+            return $isCloud
+                ? 'Fallback response used because no usable cloud AI model is configured. Add a free Groq key to ai/cloud_key.txt or start Ollama.'
+                : 'Fallback response used because Ollama has no installed chat model for "' . $model . '". Run: ollama pull ' . AI_CHAT_MODEL;
         }
         if ($status === 'offline') {
+            if ($provider === 'none' || $isCloud) {
+                $hint = function_exists('wuc_ai_cloud_setup_hint') ? ' ' . wuc_ai_cloud_setup_hint() : '';
+                return 'Fallback response used because no AI provider is available.' . $hint;
+            }
             return 'Fallback response used because the local AI service is offline. Start Ollama and try again.';
         }
         if ($status === 'empty_response') {
-            return 'Fallback response used because the local AI model returned an empty response.';
+            return 'Fallback response used because the AI model returned an empty response.';
         }
         if ($status === 'error' && $error !== '') {
-            return 'Fallback response used because the local AI request failed: ' . $error;
+            return 'Fallback response used because the AI request failed: ' . $error;
         }
         if ($error !== '') {
-            return 'Fallback response used because local AI was not ready: ' . $error;
+            return 'Fallback response used because AI was not ready: ' . $error;
         }
 
-        return 'Fallback response used because the local AI chat model is unavailable.';
+        return $isCloud
+            ? 'Fallback response used because the cloud AI provider is unavailable.'
+            : 'Fallback response used because the local AI chat model is unavailable.';
     }
 }
 

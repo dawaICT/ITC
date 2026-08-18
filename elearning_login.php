@@ -13,12 +13,30 @@ $ELEARNING_DEST = 'students/elearning/index.php';
 // Already signed in? Go straight to the Learning Hub — shared session means no
 // second login is ever needed between the portal and eLearning.
 if (!empty($_SESSION['Sid'])) {
-    if (!wuc_user_has_portal_access($db, (int)($_SESSION['user_id_db'] ?? 0), 'elearning')) {
-        $_SESSION['errorMssg'] = 'Your account is active, but eLearning access has not been assigned. Please contact the Registrar or eLearning Administrator.';
-        wuc_redirect('student_login.php');
+    $sessionUserId = (int)($_SESSION['user_id_db'] ?? 0);
+    if ($sessionUserId <= 0) {
+        $sessionUserId = wuc_resolve_session_user_id($db);
+        if ($sessionUserId > 0) {
+            $_SESSION['user_id_db'] = $sessionUserId;
+        }
     }
-    $_SESSION['current_portal'] = 'elearning';
-    wuc_redirect($ELEARNING_DEST);
+
+    if ($sessionUserId > 0 && !wuc_user_has_portal_access($db, $sessionUserId, 'elearning')) {
+        try {
+            wuc_grant_user_portal_access($db, $sessionUserId, ['elearning'], 'elearning_login');
+        } catch (Throwable $e) {
+            error_log('eLearning portal grant failed for session user ' . $sessionUserId . ': ' . $e->getMessage());
+        }
+    }
+
+    if ($sessionUserId > 0 && wuc_user_has_portal_access($db, $sessionUserId, 'elearning')) {
+        $_SESSION['current_portal'] = 'elearning';
+        wuc_redirect($ELEARNING_DEST);
+    }
+
+    // Access still blocked after grant attempt — show the form with an error
+    // (do not redirect to this same page; that would loop).
+    $_SESSION['errorMssg'] = 'Your account is active, but eLearning access has not been assigned. Please contact the Registrar or eLearning Administrator.';
 }
 
 $csrf_token = wuc_csrf_token();

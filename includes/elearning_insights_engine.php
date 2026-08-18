@@ -18,6 +18,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/schema_guard.php';
 require_once __DIR__ . '/helpers/lecturer_course_helpers.php';
+require_once __DIR__ . '/elearning_access.php';
 
 if (!function_exists('wuc_el_student_insights')) {
     function wuc_el_student_insights(mysqli $db, string $studentId): array
@@ -37,20 +38,15 @@ if (!function_exists('wuc_el_student_insights')) {
             return $out;
         }
 
-        // Registered courses.
-        $courses = [];
-        if ($stmt = $db->prepare('SELECT DISTINCT course_code FROM course_registration WHERE Sid = ? AND COALESCE(is_active, 1) = 1')) {
-            $stmt->bind_param('s', $studentId);
-            $stmt->execute();
-            $res = $stmt->get_result();
-            while ($row = $res->fetch_assoc()) {
-                $code = trim((string)($row['course_code'] ?? ''));
-                if ($code !== '') {
-                    $courses[] = $code;
-                }
-            }
-            $stmt->close();
-        }
+        // Resolve the canonical active registration scope. This excludes
+        // dropped/retired modules and avoids partial legacy student_courses data.
+        $courses = function_exists('getStudentEnrolledCourses')
+            ? getStudentEnrolledCourses($db, $studentId)
+            : [];
+        $courses = array_values(array_unique(array_filter(array_map(
+            static fn($code): string => trim((string)$code),
+            is_array($courses) ? $courses : []
+        ))));
         $out['courses'] = $courses;
         if (!$courses) {
             $out['checklist'][] = 'Register your courses to unlock eLearning materials.';
@@ -138,20 +134,29 @@ if (!function_exists('wuc_el_student_insights')) {
 
         // Revision topics from weak CA (scaled < 50).
         if (wuc_table_exists($db, 'semester_assessment')) {
-            $sql = "SELECT Course_Code, Total_CA FROM semester_assessment WHERE Sid = ? AND Total_CA IS NOT NULL";
+            $sql = "SELECT Course_Code, Total_CA FROM semester_assessment
+                    WHERE Sid = ? AND Course_Code IN ($ph) AND Total_CA IS NOT NULL
+                    ORDER BY COALESCE(updated_at, created_at) DESC, id DESC";
             if ($stmt = $db->prepare($sql)) {
-                $stmt->bind_param('s', $studentId);
+                $params = array_merge([$studentId], $courses);
+                $stmt->bind_param('s' . $types, ...$params);
                 $stmt->execute();
                 $res = $stmt->get_result();
                 $weak = [];
+                $seen = [];
                 while ($row = $res->fetch_assoc()) {
+                    $code = trim((string)($row['Course_Code'] ?? ''));
+                    if ($code === '' || isset($seen[$code])) {
+                        continue;
+                    }
+                    $seen[$code] = true;
                     if (!is_numeric($row['Total_CA'])) {
                         continue;
                     }
                     $ca = (float)$row['Total_CA'];
                     $scale = $ca <= 40 ? 40.0 : 100.0;
                     if (($ca / $scale) * 100 < 50) {
-                        $weak[trim((string)$row['Course_Code'])] = true;
+                        $weak[$code] = true;
                     }
                 }
                 $stmt->close();
@@ -170,7 +175,7 @@ if (!function_exists('wuc_el_student_insights')) {
             $out['checklist'][] = 'Submit your ' . $out['pending_assignments'] . ' outstanding assignment(s) before the deadline.';
         }
         foreach (array_slice($out['revision_topics'], 0, 3) as $topic) {
-            $out['checklist'][] = 'Revise ' . $topic . ' — your last assessment was below the pass mark.';
+            $out['checklist'][] = 'Revise ' . $topic . ' — your latest internal CA is below the support threshold.';
         }
         if ($out['days_inactive'] !== null && $out['days_inactive'] > 7) {
             $out['checklist'][] = 'You have not used eLearning for ' . $out['days_inactive'] . ' day(s) — a short session today keeps you on track.';

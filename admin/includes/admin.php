@@ -25,6 +25,20 @@ if ($staff_id !== null) {
 
 wuc_require_portal_access($db, 'academic');
 
+// Platform-admin pages under /admin require Systems Administrator.
+// Academic-office staff must use Registrar/HOS/Lecturer portals, not Admin.
+if (!function_exists('wuc_normalize_staff_role')) {
+    require_once dirname(__DIR__, 2) . '/includes/staff_role_helpers.php';
+}
+$__adminRole = wuc_normalize_staff_role((string)($_SESSION['role'] ?? ''), false);
+$__adminRoles = (array)($_SESSION['all_roles'] ?? []);
+$__isSystemsAdmin = ($__adminRole === 'systems_admin') || in_array('systems_admin', $__adminRoles, true);
+if (!$__isSystemsAdmin && !$isScript) {
+    $_SESSION['errorMessage'] = 'Access denied. Systems Administrator privileges are required for the Admin portal.';
+    header('Location: /wucportal/portal_selection.php');
+    exit;
+}
+
 if (!function_exists('isAdmin')) {
     function isAdmin($staff_id = null): bool
     {

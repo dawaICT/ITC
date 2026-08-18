@@ -2,6 +2,7 @@
 require_once __DIR__ . '/includes/admin.php';
 require_once dirname(__DIR__) . '/includes/role_helpers.php';
 require_once dirname(__DIR__) . '/includes/helpers/academic_structure_helpers.php';
+require_once dirname(__DIR__) . '/includes/cse_progression.php';
 
 // Enable mysqli error reporting
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
@@ -66,7 +67,11 @@ $period_select = isset($program_cols['period_mode'])
     ? "period_mode"
     : (isset($program_cols['period_type']) ? "period_type AS period_mode" : "NULL AS period_mode");
 $study_select = isset($program_cols['study_mode']) ? "study_mode" : "NULL AS study_mode";
-$programs_query = "SELECT program_code, program_name, {$period_select}, {$study_select} FROM programs ORDER BY program_name ASC";
+$programs_query = "SELECT program_code, program_name, {$period_select}, {$study_select}
+                     FROM programs
+                    WHERE COALESCE(is_active, 1) = 1
+                      AND program_code NOT IN ('CSE', 'ICT-002')
+                    ORDER BY program_name ASC";
 $programs_result = $db->query($programs_query);
 $programs = [];
 while($row = $programs_result->fetch_object()) {
@@ -108,6 +113,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_student'])) {
                 if(empty($_POST[$field])) {
                     throw new Exception(ucfirst($field) . " is required.");
                 }
+            }
+            if (!empty($_POST['program']) && ($stageError = wuc_cse_direct_assignment_error((string)$_POST['program']))) {
+                throw new Exception($stageError);
             }
 
             // Check for duplicate phone (excluding current student)

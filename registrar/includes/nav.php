@@ -22,6 +22,7 @@ $module_config = array(
 				array('href' => 'upload_ca.php', 'icon' => 'fas fa-upload', 'label' => 'Upload CA', 'active_on' => 'upload_ca.php'),
 				array('href' => 'upload_exam_results.php', 'icon' => 'fas fa-file-upload', 'label' => 'Upload Exam Results', 'active_on' => 'upload_exam_results.php'),
 				array('href' => 'teaching_planner.php', 'icon' => 'fas fa-file-signature', 'label' => 'Teaching Plan Monitor', 'active_on' => 'teaching_planner.php'),
+				array('href' => 'test_timetable.php', 'icon' => 'fas fa-calendar-check', 'label' => 'Test Timetable', 'active_on' => 'test_timetable.php'),
 			),
 		),
 		array(

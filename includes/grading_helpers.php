@@ -282,6 +282,7 @@ if (!function_exists('wuc_result_resolve_registration')) {
                   JOIN programs p ON p.program_code = sp.program_code
                   JOIN student_course_registrations scr ON scr.student_programme_id = sp.id
                   JOIN course_offerings co ON co.id = scr.course_offering_id
+                                          AND co.program_code = p.program_code
                   JOIN academic_periods ap ON ap.id = co.academic_period_id
                   JOIN curriculum_courses cc ON cc.id = co.curriculum_course_id
                  WHERE sp.Sid = ?
@@ -305,6 +306,61 @@ if (!function_exists('wuc_result_resolve_registration')) {
         $stmt->close();
 
         return $row ?: null;
+    }
+}
+
+if (!function_exists('wuc_result_normalized_ca_points')) {
+    function wuc_result_normalized_ca_points(mysqli $db, string $programCode, string $courseCode, ?float $caPercentage): ?float
+    {
+        if ($caPercentage === null) {
+            return null;
+        }
+
+        $stmt = $db->prepare(
+            "SELECT ca_weight
+               FROM assessment_schemes
+              WHERE program_code = ? AND course_code = ? AND status = 'active'
+              ORDER BY id
+              LIMIT 1"
+        );
+        if (!$stmt) {
+            throw new RuntimeException($db->error);
+        }
+        $stmt->bind_param('ss', $programCode, $courseCode);
+        $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+
+        $caWeight = $row ? (float)$row['ca_weight'] : 100.0;
+        return round($caPercentage * ($caWeight / 100.0), 2);
+    }
+}
+
+if (!function_exists('wuc_result_sync_normalized_mark_status')) {
+    function wuc_result_sync_normalized_mark_status(mysqli $db, int $registrationId, string $legacyStatus, string $actor): void
+    {
+        $normalizedStatus = match (strtolower(trim($legacyStatus))) {
+            'submitted' => 'SUBMITTED',
+            'approved' => 'APPROVED_BY_HOD',
+            'published' => 'LOCKED',
+            'rejected' => 'RETURNED_FOR_CORRECTION',
+            default => 'DRAFT',
+        };
+        $approvedBy = in_array($normalizedStatus, ['APPROVED_BY_HOD', 'LOCKED'], true) ? $actor : null;
+        $approvedAt = $approvedBy !== null ? date('Y-m-d H:i:s') : null;
+
+        $sql = "UPDATE student_assessment_marks sam
+                   SET sam.status = ?,
+                       sam.approved_by = CASE WHEN ? IS NULL THEN sam.approved_by ELSE ? END,
+                       sam.approved_at = CASE WHEN ? IS NULL THEN sam.approved_at ELSE ? END,
+                       sam.updated_at = CURRENT_TIMESTAMP
+                 WHERE sam.student_course_registration_id = ?";
+        if (!$stmt = $db->prepare($sql)) {
+            throw new RuntimeException($db->error);
+        }
+        $stmt->bind_param('sssssi', $normalizedStatus, $approvedBy, $approvedBy, $approvedAt, $approvedAt, $registrationId);
+        $stmt->execute();
+        $stmt->close();
     }
 }
 
@@ -393,6 +449,7 @@ if (!function_exists('wuc_result_sync_normalized')) {
         $registrationId = (int)$registration['student_course_registration_id'];
         $programCode = (string)$registration['program_code'];
         $caTotal = $legacy['Total_CA'] !== null && $legacy['Total_CA'] !== '' ? (float)$legacy['Total_CA'] : null;
+        $caPoints = wuc_result_normalized_ca_points($db, $programCode, $courseCode, $caTotal);
         $examMark = wuc_result_exam_written($legacy['Exam']) ? (float)$legacy['Exam'] : null;
         $finalMark = $examMark !== null ? assessment_weighting_total($db, $sid, $caTotal ?? 0.0, $examMark) : null;
         $grade = $finalMark !== null ? wuc_result_grade((float)$finalMark) : null;
@@ -402,6 +459,7 @@ if (!function_exists('wuc_result_sync_normalized')) {
             : null;
 
         wuc_result_sync_exam_component($db, $registrationId, $programCode, $courseCode, $examMark, $actor);
+        wuc_result_sync_normalized_mark_status($db, $registrationId, (string)$legacy['status'], $actor);
 
         $sql = "INSERT INTO student_course_results
                     (student_course_registration_id, ca_total, exam_mark, final_mark, grade, result_status, published_at)
@@ -417,7 +475,7 @@ if (!function_exists('wuc_result_sync_normalized')) {
         if (!$stmt = $db->prepare($sql)) {
             throw new RuntimeException($db->error);
         }
-        $stmt->bind_param('idddsss', $registrationId, $caTotal, $examMark, $finalMark, $grade, $resultStatus, $publishedAt);
+        $stmt->bind_param('idddsss', $registrationId, $caPoints, $examMark, $finalMark, $grade, $resultStatus, $publishedAt);
         $stmt->execute();
         $stmt->close();
 

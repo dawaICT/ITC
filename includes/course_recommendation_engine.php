@@ -43,6 +43,7 @@ if (!function_exists('wuc_course_recommendations')) {
             'program_code' => '',
             'year_of_study' => 1,
             'period_label' => 'Semester',
+            'examination_type' => '',
             'retake' => [],
             'missing' => [],
             'notes' => [],
@@ -55,7 +56,10 @@ if (!function_exists('wuc_course_recommendations')) {
         }
 
         // Programme + current year of study.
-        if ($stmt = $db->prepare('SELECT program_code FROM student_program WHERE Sid = ? ORDER BY id DESC LIMIT 1')) {
+        if ($stmt = $db->prepare("SELECT program_code FROM student_program
+                                  WHERE Sid = ?
+                                    AND (status IS NULL OR TRIM(status) = '' OR LOWER(TRIM(status)) IN ('active', 'current'))
+                                  ORDER BY id DESC LIMIT 1")) {
             $stmt->bind_param('s', $studentId);
             $stmt->execute();
             $row = $stmt->get_result()->fetch_assoc() ?: [];
@@ -72,7 +76,9 @@ if (!function_exists('wuc_course_recommendations')) {
         // the guidance matches how the student's programme is actually organised.
         try {
             if (wuc_table_exists($db, 'programs')
-                && ($stmt = $db->prepare('SELECT COALESCE(period_mode, "") AS period_mode, COALESCE(uses_terms, 0) AS uses_terms
+                && ($stmt = $db->prepare('SELECT COALESCE(period_mode, "") AS period_mode,
+                                                 COALESCE(uses_terms, 0) AS uses_terms,
+                                                 COALESCE(examination_type, "") AS examination_type
                                           FROM programs WHERE program_code = ? LIMIT 1'))) {
                 $stmt->bind_param('s', $out['program_code']);
                 $stmt->execute();
@@ -82,6 +88,7 @@ if (!function_exists('wuc_course_recommendations')) {
                     || (int)($row['uses_terms'] ?? 0) === 1) {
                     $out['period_label'] = 'Term';
                 }
+                $out['examination_type'] = strtolower(trim((string)($row['examination_type'] ?? '')));
             }
         } catch (Throwable $e) {
             // Installs without the period columns keep the "Semester" default.
@@ -175,17 +182,39 @@ if (!function_exists('wuc_course_recommendations')) {
             $stmt->close();
         }
 
-        // Latest result per course (for retake detection).
+        // External-exam programmes must not turn internal CA into a retake
+        // decision; only a published final result is authoritative there.
         $latestMark = [];
-        if (wuc_table_exists($db, 'semester_assessment') && ($stmt = $db->prepare('SELECT Course_Code, Total_CA FROM semester_assessment WHERE Sid = ? ORDER BY id ASC'))) {
+        if (wuc_table_exists($db, 'exams')
+            && ($stmt = $db->prepare("SELECT Course_Code, Total_marks FROM exams
+                                      WHERE Sid = ? AND Total_marks IS NOT NULL
+                                        AND LOWER(COALESCE(status, '')) = 'published'
+                                      ORDER BY id ASC"))) {
+            $stmt->bind_param('s', $studentId);
+            $stmt->execute();
+            $res = $stmt->get_result();
+            while ($row = $res->fetch_assoc()) {
+                $code = trim((string)($row['Course_Code'] ?? ''));
+                $mark = is_numeric($row['Total_marks'])
+                    ? round(max(0, min(100, (float)$row['Total_marks'])), 2)
+                    : null;
+                if ($code !== '' && $mark !== null) {
+                    $latestMark[$code] = $mark;
+                }
+            }
+            $stmt->close();
+        }
+        if ($out['examination_type'] !== 'external'
+            && wuc_table_exists($db, 'semester_assessment')
+            && ($stmt = $db->prepare('SELECT Course_Code, Total_CA FROM semester_assessment WHERE Sid = ? ORDER BY id ASC'))) {
             $stmt->bind_param('s', $studentId);
             $stmt->execute();
             $res = $stmt->get_result();
             while ($row = $res->fetch_assoc()) {
                 $code = trim((string)($row['Course_Code'] ?? ''));
                 $mark = wuc_crec_scaled_mark($row['Total_CA']);
-                if ($code !== '' && $mark !== null) {
-                    $latestMark[$code] = $mark; // ascending order → last write wins = latest attempt
+                if ($code !== '' && $mark !== null && !isset($latestMark[$code])) {
+                    $latestMark[$code] = $mark;
                 }
             }
             $stmt->close();
@@ -226,7 +255,9 @@ if (!function_exists('wuc_course_recommendations')) {
         usort($out['retake'], $sorter);
 
         if (!$out['missing'] && !$out['retake']) {
-            $out['notes'][] = 'Your registrations match the curriculum for your current year — nothing outstanding was detected.';
+            $out['notes'][] = $out['examination_type'] === 'external'
+                ? 'Your current curriculum registrations are complete. Internal CA supports learning, while published external examination results determine retakes.'
+                : 'Your registrations match the curriculum for your current year — nothing outstanding was detected.';
         }
 
         return $out;

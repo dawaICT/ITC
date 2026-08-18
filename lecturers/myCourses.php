@@ -83,66 +83,16 @@ if(isset($_SESSION['staff_id'])) {
     }
 }
 
-// Get student count by course
+// Get student count by course — prefer course_registration / normalized stores.
+// student_courses is a sparse legacy mirror and under-counts when used first.
 $coursesWithStudents = [];
 
-$studentCourseTable = null;
-if ($tableExists($db, 'student_course')) { $studentCourseTable = 'student_course'; }
-elseif ($tableExists($db, 'student_courses')) { $studentCourseTable = 'student_courses'; }
-
-$scStudentCol = $studentCourseTable ? $detectColumn($db, $studentCourseTable, ['Sid','SID','student_id','studentID']) : null;
-$scCourseCol = $studentCourseTable ? $detectColumn($db, $studentCourseTable, ['course_code','code']) : null;
-
-// Fallback registration tables
-$fallbackRegTable = null; $fbStudentCol = null; $fbCourseCol = null;
-if (!$studentCourseTable) {
-    if ($tableExists($db, 'course_registration')) {
-        $fallbackRegTable = 'course_registration';
-    } elseif ($tableExists($db, 'registered_courses')) {
-        $fallbackRegTable = 'registered_courses';
-    }
-    if ($fallbackRegTable) {
-        $fbStudentCol = $detectColumn($db, $fallbackRegTable, ['Sid','SID','student_id']);
-        $fbCourseCol = $detectColumn($db, $fallbackRegTable, ['course_code','code']);
-    }
-}
-
 if (!empty($records)) {
-    $courseCodes = array_map(function($course) {
-        return $course->course_code;
+    require_once __DIR__ . '/../includes/helpers/lecturer_course_helpers.php';
+    $courseCodes = array_map(static function ($course) {
+        return (string)$course->course_code;
     }, $records);
-    $inPlaceholders = implode(',', array_fill(0, count($courseCodes), '?'));
-
-    $sql = null;
-    $params = [];
-    $types = '';
-
-    if ($studentCourseTable && $scStudentCol && $scCourseCol) {
-        $sql = "SELECT `{$scCourseCol}` AS course_code, COUNT(DISTINCT `{$scStudentCol}`) AS count 
-                FROM `{$studentCourseTable}` 
-                WHERE `{$scCourseCol}` IN ($inPlaceholders) 
-                GROUP BY `{$scCourseCol}`";
-        $types = str_repeat('s', count($courseCodes));
-        $params = $courseCodes;
-    } elseif ($fallbackRegTable && $fbStudentCol && $fbCourseCol) {
-        $sql = "SELECT `{$fbCourseCol}` AS course_code, COUNT(DISTINCT `{$fbStudentCol}`) AS count 
-                FROM `{$fallbackRegTable}` 
-                WHERE `{$fbCourseCol}` IN ($inPlaceholders) 
-                GROUP BY `{$fbCourseCol}`";
-        $types = str_repeat('s', count($courseCodes));
-        $params = $courseCodes;
-    }
-
-    if ($sql) {
-        $stmt = $db->prepare($sql);
-        $stmt->bind_param($types, ...$params);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        while ($row = $result->fetch_object()) {
-            $coursesWithStudents[$row->course_code] = (int)$row->count;
-        }
-        $stmt->close();
-    }
+    $coursesWithStudents = wuc_count_students_for_courses($db, $courseCodes);
 
     foreach ($records as $course) {
         if (!isset($coursesWithStudents[$course->course_code])) {

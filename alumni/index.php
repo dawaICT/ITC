@@ -4,6 +4,7 @@
  */
 
 require_once __DIR__ . '/includes/guard.php';
+require_once dirname(__DIR__) . '/includes/qr_helper.php';
 
 // Alumni identity is the linked student record only. Staff session user_ids
 // are staff IDs and never match students.SID — falling back to them just
@@ -241,7 +242,15 @@ if ($displayName === '') {
                                 <strong class="fs-5 text-purple"><code><?= htmlspecialchars($certificate['certificate_code']) ?></code></strong>
                             </div>
 
-                            <a href="/wucportal/verify_certificate.php?cert=<?= urlencode($certificate['certificate_code']) ?>" class="btn btn-purple btn-sm" target="_blank">
+                            <?php
+                            $verificationPath = '/wucportal/verify_certificate.php?cert=' . urlencode((string)$certificate['certificate_code']);
+                            $verificationQr = wuc_qr_svg_data_uri(wuc_public_app_url($verificationPath), 3);
+                            ?>
+                            <?php if ($verificationQr !== ''): ?>
+                                <img src="<?= htmlspecialchars($verificationQr, ENT_QUOTES, 'UTF-8') ?>" width="132" height="132" class="d-block mx-auto mb-3" alt="QR code for employer certificate verification">
+                            <?php endif; ?>
+
+                            <a href="<?= htmlspecialchars($verificationPath, ENT_QUOTES, 'UTF-8') ?>" class="btn btn-purple btn-sm" target="_blank">
                                 <i class="fas fa-external-link-alt me-1"></i>View Verification Page
                             </a>
                         </div>

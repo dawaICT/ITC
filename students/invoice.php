@@ -61,6 +61,14 @@ try {
     // Get Line Items
     // Requires registration_id (which corresponds to semester_registration_id in our logic)
     $lineItems = $invoiceService->getInvoiceLineItems($invoice['registration_id']);
+    if (empty($lineItems)) {
+        $lineItems = [[
+            'course_code' => 'FEES',
+            'course_name' => 'Academic fees for ' . $invoice['academic_year'] . ', semester ' . $invoice['semester'],
+            'credit_hours' => null,
+            'amount' => (float)$invoice['total_amount'],
+        ]];
+    }
 
     // Get Student Details if missing from invoice join
     if (!isset($invoice['first_name'])) {
@@ -256,8 +264,9 @@ try {
                 
                 <?php 
                 $statusClass = 'status-pending';
-                if ($invoice['status'] === 'paid') $statusClass = 'status-paid';
-                elseif ($invoice['status'] === 'partial') $statusClass = 'status-partial';
+                $normalizedStatus = strtolower((string)$invoice['status']);
+                if ($normalizedStatus === 'paid') $statusClass = 'status-paid';
+                elseif ($normalizedStatus === 'partial') $statusClass = 'status-partial';
                 elseif ($invoiceService->isOverdue($invoice['invoice_number'])) $statusClass = 'status-overdue';
                 ?>
                 <span class="status-badge <?php echo $statusClass; ?>">
@@ -281,7 +290,9 @@ try {
                 </div>
                 <div class="row mt-2">
                     <div class="col-6 text-muted">Due Date:</div>
-                    <div class="col-6 fw-bold"><?php echo date('M d, Y', strtotime($invoice['due_date'])); ?></div>
+                    <div class="col-6 fw-bold">
+                        <?php echo !empty($invoice['due_date']) ? date('M d, Y', strtotime($invoice['due_date'])) : 'Not specified'; ?>
+                    </div>
                 </div>
                 <div class="row mt-2">
                     <div class="col-6 text-muted">Term:</div>
@@ -309,25 +320,15 @@ try {
                     foreach ($lineItems as $item): 
                         $amount = $item['amount'] ?? 0; // Assuming 'amount' alias in query
                         // If amount is not in result, calculate standard rate (fallback)
-                        if ($amount == 0) $amount = ($item['credit_hours'] ?? 3) * 350; // default rate
-                        
                         $subtotal += $amount;
                     ?>
                     <tr>
                         <td class="fw-bold text-muted"><?php echo htmlspecialchars($item['course_code']); ?></td>
                         <td><?php echo htmlspecialchars($item['course_name']); ?></td>
-                        <td class="text-center"><?php echo htmlspecialchars($item['credit_hours']); ?></td>
+                        <td class="text-center"><?php echo $item['credit_hours'] !== null ? htmlspecialchars((string)$item['credit_hours']) : '-'; ?></td>
                         <td class="amount-col"><?php echo number_format($amount, 2); ?></td>
                     </tr>
                     <?php endforeach; ?>
-                    
-                    <!-- Fixed Registration Fee -->
-                    <tr>
-                        <td class="fw-bold text-muted">REG-FEE</td>
-                        <td>Semester Registration Fee</td>
-                        <td class="text-center">-</td>
-                        <td class="amount-col">150.00</td>
-                    </tr>
                 </tbody>
             </table>
         </div>
@@ -336,7 +337,7 @@ try {
             <div class="total-box">
                 <div class="total-row">
                     <span class="text-muted">Subtotal:</span>
-                    <span><?php echo number_format($subtotal + 150, 2); ?></span>
+                    <span><?php echo number_format($subtotal, 2); ?></span>
                 </div>
                 <div class="total-row text-success">
                     <span class="text-muted">Amount Paid:</span>

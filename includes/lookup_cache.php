@@ -33,13 +33,45 @@ if (!function_exists('wuc_cache_apcu_available')) {
     }
 }
 
+if (!function_exists('wuc_cache_file_dir')) {
+    /** Writable directory for file-tier cache when APCu is unavailable. */
+    function wuc_cache_file_dir(): string
+    {
+        static $dir = null;
+        if ($dir !== null) {
+            return $dir;
+        }
+        $candidates = [];
+        $env = function_exists('wuc_portal_env') ? wuc_portal_env('WUC_CACHE_DIR') : getenv('WUC_CACHE_DIR');
+        if (is_string($env) && $env !== '') {
+            $candidates[] = $env;
+        }
+        $candidates[] = dirname(__DIR__, 3) . DIRECTORY_SEPARATOR . 'wucportal-var' . DIRECTORY_SEPARATOR . 'cache';
+        $candidates[] = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'wucportal-cache';
+        foreach ($candidates as $candidate) {
+            if (!is_dir($candidate)) {
+                @mkdir($candidate, 0750, true);
+            }
+            if (is_dir($candidate) && is_writable($candidate)) {
+                return $dir = $candidate;
+            }
+        }
+        return $dir = sys_get_temp_dir();
+    }
+}
+
 if (!function_exists('wuc_cache_remember')) {
     /**
      * Return a cached value, producing (and caching) it on a miss.
      *
+     * Tiers:
+     *   1. Per-request static memo
+     *   2. APCu (when enabled)
+     *   3. File cache under WUC_CACHE_DIR / wucportal-var/cache (fallback)
+     *
      * @param string   $key      Stable cache key (namespaced internally).
      * @param callable $producer Zero-arg callable returning the value to cache.
-     * @param int      $ttl      Cross-request TTL in seconds (APCu only).
+     * @param int      $ttl      Cross-request TTL in seconds.
      * @return mixed
      */
     function wuc_cache_remember(string $key, callable $producer, int $ttl = 300)
@@ -49,6 +81,7 @@ if (!function_exists('wuc_cache_remember')) {
             return $local[$key];
         }
 
+        $ttl = max(1, $ttl);
         $apcuKey = 'wuc_lk_' . $key;
         if (wuc_cache_apcu_available()) {
             $found = false;
@@ -56,12 +89,24 @@ if (!function_exists('wuc_cache_remember')) {
             if ($found) {
                 return $local[$key] = $val;
             }
+        } else {
+            $file = wuc_cache_file_dir() . DIRECTORY_SEPARATOR . 'lk_' . hash('sha256', $key) . '.json';
+            if (is_file($file) && (time() - (int)filemtime($file)) < $ttl) {
+                $raw = @file_get_contents($file);
+                $decoded = is_string($raw) ? json_decode($raw, true) : null;
+                if (is_array($decoded) && array_key_exists('v', $decoded)) {
+                    return $local[$key] = $decoded['v'];
+                }
+            }
         }
 
         $val = $producer();
 
         if (wuc_cache_apcu_available()) {
-            @apcu_store($apcuKey, $val, max(1, $ttl));
+            @apcu_store($apcuKey, $val, $ttl);
+        } else {
+            $file = wuc_cache_file_dir() . DIRECTORY_SEPARATOR . 'lk_' . hash('sha256', $key) . '.json';
+            @file_put_contents($file, json_encode(['v' => $val], JSON_UNESCAPED_UNICODE), LOCK_EX);
         }
         return $local[$key] = $val;
     }
@@ -69,7 +114,7 @@ if (!function_exists('wuc_cache_remember')) {
 
 if (!function_exists('wuc_cache_forget')) {
     /**
-     * Invalidate a cross-request (APCu) cache entry. Call after an admin edits
+     * Invalidate a cross-request cache entry. Call after an admin edits
      * the underlying reference data (e.g. adds a programme) so the next request
      * reloads it. The per-request static memo expires naturally at end of
      * request, so it needs no explicit clearing.
@@ -78,6 +123,10 @@ if (!function_exists('wuc_cache_forget')) {
     {
         if (wuc_cache_apcu_available()) {
             @apcu_delete('wuc_lk_' . $key);
+        }
+        $file = wuc_cache_file_dir() . DIRECTORY_SEPARATOR . 'lk_' . hash('sha256', $key) . '.json';
+        if (is_file($file)) {
+            @unlink($file);
         }
     }
 }
@@ -93,9 +142,14 @@ if (!function_exists('wuc_lookup_programs')) {
     {
         return wuc_cache_remember('programs_active', static function () use ($db) {
             $out = [];
+            // Long-term programmes only — short-course catalogue stays in short_courses.
+            require_once __DIR__ . '/short_course_student.php';
+            $longPred = sc_sql_programs_long_only_predicate($db, 'p');
             if ($res = @$db->query(
-                "SELECT program_code, program_name FROM programs
-                 WHERE is_active = 1 ORDER BY program_name ASC"
+                "SELECT p.program_code, p.program_name FROM programs p
+                 WHERE (p.is_active = 1 OR p.is_active IS NULL)
+                   AND ({$longPred})
+                 ORDER BY p.program_name ASC"
             )) {
                 while ($row = $res->fetch_assoc()) {
                     $out[(string)$row['program_code']] = (string)$row['program_name'];

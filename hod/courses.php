@@ -351,31 +351,17 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 if (!$staffAllowed) {
                     $flash('error', 'Lecturer must belong to your department.');
                 } else {
-                    $existsStmt = @$db->prepare("SELECT 1 FROM course_lecturer WHERE course_code = ? AND staff_id = ? LIMIT 1");
-                    $exists = false;
-                    if ($existsStmt) {
-                        $existsStmt->bind_param('ss', $courseCode, $staffId);
-                        $existsStmt->execute();
-                        $existsRes = $existsStmt->get_result();
-                        $exists = $existsRes && $existsRes->num_rows > 0;
-                        $existsStmt->close();
-                    }
-
-                    if ($exists) {
+                    require_once dirname(__DIR__) . '/includes/helpers/lecturer_course_helpers.php';
+                    $assignResult = wuc_assign_lecturer_to_course($db, $staffId, $courseCode, [
+                        'program_codes' => $programCodes,
+                        'allow_unmapped' => empty($programCodes),
+                    ]);
+                    if (!empty($assignResult['inserted']) || !empty($assignResult['updated'])) {
+                        $flash('success', (string)$assignResult['message']);
+                    } elseif (!empty($assignResult['existed'])) {
                         $flash('error', 'This course is already assigned to the selected lecturer.');
                     } else {
-                        $insertStmt = @$db->prepare("INSERT INTO course_lecturer (course_code, staff_id) VALUES (?, ?)");
-                        if ($insertStmt) {
-                            $insertStmt->bind_param('ss', $courseCode, $staffId);
-                            if ($insertStmt->execute()) {
-                                $flash('success', 'Lecturer assigned to course successfully.');
-                            } else {
-                                $flash('error', 'Failed to save assignment.');
-                            }
-                            $insertStmt->close();
-                        } else {
-                            $flash('error', 'Unable to prepare assignment insert.');
-                        }
+                        $flash('error', (string)($assignResult['message'] ?: 'Failed to save assignment.'));
                     }
                 }
             }

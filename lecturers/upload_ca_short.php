@@ -201,7 +201,7 @@ $activeTab = (($_GET['tab'] ?? 'manual') === 'csv') ? 'csv' : 'manual';
 
 					<?php if (empty($shortCourses)): ?>
 						<div class="alert alert-info mb-0">
-							<i class="fas fa-info-circle me-2"></i>You have no active short courses. Short-course CA is available for short courses you created/manage.
+							<i class="fas fa-info-circle me-2"></i>You have no assigned short courses. Ask Admin or HOD to assign you via Short Courses → Assign Lecturer, then return here to enter CA.
 						</div>
 					<?php else: ?>
 					<ul class="nav nav-tabs" id="scCaTabs" role="tablist">

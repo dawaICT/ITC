@@ -21,20 +21,27 @@ if (!isset($_POST['direct_submission']) || $_POST['direct_submission'] !== '1') 
 
 // Include guard to check authentication
 require_once __DIR__ . '/includes/guard.php';
+require_once __DIR__ . '/../includes/production_guards.php';
 require_once __DIR__ . '/../db/connect.php';
 require_once __DIR__ . '/../includes/payment_helpers.php';
 require_once __DIR__ . '/../includes/helpers/academic_structure_helpers.php';
 
+if (!wuc_validate_csrf((string)($_POST['csrf_token'] ?? ''))) {
+    $_SESSION['directSubmitError'] = 'Request verification failed. Refresh and try again.';
+    header('Location: direct_course_submit.php');
+    exit;
+}
+
 // Make sure we have required fields
-if (!isset($_POST['Sid']) || !isset($_POST['semester']) || !isset($_POST['Year']) || !isset($_POST['course_code']) || !is_array($_POST['course_code'])) {
+if (!isset($_POST['semester']) || !isset($_POST['Year']) || !isset($_POST['course_code']) || !is_array($_POST['course_code'])) {
     $_SESSION['directSubmitError'] = 'Missing required fields for course registration.';
     error_log("Missing required fields: " . json_encode($_POST));
     header('Location: direct_course_submit.php');
     exit;
 }
 
-// Sanitize inputs
-$sid = $_POST['Sid'];
+// Sanitize inputs — never trust posted Sid for ownership
+$sid = wuc_force_session_student_id($_POST['Sid'] ?? null, false);
 $semester = (int)$_POST['semester'];
 $year = (int)$_POST['Year'];
 $selectedCourses = $_POST['course_code'];

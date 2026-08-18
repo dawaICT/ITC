@@ -179,7 +179,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $studentContribution = $summary['student_contribution'];
                         if ($studentContribution > 0) {
                             $desc = $programName . ' registration - ' . $intake . ' (Student Portion)';
-                            admissionsCreateInvoice($db, $studentId, $studentContribution, $desc);
+                            admissionsCreateInvoice($db, $studentId, $studentContribution, $desc, $academicYear, '1', null, $actor);
                         }
                         
                         // Create Notification record

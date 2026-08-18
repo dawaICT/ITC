@@ -1,0 +1,10 @@
+=== CACHE + LIVE ASK CHECK ===
+cached_fail_count=0
+active_bad_cache_count=0
+deleted_bad_cache=0
+live_source_status=general_model_knowledge
+live_is_old_error=no
+live_answer=Information Technology in this Course
+
+1. Definition 
+ Information Technology (IT) refers to the use of computers, software, networks, and other digital tools to create, store, process, transmit, and manage information. In the context of DCSE‑101, IT is the foundation that enab

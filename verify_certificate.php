@@ -34,7 +34,12 @@ if ($certCode !== '') {
         if ($record) {
             $found = true;
             // Increment verification count
-            $db->query("UPDATE alumni_certificates SET verification_count = verification_count + 1 WHERE certificate_code = '" . $db->real_escape_string($certCode) . "'");
+            $increment = $db->prepare('UPDATE alumni_certificates SET verification_count = verification_count + 1 WHERE certificate_code = ?');
+            if ($increment) {
+                $increment->bind_param('s', $certCode);
+                $increment->execute();
+                $increment->close();
+            }
         }
     }
 }
@@ -45,11 +50,10 @@ if ($certCode !== '') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Certificate Verification - ITC</title>
-    <!-- Include premium styling from CDN/local -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="/wucportal/assets/vendor/bootstrap/5.3.2/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/wucportal/assets/vendor/fontawesome/6.4.0/css/all.min.css">
     <style>
-        body { background: #faf9fd; font-family: 'Inter', sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 2rem 0; }
+        body { background: #faf9fd; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 2rem 0; }
         .cert-card { max-width: 580px; width: 100%; border: none; border-radius: 16px; box-shadow: 0 10px 30px rgba(111, 66, 193, 0.08); background: #ffffff; }
         .brand-header { background: linear-gradient(135deg, #1B2A4A, #0B1530); border-top-left-radius: 16px; border-top-right-radius: 16px; padding: 1.5rem; text-align: center; }
         .brand-header img { height: 40px; margin-bottom: 0.5rem; }
@@ -65,7 +69,7 @@ if ($certCode !== '') {
 <div class="container d-flex justify-content-center">
     <div class="card cert-card">
         <div class="brand-header">
-            <img src="/wucportal/images/itc_logo.png" alt="ITC Logo" onerror="this.src='https://placehold.co/40x40?text=ITC'">
+            <img src="/wucportal/images/favicon.png" alt="ITC Logo" onerror="this.style.display='none'">
             <h2>Industrial Training Centre</h2>
             <small class="text-white-50">Official Certificate Verification Registry</small>
         </div>
@@ -115,7 +119,7 @@ if ($certCode !== '') {
                         </div>
                     </div>
 
-                    <p class="text-muted small mb-0"><i class="fas fa-shield-halved me-1"></i>Secure cryptographic record verified against Industrial Training Centre registries.</p>
+                    <p class="text-muted small mb-0"><i class="fas fa-shield-halved me-1"></i>Record matched the approved Industrial Training Centre certificate registry.</p>
                 </div>
             <?php else: ?>
                 <div class="py-4">

@@ -246,6 +246,68 @@ if (!function_exists('fees_statement_fetch_program_fee_lines')) {
     }
 }
 
+if (!function_exists('fees_statement_fetch_account')) {
+    /**
+     * Load a student fee account with joined course/student details.
+     *
+     * Uses LEFT JOIN on courses and training_modes so orphaned fee accounts
+     * (stale course_id after a catalog delete) still resolve. students/fees.php
+     * redirects here whenever an active student_fee_accounts row exists.
+     *
+     * @return array<string,mixed>|null
+     */
+    function fees_statement_fetch_account(mysqli $db, string $studentId, int $courseFilter = 0, ?int $accountId = null): ?array
+    {
+        $select = "SELECT sfa.*, c.course_name, c.course_code, tm.mode_name, d.department_name, s.Fname, s.Lname
+                   FROM student_fee_accounts sfa
+                   LEFT JOIN courses c ON sfa.course_id = c.id
+                   LEFT JOIN training_modes tm ON sfa.training_mode_id = tm.id
+                   INNER JOIN students s ON sfa.student_id = s.SID
+                   LEFT JOIN departments d ON c.department_id = d.id";
+
+        if ($accountId !== null && $accountId > 0) {
+            $stmt = $db->prepare($select . " WHERE sfa.id = ? AND sfa.status = 'active' LIMIT 1");
+            if (!$stmt) {
+                return null;
+            }
+            $stmt->bind_param('i', $accountId);
+        } elseif ($courseFilter > 0) {
+            $stmt = $db->prepare($select . " WHERE sfa.student_id = ? AND sfa.course_id = ? AND sfa.status = 'active' LIMIT 1");
+            if (!$stmt) {
+                return null;
+            }
+            $stmt->bind_param('si', $studentId, $courseFilter);
+        } else {
+            $stmt = $db->prepare($select . " WHERE sfa.student_id = ? AND sfa.status = 'active' ORDER BY sfa.id DESC LIMIT 1");
+            if (!$stmt) {
+                return null;
+            }
+            $stmt->bind_param('s', $studentId);
+        }
+
+        $stmt->execute();
+        $account = $stmt->get_result()->fetch_assoc() ?: null;
+        $stmt->close();
+
+        if ($account) {
+            if (trim((string)($account['course_code'] ?? '')) === '') {
+                $account['course_code'] = 'PROGRAMME';
+            }
+            if (trim((string)($account['course_name'] ?? '')) === '') {
+                $account['course_name'] = 'Programme / general fee account';
+            }
+            if (trim((string)($account['mode_name'] ?? '')) === '') {
+                $account['mode_name'] = '—';
+            }
+            if (!isset($account['department_name']) || $account['department_name'] === null) {
+                $account['department_name'] = '';
+            }
+        }
+
+        return $account;
+    }
+}
+
 if (!function_exists('fees_statement_build_breakdown')) {
     /**
      * Build a fee breakdown for the statement that reconciles with the account
@@ -393,7 +455,34 @@ if (!function_exists('fees_generate_student_account')) {
         $academicYear = trim($academicYear);
         $intake = trim($intake);
 
-        if ($studentId === '' || $courseId <= 0 || $trainingModeId <= 0 || $academicYear === '') {
+        if (
+            $studentId === ''
+            || $courseId <= 0
+            || $trainingModeId <= 0
+            || !preg_match('/^\d{4}(?:[\/-]\d{4})?$/', $academicYear)
+            || $intake === ''
+            || strlen($intake) > 50
+        ) {
+            return null;
+        }
+
+        // Validate every foreign identity server-side. The live table does not
+        // declare foreign keys, so forged IDs would otherwise create orphaned
+        // fee accounts with zero-value fee calculations.
+        $identityStmt = $db->prepare(
+            "SELECT
+                EXISTS(SELECT 1 FROM students WHERE SID = ?) AS student_ok,
+                EXISTS(SELECT 1 FROM courses WHERE id = ? AND status = 'active') AS course_ok,
+                EXISTS(SELECT 1 FROM training_modes WHERE id = ? AND status = 'active') AS mode_ok"
+        );
+        if (!$identityStmt) {
+            return null;
+        }
+        $identityStmt->bind_param('sii', $studentId, $courseId, $trainingModeId);
+        $identityStmt->execute();
+        $identity = $identityStmt->get_result()->fetch_assoc() ?: [];
+        $identityStmt->close();
+        if (empty($identity['student_ok']) || empty($identity['course_ok']) || empty($identity['mode_ok'])) {
             return null;
         }
 
@@ -481,6 +570,82 @@ if (!function_exists('fees_generate_student_account')) {
     }
 }
 
+if (!function_exists('fees_update_student_account_status')) {
+    /** @return array{success:bool,message:string,student_id?:string,previous_status?:string,status?:string} */
+    function fees_update_student_account_status(mysqli $db, int $accountId, string $targetStatus, string $staffId): array
+    {
+        $targetStatus = strtolower(trim($targetStatus));
+        $staffId = trim($staffId) !== '' ? trim($staffId) : 'accounts';
+        if ($accountId <= 0 || !in_array($targetStatus, ['active', 'withdrawn', 'cancelled'], true)) {
+            return ['success' => false, 'message' => 'Invalid fee-account status request.'];
+        }
+
+        $db->begin_transaction();
+        try {
+            $select = $db->prepare(
+                'SELECT id, student_id, status FROM student_fee_accounts WHERE id = ? LIMIT 1 FOR UPDATE'
+            );
+            if (!$select) {
+                throw new RuntimeException('Unable to lock the fee account.');
+            }
+            $select->bind_param('i', $accountId);
+            $select->execute();
+            $account = $select->get_result()->fetch_assoc() ?: null;
+            $select->close();
+            if (!$account) {
+                $db->rollback();
+                return ['success' => false, 'message' => 'The selected fee account could not be found.'];
+            }
+
+            $previousStatus = (string)($account['status'] ?? '');
+            if ($previousStatus === $targetStatus) {
+                $db->rollback();
+                return [
+                    'success' => true,
+                    'message' => 'The fee account is already ' . $targetStatus . '.',
+                    'student_id' => (string)$account['student_id'],
+                    'previous_status' => $previousStatus,
+                    'status' => $targetStatus,
+                ];
+            }
+
+            $update = $db->prepare('UPDATE student_fee_accounts SET status = ?, updated_at = NOW() WHERE id = ? LIMIT 1');
+            if (!$update) {
+                throw new RuntimeException('Unable to prepare the fee-account status update.');
+            }
+            $update->bind_param('si', $targetStatus, $accountId);
+            $update->execute();
+            $affected = $update->affected_rows;
+            $update->close();
+            if ($affected !== 1) {
+                throw new RuntimeException('The fee-account status was not updated.');
+            }
+
+            $db->commit();
+            if (function_exists('log_audit')) {
+                log_audit($db, $staffId, 'fee_account.status', json_encode([
+                    'account_id' => $accountId,
+                    'student_id' => (string)$account['student_id'],
+                    'from' => $previousStatus,
+                    'to' => $targetStatus,
+                ]));
+            }
+
+            return [
+                'success' => true,
+                'message' => 'Student fee account status updated to ' . $targetStatus . '.',
+                'student_id' => (string)$account['student_id'],
+                'previous_status' => $previousStatus,
+                'status' => $targetStatus,
+            ];
+        } catch (Throwable $e) {
+            $db->rollback();
+            error_log('Fee-account status update failed for account ' . $accountId . ': ' . $e->getMessage());
+            return ['success' => false, 'message' => 'The fee-account status could not be updated safely. Please refresh and try again.'];
+        }
+    }
+}
+
 if (!function_exists('fees_sum_completed_payments_for_account')) {
     /**
      * Sum completed payments for a fee account from account-linked rows and the
@@ -539,11 +704,18 @@ if (!function_exists('fees_sum_completed_payments_for_account')) {
         $periodFilter = $academicYear !== '' ? ['academic_year' => $academicYear] : null;
         $combined = student_fee_completed_payments($db, $studentId, $periodFilter, 500);
 
-        $totalPaid = $linkedPaid > 0.0 ? $linkedPaid : (float)($combined['total_paid'] ?? 0.0);
+        // The combined ledger already includes account-linked rows and
+        // de-duplicates mirrors by receipt/reference. Switching to linked-only
+        // totals after the first manual payment would discard older normalized
+        // payments and make a previously paid account appear outstanding.
+        $combinedRecords = is_array($combined['records'] ?? null) ? $combined['records'] : [];
+        $totalPaid = !empty($combinedRecords)
+            ? (float)($combined['total_paid'] ?? 0.0)
+            : $linkedPaid;
 
         return [
             'total_paid' => round($totalPaid, 2),
-            'records' => is_array($combined['records'] ?? null) ? $combined['records'] : [],
+            'records' => $combinedRecords,
         ];
     }
 }
@@ -598,47 +770,10 @@ if (!function_exists('fees_recalculate_student_balance')) {
             $stmt->bind_param('ddsi', $totalPaid, $balance, $status, $feeAccountId);
             $ok = $stmt->execute();
             $stmt->close();
-            
-            // Also synchronize with student_accounts table if it exists
-            // select or update student_accounts balance
-            $saRes = $db->query("SHOW TABLES LIKE 'student_accounts'");
-            if ($saRes && $saRes->num_rows > 0) {
-                $saRes->free();
-                
-                // Get overall balance of this student across all accounts
-                $totalBal = 0.00;
-                $sumRes = $db->query("SELECT SUM(balance) FROM student_fee_accounts WHERE student_id = '" . $db->real_escape_string($studentId) . "' AND status = 'active'");
-                if ($sumRes) {
-                    $totalBal = (float)($sumRes->fetch_row()[0] ?? 0.00);
-                    $sumRes->free();
-                }
-                
-                // Update or Insert student_accounts
-                $checkSa = $db->prepare("SELECT 1 FROM student_accounts WHERE SID = ? LIMIT 1");
-                if ($checkSa) {
-                    $checkSa->bind_param('s', $studentId);
-                    $checkSa->execute();
-                    $hasSa = $checkSa->get_result()->num_rows > 0;
-                    $checkSa->close();
-                    
-                    if ($hasSa) {
-                        $upSa = $db->prepare("UPDATE student_accounts SET balance = ?, last_payment_date = NOW(), updated_at = NOW() WHERE SID = ?");
-                        if ($upSa) {
-                            $upSa->bind_param('ds', $totalBal, $studentId);
-                            $upSa->execute();
-                            $upSa->close();
-                        }
-                    } else {
-                        $inSa = $db->prepare("INSERT INTO student_accounts (SID, balance, last_payment_date) VALUES (?, ?, NOW())");
-                        if ($inSa) {
-                            $inSa->bind_param('sd', $studentId, $totalBal);
-                            $inSa->execute();
-                            $inSa->close();
-                        }
-                    }
-                }
-            }
-            
+
+            // student_fee_accounts is authoritative. The historical
+            // student_accounts name is now a read-only compatibility view, so
+            // maintaining a second mutable balance is intentionally avoided.
             return $ok;
         }
 

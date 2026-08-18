@@ -9,14 +9,35 @@
  * page of rows and only the columns the table actually displays, so the wire
  * payload and DB work scale with the page size, not the table size.
  *
- * Auth mirrors the page: systems_admin only (checkAdminAuth()).
- * All user input is bound via prepared statements.
+ * Auth mirrors search_student.php: Registrar portal access (registrar OR
+ * systems_admin via canAccessRegistrar()). All user input is bound via
+ * prepared statements.
  */
 
 require_once dirname(__DIR__) . '/config/auth_check.php';
 require_once dirname(__DIR__) . '/db/connect.php';
+require_once dirname(__DIR__) . '/includes/role_helpers.php';
+require_once dirname(__DIR__) . '/includes/portal_access.php';
 
-checkAdminAuth(); // session bootstrap + systems_admin enforcement (redirects if not)
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+syncLegacyStaffSessionKey();
+
+$staffId = trim((string)($_SESSION['user_id'] ?? $_SESSION['staff_id'] ?? ''));
+if ($staffId === '') {
+    authRedirectToLogin();
+}
+
+hydrateStaffRolesFromDatabase($staffId);
+wuc_resolve_session_user_id($db);
+
+if (!canAccessRegistrar()) {
+    http_response_code(403);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(['ok' => false, 'error' => 'Access denied. Registrar or administrator access is required.']);
+    exit;
+}
 
 header('Content-Type: application/json; charset=utf-8');
 

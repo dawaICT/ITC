@@ -1,0 +1,154 @@
+/* Enterprise portal main column — mirrors students/css/student-unified.css offsets */
+body.enterprise-portal,
+body.enterprise-portal * {
+    box-sizing: border-box;
+}
+
+body.enterprise-portal {
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    overflow-x: hidden;
+}
+
+body.enterprise-portal .content-wrapper,
+body.enterprise-portal .dash-content {
+  padding: 1.15rem 1.35rem 1.5rem;
+  max-width: 1480px;
+  margin-left: var(--sidebar-width, 280px);
+  width: calc(100% - var(--sidebar-width, 280px));
+  min-height: 100vh;
+  min-width: 0;
+  overflow-x: clip;
+  box-sizing: border-box;
+}
+
+@media (min-width: 992px) {
+  body.enterprise-portal nav.sidebar {
+    z-index: 1100;
+  }
+
+  body.enterprise-portal > main.dash-content,
+  body.enterprise-portal > main.content-wrapper {
+    margin-left: var(--sidebar-width, 280px) !important;
+    width: calc(100% - var(--sidebar-width, 280px)) !important;
+    max-width: calc(100vw - var(--sidebar-width, 280px));
+  }
+
+  /*
+   * If any stylesheet zeroes margin-left, the main column still paints over the
+   * sidebar rail and steals clicks (Skills/Dashboard feel “dead”). Pass clicks
+   * through the main shell; re-enable on interactive descendants.
+   */
+  body.enterprise-portal > main.dash-content {
+    pointer-events: none;
+  }
+
+  body.enterprise-portal > main.dash-content * {
+    pointer-events: auto;
+  }
+
+  body.enterprise-portal nav.sidebar .nav-item,
+  body.enterprise-portal nav.sidebar .nav-section-title[role="button"] {
+    position: relative;
+    z-index: 2;
+    pointer-events: auto;
+  }
+
+  body.enterprise-portal nav.sidebar .nav-section-items {
+    pointer-events: auto;
+  }
+
+  body.enterprise-portal nav.sidebar .nav-section.is-collapsible.collapsed > .nav-section-items {
+    pointer-events: none;
+  }
+}
+
+body.enterprise-portal .sidebar-backdrop:not(.show) {
+  pointer-events: none !important;
+}
+
+body.enterprise-portal .content-wrapper .container,
+body.enterprise-portal .content-wrapper .container-fluid,
+body.enterprise-portal .dash-content .container,
+body.enterprise-portal .dash-content .container-fluid {
+    width: 100%;
+    max-width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+body.enterprise-portal .portal-dashboard .dashboard-header {
+    margin-bottom: 1rem;
+}
+
+body.enterprise-portal .portal-dashboard .dashboard-title {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: #0f172a;
+}
+
+body.enterprise-portal .ep-muted {
+    color: #64748b;
+}
+
+/* Align legacy enterprise cards with certificate dashboard cards */
+body.enterprise-portal .ep-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1rem 1.15rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+}
+
+body.enterprise-portal .ep-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+body.enterprise-portal .ep-stat {
+    background: #fff;
+    padding: 0.85rem 1rem;
+    border-radius: 10px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    border: 1px solid #e2e8f0;
+    min-width: 0;
+}
+
+body.enterprise-portal .ep-stat .label {
+    font-size: 0.72rem;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    font-weight: 600;
+}
+
+body.enterprise-portal .ep-stat .value {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: #1b2a4a;
+    margin-top: 0.15rem;
+    line-height: 1.15;
+}
+
+body.enterprise-portal .ep-page-footer {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e2e8f0;
+    color: #64748b;
+    font-size: 0.78rem;
+    line-height: 1.45;
+}
+
+@media (max-width: 991.98px) {
+    body.enterprise-portal .content-wrapper,
+    body.enterprise-portal .dash-content {
+        margin-left: 0 !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        padding: 4.45rem 1.15rem 1.2rem !important;
+    }
+}

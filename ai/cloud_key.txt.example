@@ -1,16 +1,20 @@
 # WUC Portal — Cloud AI API key
 #
-# 1. Get a FREE API key (no credit card) from one of these providers:
-#      - Groq        https://console.groq.com/keys        (default, fastest free tier)
-#      - OpenRouter  https://openrouter.ai/keys           (e.g. for free Qwen models)
+# Pollinations' old keyless text API is deprecated and returns HTTP 402.
+# Use a free keyed provider instead (no credit card for Groq free tier):
+#
+# 1. Get a FREE API key:
+#      - Groq        https://console.groq.com/keys        (recommended)
+#      - OpenRouter  https://openrouter.ai/keys
 #      - Together    https://api.together.xyz/settings/api-keys
 #
 # 2. Copy this file to:   ai/cloud_key.txt
 #      (the portal reads ai/cloud_key.txt, NOT this .example file)
 #
-# 3. Replace the line below with your key (the first non-comment line is used):
+# 3. Replace the line below with your real key (first non-comment line is used):
 
 gsk_PASTE_YOUR_GROQ_KEY_HERE
 
-# Optional overrides (or set these as environment variables instead):
+# Optional overrides (or set as environment variables):
 #   WUC_AI_CLOUD_PROVIDER=openrouter-qwen
+#   WUC_AI_CLOUD_CHAIN=groq,openrouter-qwen

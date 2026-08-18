@@ -42,6 +42,48 @@ if (!function_exists('wuc_portal_alert_normalize_role')) {
     }
 }
 
+if (!function_exists('wuc_portal_alert_portal_from_url')) {
+    function wuc_portal_alert_portal_from_url(?string $url, string $fallback = 'academic'): string
+    {
+        $url = strtolower(trim((string)$url));
+        $allowed = ['academic', 'elearning', 'applicant', 'alumni', 'employer', 'library', 'enterprise'];
+        $fallback = in_array($fallback, $allowed, true) ? $fallback : 'academic';
+        if (str_contains($url, '/enterprise/') || str_contains($url, '/opportunities/')) {
+            return 'enterprise';
+        }
+        foreach (['elearning', 'employer', 'alumni', 'library'] as $portal) {
+            if (str_contains($url, '/' . $portal . '/')) {
+                return $portal;
+            }
+        }
+        return str_contains($url, 'applicant_portal.php') ? 'applicant' : $fallback;
+    }
+}
+
+if (!function_exists('wuc_portal_alert_normalize_portal')) {
+    function wuc_portal_alert_normalize_portal(?string $portal, string $fallback = 'academic'): string
+    {
+        $allowed = ['academic', 'elearning', 'applicant', 'alumni', 'employer', 'library', 'enterprise'];
+        $fallback = in_array($fallback, $allowed, true) ? $fallback : 'academic';
+        $portal = strtolower(trim((string)$portal));
+        return in_array($portal, $allowed, true) ? $portal : $fallback;
+    }
+}
+
+if (!function_exists('wuc_portal_alert_action_url')) {
+    function wuc_portal_alert_action_url(?string $url): ?string
+    {
+        $url = trim((string)$url);
+        if ($url === '') {
+            return null;
+        }
+        if (!str_starts_with($url, '/wucportal/') || preg_match('/[\r\n]/', $url)) {
+            return null;
+        }
+        return substr($url, 0, 500);
+    }
+}
+
 if (!function_exists('wuc_portal_alert_viewer_context')) {
     /**
      * Resolve the logged-in viewer for notification queries (session-aware).
@@ -134,9 +176,11 @@ if (!function_exists('wuc_portal_alert_get_owned')) {
         $roleSql = wuc_portal_alert_role_sql($userRole, $types, $params);
 
         try {
-            $sql = "SELECT id, alert_type, severity, title, message, entity_type, entity_id, action_url, status, created_at
+            $sql = "SELECT id, alert_type, severity, title, message, entity_type, entity_id, action_url,
+                           source_portal, target_portal, target_page, expires_at, status, created_at
                     FROM portal_alerts
                     WHERE user_id = ? AND id = ? AND {$roleSql}
+                      AND (expires_at IS NULL OR expires_at > NOW())
                     LIMIT 1";
             if (!$stmt = $db->prepare($sql)) {
                 return null;
@@ -182,7 +226,11 @@ if (!function_exists('wuc_portal_alert_create')) {
         }
         $entityType = isset($alert['entity_type']) && $alert['entity_type'] !== '' ? (string)$alert['entity_type'] : null;
         $entityId = isset($alert['entity_id']) && $alert['entity_id'] !== '' ? (string)$alert['entity_id'] : null;
-        $actionUrl = isset($alert['action_url']) && $alert['action_url'] !== '' ? (string)$alert['action_url'] : null;
+        $actionUrl = wuc_portal_alert_action_url(isset($alert['action_url']) ? (string)$alert['action_url'] : null);
+        $sourcePortal = wuc_portal_alert_normalize_portal(isset($alert['source_portal']) ? (string)$alert['source_portal'] : null);
+        $targetPortal = wuc_portal_alert_portal_from_url($actionUrl, strtolower(trim((string)($alert['target_portal'] ?? $sourcePortal))));
+        $targetPage = $actionUrl;
+        $expiresAt = isset($alert['expires_at']) && trim((string)$alert['expires_at']) !== '' ? trim((string)$alert['expires_at']) : null;
         $dedupeDays = isset($alert['dedupe_days']) ? max(0, (int)$alert['dedupe_days']) : 7;
 
         try {
@@ -191,6 +239,7 @@ if (!function_exists('wuc_portal_alert_create')) {
                         WHERE user_id = ? AND alert_type = ?
                           AND COALESCE(entity_id, '') = COALESCE(?, '')
                           AND status IN ('unread', 'read')
+                          AND (expires_at IS NULL OR expires_at > NOW())
                           AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)";
                 if ($stmt = $db->prepare($sql)) {
                     $stmt->bind_param('sssi', $userId, $type, $entityId, $dedupeDays);
@@ -205,13 +254,14 @@ if (!function_exists('wuc_portal_alert_create')) {
 
             $stmt = $db->prepare(
                 'INSERT INTO portal_alerts
-                 (user_id, user_role, alert_type, severity, title, message, entity_type, entity_id, action_url)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                 (user_id, user_role, source_portal, target_portal, alert_type, severity, title, message,
+                  entity_type, entity_id, action_url, target_page, expires_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
             );
             if (!$stmt) {
                 return false;
             }
-            $stmt->bind_param('sssssssss', $userId, $userRole, $type, $severity, $title, $message, $entityType, $entityId, $actionUrl);
+            $stmt->bind_param('sssssssssssss', $userId, $userRole, $sourcePortal, $targetPortal, $type, $severity, $title, $message, $entityType, $entityId, $actionUrl, $targetPage, $expiresAt);
             $ok = $stmt->execute();
             $stmt->close();
             return $ok;
@@ -250,7 +300,11 @@ if (!function_exists('wuc_portal_alert_upsert_current')) {
         }
         $entityType = isset($alert['entity_type']) && $alert['entity_type'] !== '' ? (string)$alert['entity_type'] : null;
         $entityId = isset($alert['entity_id']) && $alert['entity_id'] !== '' ? (string)$alert['entity_id'] : null;
-        $actionUrl = isset($alert['action_url']) && $alert['action_url'] !== '' ? (string)$alert['action_url'] : null;
+        $actionUrl = wuc_portal_alert_action_url(isset($alert['action_url']) ? (string)$alert['action_url'] : null);
+        $sourcePortal = wuc_portal_alert_normalize_portal(isset($alert['source_portal']) ? (string)$alert['source_portal'] : null);
+        $targetPortal = wuc_portal_alert_portal_from_url($actionUrl, strtolower(trim((string)($alert['target_portal'] ?? $sourcePortal))));
+        $targetPage = $actionUrl;
+        $expiresAt = isset($alert['expires_at']) && trim((string)$alert['expires_at']) !== '' ? trim((string)$alert['expires_at']) : null;
 
         try {
             $existingId = 0;
@@ -258,6 +312,7 @@ if (!function_exists('wuc_portal_alert_upsert_current')) {
                     WHERE user_id = ? AND alert_type = ?
                       AND COALESCE(entity_id, '') = COALESCE(?, '')
                       AND status IN ('unread', 'read')
+                      AND (expires_at IS NULL OR expires_at > NOW())
                     ORDER BY id DESC
                     LIMIT 1";
             if ($stmt = $db->prepare($sql)) {
@@ -271,14 +326,15 @@ if (!function_exists('wuc_portal_alert_upsert_current')) {
             if ($existingId > 0) {
                 $stmt = $db->prepare(
                     "UPDATE portal_alerts
-                     SET user_role = ?, severity = ?, title = ?, message = ?, entity_type = ?, action_url = ?,
+                     SET user_role = ?, source_portal = ?, target_portal = ?, severity = ?, title = ?, message = ?, entity_type = ?, action_url = ?, target_page = ?, expires_at = ?,
                          status = IF(status = 'dismissed', 'unread', status)
                      WHERE id = ? AND user_id = ?"
                 );
                 if (!$stmt) {
                     return false;
                 }
-                $stmt->bind_param('ssssssis', $userRole, $severity, $title, $message, $entityType, $actionUrl, $existingId, $userId);
+                $updateTypes = str_repeat('s', 10) . 'is';
+                $stmt->bind_param($updateTypes, $userRole, $sourcePortal, $targetPortal, $severity, $title, $message, $entityType, $actionUrl, $targetPage, $expiresAt, $existingId, $userId);
                 $ok = $stmt->execute();
                 $stmt->close();
                 return $ok;
@@ -286,13 +342,14 @@ if (!function_exists('wuc_portal_alert_upsert_current')) {
 
             $stmt = $db->prepare(
                 'INSERT INTO portal_alerts
-                 (user_id, user_role, alert_type, severity, title, message, entity_type, entity_id, action_url)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                 (user_id, user_role, source_portal, target_portal, alert_type, severity, title, message,
+                  entity_type, entity_id, action_url, target_page, expires_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
             );
             if (!$stmt) {
                 return false;
             }
-            $stmt->bind_param('sssssssss', $userId, $userRole, $type, $severity, $title, $message, $entityType, $entityId, $actionUrl);
+            $stmt->bind_param('sssssssssssss', $userId, $userRole, $sourcePortal, $targetPortal, $type, $severity, $title, $message, $entityType, $entityId, $actionUrl, $targetPage, $expiresAt);
             $ok = $stmt->execute();
             $stmt->close();
             return $ok;
@@ -322,9 +379,11 @@ if (!function_exists('wuc_portal_alerts_for_user')) {
         }
 
         try {
-            $sql = "SELECT id, alert_type, severity, title, message, entity_type, entity_id, action_url, status, created_at
+            $sql = "SELECT id, alert_type, severity, title, message, entity_type, entity_id, action_url,
+                           source_portal, target_portal, target_page, expires_at, status, created_at
                     FROM portal_alerts
                     WHERE user_id = ? AND {$statusFilter}{$roleSql}
+                      AND (expires_at IS NULL OR expires_at > NOW())
                     ORDER BY FIELD(severity, 'critical', 'warning', 'info'), created_at DESC
                     LIMIT {$limit}";
             if (!$stmt = $db->prepare($sql)) {
@@ -360,7 +419,7 @@ if (!function_exists('wuc_portal_alerts_unread_count')) {
             if (trim($userRole) !== '') {
                 $roleSql = ' AND ' . wuc_portal_alert_role_sql($userRole, $types, $params);
             }
-            $sql = "SELECT COUNT(*) AS total FROM portal_alerts WHERE user_id = ? AND status = 'unread'{$roleSql}";
+            $sql = "SELECT COUNT(*) AS total FROM portal_alerts WHERE user_id = ? AND status = 'unread'{$roleSql} AND (expires_at IS NULL OR expires_at > NOW())";
             if (!$stmt = $db->prepare($sql)) {
                 return 0;
             }
@@ -421,7 +480,7 @@ if (!function_exists('wuc_portal_alerts_mark_all_read')) {
             if (trim($userRole) !== '') {
                 $roleSql = ' AND ' . wuc_portal_alert_role_sql($userRole, $types, $params);
             }
-            $sql = "UPDATE portal_alerts SET status = 'read', read_at = COALESCE(read_at, NOW()) WHERE user_id = ? AND status = 'unread'{$roleSql}";
+            $sql = "UPDATE portal_alerts SET status = 'read', read_at = COALESCE(read_at, NOW()) WHERE user_id = ? AND status = 'unread'{$roleSql} AND (expires_at IS NULL OR expires_at > NOW())";
             if (!$stmt = $db->prepare($sql)) {
                 return 0;
             }
@@ -453,6 +512,7 @@ if (!function_exists('wuc_portal_alerts_for_center')) {
 
         $limit = max(1, min(200, $limit));
         $where = ['user_id = ?'];
+        $where[] = '(expires_at IS NULL OR expires_at > NOW())';
         $types = 's';
         $params = [$userId];
         if (trim($userRole) !== '') {
@@ -485,7 +545,8 @@ if (!function_exists('wuc_portal_alerts_for_center')) {
         }
 
         try {
-            $sql = "SELECT id, alert_type, severity, title, message, entity_type, entity_id, action_url, status, created_at, read_at
+            $sql = "SELECT id, alert_type, severity, title, message, entity_type, entity_id, action_url,
+                           source_portal, target_portal, target_page, expires_at, status, created_at, read_at
                     FROM portal_alerts
                     WHERE " . implode(' AND ', $where) . "
                     ORDER BY FIELD(status, 'unread', 'read', 'dismissed'),
@@ -544,7 +605,7 @@ if (!function_exists('wuc_portal_alerts_counts')) {
             if (trim($userRole) !== '') {
                 $roleSql = ' AND ' . wuc_portal_alert_role_sql($userRole, $types, $params);
             }
-            $sql = 'SELECT status, severity, COUNT(*) AS total FROM portal_alerts WHERE user_id = ?' . $roleSql . ' GROUP BY status, severity';
+            $sql = 'SELECT status, severity, COUNT(*) AS total FROM portal_alerts WHERE user_id = ?' . $roleSql . ' AND (expires_at IS NULL OR expires_at > NOW()) GROUP BY status, severity';
             if ($stmt = $db->prepare($sql)) {
                 $stmt->bind_param($types, ...$params);
                 $stmt->execute();

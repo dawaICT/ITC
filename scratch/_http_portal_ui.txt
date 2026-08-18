@@ -1,0 +1,69 @@
+=== WUC Portal HTTP UI Probe ===
+Base URL: http://localhost/wucportal
+Cookie jar: C:\xampp\htdocs\wucportal\scratch/._http_portal_cookies.txt
+Timestamp: 2026-07-20T06:15:11+02:00
+
+--- 1) Lecturer login (ITC907) ---
+GET http://localhost/wucportal/staff_login.php
+  -> HTTP 200
+POST staff_login.php (Staff ID ITC907)
+  [1] POST http://localhost/wucportal/staff_login.php -> HTTP 303 Location: /wucportal/portal_selection.php
+  [2] GET http://localhost/wucportal/portal_selection.php -> HTTP 200
+
+--- 2) portal_selection extraction (lecturer) ---
+  Welcome name: Test Lecturer
+  Portal cards (2):
+    1. Academic Portal — Class lists, marks entry, CA upload, timetable and teaching tools.
+    2. eLearning Portal — Course materials, assignments, quizzes, discussions and learner progress.
+
+--- 3) Logout (staff) ---
+GET http://localhost/wucportal/logout.php?to=staff
+  [1] GET http://localhost/wucportal/logout.php?to=staff -> HTTP 302 Location: /wucportal/staff_login.php
+  [2] GET http://localhost/wucportal/staff_login.php -> HTTP 200
+  Logout landed at: http://localhost/wucportal/staff_login.php
+
+--- 4) Student login (CSE26456789) ---
+GET http://localhost/wucportal/student_login.php
+  -> HTTP 200
+POST student_login.php (Sid CSE26456789)
+  [1] POST http://localhost/wucportal/student_login.php -> HTTP 303 Location: /wucportal/portal_selection.php
+  [2] GET http://localhost/wucportal/portal_selection.php -> HTTP 200
+
+--- 5) portal_selection extraction (student) ---
+  Welcome name: Test Student
+  Portal cards (3):
+    1. Academic Portal — Registration, fees, results, timetable and student academic services.
+    2. eLearning Portal — Your courses, lessons, assignments, quizzes and learning progress.
+    3. Alumni Portal — Graduate records, certificates and alumni services.
+
+--- 6) Lecturer portal POST simulations ---
+
+>> Fresh lecturer login for portal=academic
+GET http://localhost/wucportal/staff_login.php
+  -> HTTP 200
+POST staff_login.php (Staff ID ITC907)
+  [1] POST http://localhost/wucportal/staff_login.php -> HTTP 303 Location: /wucportal/portal_selection.php
+  [2] GET http://localhost/wucportal/portal_selection.php -> HTTP 200
+GET http://localhost/wucportal/portal_selection.php (for CSRF before POST portal=academic)
+  -> HTTP 200
+POST portal_selection.php portal=academic
+  [1] POST http://localhost/wucportal/portal_selection.php -> HTTP 303 Location: /wucportal/lecturers/index.php
+  [2] GET http://localhost/wucportal/lecturers/index.php -> HTTP 200
+>> Location chain for portal=academic:
+   1. /wucportal/lecturers/index.php
+>> Final landing URL: http://localhost/wucportal/lecturers/index.php
+
+>> Fresh lecturer login for portal=elearning
+GET http://localhost/wucportal/staff_login.php
+  -> HTTP 200
+POST staff_login.php (Staff ID ITC907)
+  [1] POST http://localhost/wucportal/staff_login.php -> HTTP 303 Location: /wucportal/portal_selection.php
+  [2] GET http://localhost/wucportal/portal_selection.php -> HTTP 200
+GET http://localhost/wucportal/portal_selection.php (for CSRF before POST portal=elearning)
+  -> HTTP 200
+POST portal_selection.php portal=elearning
+  [1] POST http://localhost/wucportal/portal_selection.php -> HTTP 303 Location: /wucportal/lecturers/elearning/index.php
+  [2] GET http://localhost/wucportal/lecturers/elearning/index.php -> HTTP 200
+>> Location chain for portal=elearning:
+   1. /wucportal/lecturers/elearning/index.php
+>> Final landing URL: http://localhost/wucportal/lecturers/elearning/index.php

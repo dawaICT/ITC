@@ -18,6 +18,8 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once dirname(__DIR__) . '/db/connect.php';
 require_once __DIR__ . '/includes/session_handler.php';
 require_once dirname(__DIR__) . '/includes/helpers/academic_structure_helpers.php';
+require_once dirname(__DIR__) . '/includes/cse_progression.php';
+require_once dirname(__DIR__) . '/includes/exhibition_mode.php';
 
 if (!checkSessionTimeout(30) || !isAdminAuthenticated()) {
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
@@ -138,7 +140,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
                 
                 // Programs list for edit dropdown
                 $programs = [];
-                $prog_result = $db->query("SELECT program_code, program_name FROM programs WHERE COALESCE(is_active, 1) = 1 ORDER BY program_name");
+                $prog_result = $db->query("SELECT program_code, program_name FROM programs WHERE COALESCE(is_active, 1) = 1 AND program_code NOT IN ('CSE', 'ICT-002') ORDER BY program_name");
                 if ($prog_result) {
                     while ($row = $prog_result->fetch_assoc()) {
                         $programs[] = $row;
@@ -166,6 +168,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
                 }
                 if ($program_code === '') {
                     throw new Exception('Program is required');
+                }
+                if ($stageError = wuc_cse_direct_assignment_error($program_code)) {
+                    throw new Exception($stageError);
                 }
                 
                 // Verify student exists
@@ -269,6 +274,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
             case 'delete_student':
                 $sid = trim($_POST['sid'] ?? '');
                 if (empty($sid)) throw new Exception('Student ID is required');
+                wuc_exhibition_assert_destructive_target($db, $sid);
                 
                 // Verify student exists
                 $check = $db->prepare("SELECT SID FROM students WHERE TRIM(UPPER(SID)) = TRIM(UPPER(?))");
@@ -339,7 +345,7 @@ if (!isset($db) || !$db instanceof mysqli) {
 
 // Pre-fetch programs list (single query, not per-row)
 $programs_list = [];
-$prog_result = $db->query("SELECT program_code, program_name FROM programs WHERE COALESCE(is_active, 1) = 1 ORDER BY program_name");
+$prog_result = $db->query("SELECT program_code, program_name FROM programs WHERE COALESCE(is_active, 1) = 1 AND program_code NOT IN ('CSE', 'ICT-002') ORDER BY program_name");
 if ($prog_result) {
     while ($row = $prog_result->fetch_assoc()) {
         $programs_list[] = $row;

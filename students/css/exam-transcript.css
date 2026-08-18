@@ -1,0 +1,545 @@
+/* Exam Transcript — portal-aligned report page */
+
+body.et-page {
+    min-height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    background: #f5f6fa;
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    font-size: 13px;
+}
+
+body.et-page .et-main.content-wrapper {
+    min-height: 0 !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 1rem 1.25rem 2rem !important;
+}
+
+.et-viewport {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* Summary toolbar card */
+.et-header {
+    background: #fff;
+    border: 1px solid rgba(111, 66, 193, 0.12);
+    border-radius: 14px;
+    box-shadow: 0 8px 28px rgba(80, 60, 180, 0.07);
+    overflow: hidden;
+}
+
+.et-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.55rem 0.85rem;
+    padding: 0.65rem 0.85rem;
+    border-bottom: 1px solid #f0edf8;
+    background: linear-gradient(180deg, #faf8ff 0%, #fff 100%);
+}
+
+.et-toolbar-title {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #2d1e54;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.et-toolbar-title i {
+    color: #6f42c1;
+}
+
+.et-toolbar-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.et-stat-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    background: #f5f2fd;
+    color: #5a32a3;
+    border: 1px solid #e4defc;
+    line-height: 1.2;
+}
+
+.et-stat-pill .et-stat-label {
+    font-weight: 600;
+    opacity: 0.85;
+    font-size: 0.68rem;
+}
+
+.et-stat-pill .et-stat-value {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.et-stat-pill.green {
+    background: rgba(16, 185, 129, 0.1);
+    color: #047857;
+    border-color: rgba(16, 185, 129, 0.28);
+}
+
+.et-stat-pill.amber {
+    background: rgba(245, 158, 11, 0.1);
+    color: #b45309;
+    border-color: rgba(245, 158, 11, 0.28);
+}
+
+.et-stat-pill.neutral {
+    background: #f8fafc;
+    color: #475569;
+    border-color: #e2e8f0;
+}
+
+.et-identity-bar {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.55rem 0.85rem;
+    align-items: center;
+    padding: 0.65rem 0.85rem;
+}
+
+.et-letterhead {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.15rem;
+}
+
+.et-logo-img {
+    display: block;
+    max-height: 48px;
+    width: auto;
+    max-width: 64px;
+    object-fit: contain;
+}
+
+.et-institution-name {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: #2d1e54;
+}
+
+.et-report-subtitle {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #6f42c1;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.et-student-fullname {
+    font-size: 1.02rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 0.4rem;
+}
+
+.et-student-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.35rem 0.85rem;
+}
+
+.et-meta-key {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #94a3b8;
+}
+
+.et-meta-val {
+    font-size: 0.86rem;
+    font-weight: 600;
+    color: #334155;
+    word-break: break-word;
+}
+
+.et-legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 0.85rem;
+    padding: 0.45rem 0.85rem 0.55rem;
+    border-top: 1px solid #f0edf8;
+    background: #fcfbff;
+    font-size: 0.75rem;
+    color: #475569;
+}
+
+.et-legend-title {
+    font-weight: 700;
+    color: #2d1e54;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.et-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.et-legend-swatch {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.6rem;
+    height: 1.25rem;
+    padding: 0 0.3rem;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    border: 1px solid #e2e8f0;
+}
+
+.et-legend-swatch.is-grade {
+    background: rgba(111, 66, 193, 0.12);
+    color: #5a32a3;
+}
+
+.et-legend-swatch.is-empty {
+    background: #f8fafc;
+    color: #94a3b8;
+}
+
+/* Period selection sidebar */
+.et-selection-card {
+    border: 1px solid rgba(111, 66, 193, 0.12);
+    border-radius: 14px;
+    box-shadow: 0 8px 28px rgba(80, 60, 180, 0.07);
+    background: #fff;
+    overflow: hidden;
+}
+
+.et-selection-card .card-body {
+    padding: 1rem;
+}
+
+.et-selection-title {
+    color: #2d1e54;
+    font-size: 0.95rem;
+    font-weight: 700;
+    padding-bottom: 0.65rem;
+    margin-bottom: 0.75rem;
+    border-bottom: 1px solid #f0edf8;
+}
+
+.et-period-pill {
+    border: 1px solid rgba(111, 66, 193, 0.12);
+    border-radius: 10px;
+    padding: 0.75rem 0.85rem;
+    text-decoration: none;
+    color: #1f2937;
+    display: block;
+    transition: border-color 0.15s, background 0.15s, transform 0.15s;
+    background: #fff;
+}
+
+.et-period-pill:hover {
+    border-color: #6f42c1;
+    background: #fbf9ff;
+    color: #5a32a3;
+    transform: translateX(2px);
+}
+
+.et-period-pill.active {
+    background: linear-gradient(135deg, #6f42c1, #5a32a3);
+    color: #fff;
+    border-color: #6f42c1;
+    box-shadow: 0 4px 12px rgba(111, 66, 193, 0.2);
+}
+
+.et-period-pill.active .small {
+    color: rgba(255, 255, 255, 0.85);
+}
+
+/* Transcript paper */
+.et-results-panel {
+    display: flex;
+    flex-direction: column;
+}
+
+.transcript-paper {
+    background: #fff;
+    border: 1px solid rgba(111, 66, 193, 0.1);
+    border-radius: 14px;
+    padding: 1.75rem 1.5rem;
+    box-shadow: 0 8px 28px rgba(80, 60, 180, 0.06);
+    position: relative;
+    overflow: hidden;
+}
+
+.transcript-watermark {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-28deg);
+    font-size: 4.5rem;
+    font-weight: 900;
+    color: rgba(111, 66, 193, 0.02);
+    white-space: nowrap;
+    pointer-events: none;
+    user-select: none;
+    z-index: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.transcript-header-container {
+    z-index: 1;
+    position: relative;
+}
+
+.transcript-title-main {
+    color: #2d1e54;
+    font-size: 1.35rem;
+    font-weight: 800;
+    margin: 0;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.transcript-subtitle {
+    color: #6f42c1;
+    font-weight: 700;
+    font-size: 0.82rem;
+    letter-spacing: 0.08em;
+    margin-top: 0.2rem;
+    text-transform: uppercase;
+}
+
+.header-divider {
+    height: 3px;
+    border-top: 2px solid #6f42c1;
+    border-bottom: 1px solid #6f42c1;
+    margin: 1rem 0 1.25rem;
+    opacity: 0.85;
+}
+
+.wuc-logo-img.report-logo {
+    max-height: 56px;
+    width: auto;
+}
+
+.student-meta-container {
+    background: #f8f6fc;
+    border-left: 4px solid #6f42c1;
+    border-radius: 10px;
+    padding: 1rem 1.15rem;
+    margin-bottom: 1.25rem;
+    z-index: 1;
+    position: relative;
+}
+
+.meta-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem 1.25rem;
+}
+
+.meta-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.meta-label {
+    color: #6f42c1;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.15rem;
+}
+
+.meta-value {
+    color: #1f2937;
+    font-weight: 600;
+    font-size: 0.88rem;
+}
+
+.et-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    z-index: 1;
+    position: relative;
+}
+
+.transcript-table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 640px;
+    margin-bottom: 1rem;
+    font-size: 0.78rem;
+}
+
+.transcript-table thead th {
+    background: #f8fafc;
+    color: #475569;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.68rem;
+    letter-spacing: 0.03em;
+    padding: 0.6rem 0.55rem;
+    border-bottom: 1px solid #e2e8f0;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.transcript-table thead th.text-start {
+    text-align: left;
+}
+
+.transcript-table tbody td {
+    padding: 0.5rem 0.55rem;
+    border-color: #edf2f7;
+    vertical-align: middle;
+    color: #334155;
+}
+
+.transcript-table tbody tr:nth-child(even) > * {
+    background-color: #fbf9ff;
+}
+
+.transcript-table tbody tr:hover > * {
+    background-color: #f5f2fd;
+}
+
+.transcript-table tbody tr.et-summary-row > * {
+    background: #f8fafc !important;
+    border-top: 2px solid #e2e8f0;
+    font-weight: 700;
+}
+
+.et-grade-badge {
+    display: inline-flex;
+    min-width: 2rem;
+    align-items: center;
+    justify-content: center;
+    padding: 0.15rem 0.45rem;
+    border-radius: 999px;
+    background: rgba(111, 66, 193, 0.12);
+    color: #5a32a3;
+    font-weight: 700;
+    font-size: 0.72rem;
+}
+
+.et-score-missing {
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+.signature-section {
+    margin-top: 2rem;
+    z-index: 1;
+    position: relative;
+}
+
+.signature-line {
+    border-top: 1.5px solid #4b5563;
+    width: 75%;
+    margin: 2rem auto 0.5rem;
+}
+
+.transcript-official-notice {
+    text-align: center;
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin-top: 1.75rem;
+    border-top: 1px dashed #e5e7eb;
+    padding-top: 1rem;
+    z-index: 1;
+    position: relative;
+}
+
+.et-alert-compact {
+    font-size: 0.875rem;
+    border-radius: 10px;
+}
+
+.et-screen-header {
+    display: none;
+}
+
+@media (max-width: 991.98px) {
+    .et-student-meta-grid,
+    .meta-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 767.98px) {
+    body.et-page .et-main.content-wrapper {
+        padding: 0.75rem 0.75rem 1.5rem !important;
+    }
+
+    .transcript-paper {
+        padding: 1.15rem 0.85rem;
+    }
+
+    .et-student-meta-grid,
+    .meta-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .et-identity-bar {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media print {
+    body.et-page,
+    body.et-page .et-main {
+        height: auto !important;
+        overflow: visible !important;
+        padding: 0 !important;
+    }
+
+    .et-header,
+    .et-selection-card,
+    .no-print,
+    .dashboard-header {
+        display: none !important;
+    }
+
+    .et-screen-header {
+        display: none !important;
+    }
+
+    .transcript-paper {
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        border-radius: 0 !important;
+    }
+
+    .transcript-table thead th {
+        background: #f1f5f9 !important;
+        color: #000 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .student-meta-container {
+        background: #f8fafc !important;
+        border-left-color: #000 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+}

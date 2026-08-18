@@ -259,6 +259,20 @@ if (!function_exists('lr_course_resources')) {
                 's',
                 [$courseCode]
             );
+
+            // Older uploads stored the display placeholder "Not available" in
+            // the URL column.  Consumers render truthy URLs as links, which
+            // turns that placeholder into a relative /Not%20available request.
+            // Only expose absolute web URLs as links; keep the note itself.
+            foreach ($bundle['notes'] as &$note) {
+                $url = trim((string) ($note['url'] ?? ''));
+                $scheme = strtolower((string) parse_url($url, PHP_URL_SCHEME));
+                if (filter_var($url, FILTER_VALIDATE_URL) === false
+                    || !in_array($scheme, ['http', 'https'], true)) {
+                    $note['url'] = '';
+                }
+            }
+            unset($note);
         }
 
         return $bundle;

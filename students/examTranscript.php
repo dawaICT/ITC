@@ -1,11 +1,14 @@
 <?php
-session_start();
-error_reporting(0);
-ini_set('display_errors', '0');
+declare(strict_types=1);
 
 require_once __DIR__ . '/includes/guard.php';
 require_once dirname(__DIR__) . '/includes/assessment_weighting_helpers.php';
 require_once __DIR__ . '/includes/period_mode_helper.php';
+
+function et_h($value): string
+{
+    return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
+}
 
 $sid = (string)($_SESSION['Sid'] ?? '');
 $periodLabel = 'Semester';
@@ -21,6 +24,11 @@ $student = null;
 $policy = ['label' => 'Legacy stored marks'];
 $periodMeta = [];
 $caOnlyReport = false;
+$gpa = 0.0;
+$totalCredits = 0.0;
+$hasCredits = false;
+$totalCaCredits = 0.0;
+$hasCaCredits = false;
 
 function student_exam_grade(float $total): string
 {
@@ -269,548 +277,340 @@ if ($sid !== '') {
     }
 }
 }
+
+$pageTitle = $caOnlyReport ? 'Continuous Assessment Report' : 'Exam Transcript';
+$pageDescription = $caOnlyReport
+    ? 'Published continuous assessment marks for programmes with external final examinations.'
+    : 'Published semester exam results and grades for your academic record.';
+$institutionName = 'Industrial Training Centre';
+$reportPaperTitle = $caOnlyReport ? 'Continuous Assessment Report' : 'Semester Exam Transcript';
+$studentFullName = trim((string)($student['Fname'] ?? '') . ' ' . (string)($student['Lname'] ?? ''));
+$programName = trim((string)($student['program_name'] ?? ''));
+if ($programName === '') {
+    $programName = 'N/A';
+}
+$activeRecordCount = $caOnlyReport ? count($caRecords) : count($records);
+$hasReportData = $activeRecordCount > 0;
+$periodDisplay = $selectedYear !== '' && $selectedSemester !== ''
+    ? $selectedYear . ', ' . $periodLabel . ' ' . $selectedSemester
+    : '—';
+$assessmentRuleLabel = $caOnlyReport
+    ? 'CA marks only (external exam)'
+    : (string)($policy['label'] ?? 'Legacy stored marks');
+
 require_once __DIR__ . '/../includes/page_meta.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title><?php echo htmlspecialchars(wuc_portal_title($caOnlyReport ? 'Continuous Assessment Report' : 'Exam Transcript'), ENT_QUOTES, 'UTF-8'); ?></title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?= et_h(wuc_portal_title($pageTitle)) ?></title>
 <?php wuc_portal_favicon_links(); ?>
-    <style>
-        /* Modern design system tokens and variables */
-        :root {
-            --brand-primary: #6f42c1;
-            --brand-primary-hover: #5a32a3;
-            --brand-primary-light: #f5f2fd;
-            --text-dark: #1f2937;
-            --text-muted: #6b7280;
-            --border-color: #e5e7eb;
-            --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-            --premium-shadow: 0 10px 15px -3px rgba(111, 66, 193, 0.05), 0 4px 6px -2px rgba(111, 66, 193, 0.02);
-        }
-
-        .transcript-shell { 
-            max-width: 1040px; 
-            margin: 0 auto; 
-        }
-
-        /* Redesigned Selection Column */
-        .report-selection-card {
-            border: none;
-            border-radius: 16px;
-            box-shadow: var(--premium-shadow);
-            background: #fff;
-            overflow: hidden;
-            border: 1px solid rgba(111, 66, 193, 0.08);
-        }
-
-        .report-selection-title {
-            color: #2d1e54;
-            font-size: 1rem;
-            font-weight: 700;
-            padding-bottom: 12px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .semester-pill { 
-            border: 1px solid rgba(111, 66, 193, 0.1); 
-            border-radius: 12px; 
-            padding: 14px 16px; 
-            text-decoration: none; 
-            color: var(--text-dark); 
-            display: block; 
-            transition: all 0.2s ease-in-out;
-            background: #fff;
-            position: relative;
-        }
-
-        .semester-pill:hover {
-            border-color: var(--brand-primary);
-            transform: translateX(4px);
-            box-shadow: 0 4px 12px rgba(111, 66, 193, 0.08);
-            color: var(--brand-primary-hover);
-        }
-
-        .semester-pill.active { 
-            background: linear-gradient(135deg, #6f42c1, #5a32a3); 
-            color: #fff; 
-            border-color: var(--brand-primary);
-            box-shadow: 0 4px 15px rgba(111, 66, 193, 0.25);
-        }
-        
-        .semester-pill.active .small {
-            color: rgba(255, 255, 255, 0.85);
-        }
-
-        /* Redesigned Transcript Paper */
-        .transcript-paper { 
-            background: #fff; 
-            border: 1px solid rgba(111, 66, 193, 0.1); 
-            border-radius: 16px; 
-            padding: 40px; 
-            box-shadow: var(--premium-shadow);
-            position: relative;
-            overflow: hidden;
-        }
-
-        /* Subtle professional watermark */
-        .transcript-watermark {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) rotate(-30deg);
-            font-size: 5.5rem;
-            font-weight: 900;
-            color: rgba(111, 66, 193, 0.015);
-            white-space: nowrap;
-            pointer-events: none;
-            user-select: none;
-            z-index: 0;
-            text-transform: uppercase;
-            letter-spacing: 4px;
-        }
-
-        .transcript-header-container {
-            z-index: 1;
-            position: relative;
-        }
-
-        .transcript-title-main { 
-            color: #2d1e54; 
-            font-size: 1.6rem; 
-            font-weight: 800; 
-            margin: 0; 
-            letter-spacing: 1px;
-            text-transform: uppercase;
-        }
-
-        .transcript-subtitle {
-            color: var(--brand-primary);
-            font-weight: 700;
-            font-size: 0.95rem;
-            letter-spacing: 2px;
-            margin-top: 4px;
-        }
-
-        /* Header dividing line */
-        .header-divider {
-            height: 3px;
-            border-top: 2px solid var(--brand-primary);
-            border-bottom: 1px solid var(--brand-primary);
-            margin: 20px 0;
-            opacity: 0.85;
-        }
-
-        /* Redesigned Structured Metadata Grid */
-        .student-meta-container {
-            background-color: var(--brand-primary-light);
-            border-left: 4px solid var(--brand-primary);
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 30px;
-            z-index: 1;
-            position: relative;
-        }
-
-        .meta-grid { 
-            display: grid; 
-            grid-template-columns: repeat(3, minmax(0, 1fr)); 
-            gap: 16px 24px; 
-        }
-
-        .meta-item {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .meta-label { 
-            color: var(--brand-primary); 
-            font-size: 0.7rem; 
-            text-transform: uppercase; 
-            font-weight: 700; 
-            letter-spacing: 1px;
-            margin-bottom: 2px;
-        }
-
-        .meta-value { 
-            color: #1f2937; 
-            font-weight: 600; 
-            font-size: 0.95rem;
-        }
-
-        /* Table Styling */
-        .table-responsive {
-            z-index: 1;
-            position: relative;
-        }
-
-        .transcript-table {
-            border-collapse: collapse;
-            width: 100%;
-            margin-bottom: 24px;
-        }
-
-        .transcript-table thead th {
-            background: linear-gradient(135deg, #6f42c1, #5a32a3);
-            color: #fff;
-            font-weight: 600;
-            text-transform: uppercase;
-            font-size: 0.75rem;
-            letter-spacing: 0.5px;
-            padding: 12px 16px;
-            border: 1px solid rgba(111, 66, 193, 0.2);
-            text-align: center;
-        }
-
-        .transcript-table thead th.text-start {
-            text-align: left;
-        }
-
-        .transcript-table tbody td {
-            padding: 12px 16px;
-            border: 1px solid var(--border-color);
-            font-size: 0.9rem;
-            color: var(--text-dark);
-        }
-
-        .transcript-table tbody tr:nth-child(even) {
-            background-color: #faf9fe;
-        }
-
-        .transcript-table tbody tr:hover {
-            background-color: #f1ecf9;
-        }
-
-        .text-center { text-align: center; }
-        .text-end { text-align: right; }
-        .fw-bold { font-weight: bold; }
-
-        /* Signature block */
-        .signature-section {
-            margin-top: 45px;
-            z-index: 1;
-            position: relative;
-        }
-
-        .signature-line {
-            border-top: 1.5px solid #4b5563;
-            width: 80%;
-            margin: 40px auto 8px auto;
-        }
-
-        .transcript-official-notice {
-            text-align: center;
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            margin-top: 40px;
-            border-top: 1px dashed var(--border-color);
-            padding-top: 15px;
-            z-index: 1;
-            position: relative;
-        }
-
-        @media (max-width: 991.98px) {
-            .meta-grid { 
-                grid-template-columns: repeat(2, minmax(0, 1fr)); 
-            }
-        }
-
-        @media (max-width: 767.98px) {
-            .transcript-paper { padding: 24px; }
-            .meta-grid { grid-template-columns: 1fr; gap: 12px; }
-            .transcript-title-main { font-size: 1.3rem; }
-        }
-
-        /* Targeted Print Style Sheet overrides */
-        @media print {
-            body { 
-                background: #fff !important; 
-                color: #000 !important;
-            }
-            .sidebar, .sidebar-toggle, .sidebar-backdrop, .no-print, .btn, .page-header { 
-                display: none !important; 
-            }
-            .content-wrapper { 
-                margin: 0 !important; 
-                padding: 0 !important; 
-            }
-            .container-fluid {
-                padding: 0 !important;
-            }
-            .transcript-shell { 
-                max-width: 100% !important; 
-                width: 100% !important;
-            }
-            .transcript-paper { 
-                border: 0 !important; 
-                box-shadow: none !important; 
-                padding: 0 !important; 
-                margin: 0 !important;
-                border-radius: 0 !important;
-            }
-            .student-meta-container {
-                background-color: #f8fafc !important;
-                border-left: 4px solid #000 !important;
-                border: 1px solid #cbd5e1 !important;
-                border-left-width: 4px !important;
-                padding: 15px !important;
-                margin-bottom: 20px !important;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-            .meta-value {
-                color: #000 !important;
-            }
-            .meta-label {
-                color: #475569 !important;
-            }
-            .transcript-table thead th {
-                background: #f1f5f9 !important;
-                color: #000 !important;
-                border: 1px solid #475569 !important;
-                font-size: 8pt !important;
-                padding: 8px !important;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-            .transcript-table tbody td {
-                border: 1px solid #475569 !important;
-                font-size: 8.5pt !important;
-                padding: 8px !important;
-                color: #000 !important;
-            }
-            .transcript-table tbody tr {
-                background: none !important;
-            }
-            .signature-line {
-                border-top: 1px solid #000 !important;
-            }
-            .transcript-official-notice {
-                margin-top: 30px !important;
-                font-size: 7pt !important;
-            }
-            .transcript-watermark {
-                color: rgba(0, 0, 0, 0.01) !important;
-            }
-        }
-    </style>
-    <link rel="stylesheet" href="/wucportal/css/wuc-premium.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/wucportal/css/portal-dashboard.css">
+    <link rel="stylesheet" href="/wucportal/students/css/dashboard.css">
+    <link rel="stylesheet" href="/wucportal/students/css/exam-transcript.css">
     <link rel="stylesheet" media="print" href="/wucportal/css/wuc-print.css">
 </head>
-<body class="bg-light no-auto-print">
+<body class="bg-light student-dashboard-page no-auto-print et-page">
 <?php require_once __DIR__ . '/includes/navbar.php'; ?>
-<div class="content-wrapper">
-    <div class="container-fluid py-4">
-        <div class="transcript-shell">
-            <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4 no-print">
-                <div>
-                    <h2 class="page-title mb-1 fw-bold" style="color: #2d1e54;"><?php echo $caOnlyReport ? 'Continuous Assessment Report' : 'Exam Transcript'; ?></h2>
-                    <div class="text-muted small">
-                        <?php echo $caOnlyReport ? 'Print continuous assessment results for external-exam programmes.' : 'Print semester exam results for your academic record.'; ?>
-                    </div>
-                </div>
-                <?php if (!empty($records) || !empty($caRecords)): ?>
-                    <button type="button" class="btn btn-primary px-4 py-2 border-0 shadow-sm" style="background: linear-gradient(135deg, #6f42c1, #5a32a3); border-radius: 8px; font-weight: 500;" onclick="wucPrintSinglePage()">
-                        <i class="fas fa-print me-2"></i> Print Selected Report
-                    </button>
+
+<main class="content-wrapper pt-3 pb-5 et-main">
+<div class="container-fluid px-3 px-lg-4 portal-dashboard et-viewport">
+
+    <div class="dashboard-header student-section mb-4">
+        <div class="row align-items-center g-3">
+            <div class="col">
+                <h1 class="dashboard-title"><?= et_h($pageTitle) ?></h1>
+                <p class="text-muted mb-0"><?= et_h($pageDescription) ?></p>
+            </div>
+            <div class="col-auto no-print">
+                <?php if ($hasReportData): ?>
+                <button type="button" class="btn btn-primary" onclick="wucPrintSinglePage()" title="Print report" aria-label="Print report">
+                    <i class="fas fa-print me-2"></i>Print Report
+                </button>
                 <?php endif; ?>
             </div>
-
-            <?php if (empty($periods)): ?>
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle me-2"></i>No published exam transcript or CA report is available yet.
-                </div>
-            <?php else: ?>
-                <div class="row g-4">
-                    <div class="col-lg-3 no-print">
-                        <div class="card report-selection-card">
-                            <div class="card-body">
-                                <h6 class="report-selection-title mb-3 fw-bold"><i class="fas fa-file-invoice me-2 text-primary"></i>Available Reports</h6>
-                                <div class="d-grid gap-2">
-                                    <?php foreach ($periods as $period): ?>
-                                        <?php $active = $period['year'] === $selectedYear && $period['semester'] === $selectedSemester; ?>
-                                        <a class="semester-pill <?php echo $active ? 'active' : ''; ?>" href="examTranscript.php?year=<?php echo urlencode($period['year']); ?>&semester=<?php echo urlencode($period['semester']); ?>">
-                                            <div class="d-flex justify-content-between align-items-center">
-                                                <div>
-                                                    <strong class="d-block"><?php echo htmlspecialchars($period['year'], ENT_QUOTES, 'UTF-8'); ?></strong>
-                                                    <span class="small"><?php echo htmlspecialchars($periodLabel, ENT_QUOTES, 'UTF-8'); ?> <?php echo htmlspecialchars($period['semester'], ENT_QUOTES, 'UTF-8'); ?></span>
-                                                </div>
-                                                <i class="fas <?php echo $active ? 'fa-check-circle text-white' : 'fa-chevron-right text-muted'; ?> fs-5"></i>
-                                            </div>
-                                            <?php if (!empty($period['has_ca']) && empty($period['has_exam'])): ?>
-                                                <span class="badge bg-info text-dark mt-2">CA Report</span>
-                                            <?php endif; ?>
-                                        </a>
-                                    <?php endforeach; ?>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-lg-9">
-                        <div class="transcript-paper wuc-a4-sheet">
-                            <!-- Watermark -->
-                            <div class="transcript-watermark"><?php echo $caOnlyReport ? 'CA REPORT' : 'OFFICIAL RECORD'; ?></div>
-
-                            <!-- Header -->
-                            <div class="transcript-header-container text-center pb-2">
-                                <span class="wuc-logo-frame">
-                                    <img src="images/itc_logo.png" alt="ITC Logo" class="wuc-logo-img report-logo">
-                                </span>
-                                <h1 class="transcript-title-main mt-2">Industrial Training Centre</h1>
-                                <div class="transcript-subtitle text-uppercase"><?php echo $caOnlyReport ? 'Continuous Assessment Report' : 'Semester Exam Transcript'; ?></div>
-                                <div class="header-divider"></div>
-                            </div>
-
-                            <!-- Student Info Card (3-Column Grid) -->
-                            <div class="student-meta-container">
-                                <div class="meta-grid">
-                                    <div class="meta-item">
-                                        <span class="meta-label">Student Name</span>
-                                        <span class="meta-value"><?php echo htmlspecialchars(trim(($student['Fname'] ?? '') . ' ' . ($student['Lname'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></span>
-                                    </div>
-                                    <div class="meta-item">
-                                        <span class="meta-label">Student ID</span>
-                                        <span class="meta-value"><?php echo htmlspecialchars($sid, ENT_QUOTES, 'UTF-8'); ?></span>
-                                    </div>
-                                    <div class="meta-item">
-                                        <span class="meta-label">Academic Period</span>
-                                        <span class="meta-value"><?php echo htmlspecialchars($selectedYear, ENT_QUOTES, 'UTF-8'); ?>, <?php echo htmlspecialchars($periodLabel, ENT_QUOTES, 'UTF-8'); ?> <?php echo htmlspecialchars($selectedSemester, ENT_QUOTES, 'UTF-8'); ?></span>
-                                    </div>
-                                    <div class="meta-item">
-                                        <span class="meta-label">Programme</span>
-                                        <span class="meta-value"><?php echo htmlspecialchars((string)($student['program_name'] ?? 'N/A'), ENT_QUOTES, 'UTF-8'); ?></span>
-                                    </div>
-                                    <div class="meta-item">
-                                        <span class="meta-label">Assessment Rule</span>
-                                        <span class="meta-value"><?php echo htmlspecialchars($caOnlyReport ? 'CA Marks Only (External Exam)' : (string)$policy['label'], ENT_QUOTES, 'UTF-8'); ?></span>
-                                    </div>
-                                    <div class="meta-item">
-                                        <span class="meta-label">Date Issued</span>
-                                        <span class="meta-value"><?php echo date('d M Y'); ?></span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Report Content -->
-                            <?php if ($caOnlyReport): ?>
-                                <?php if (empty($caRecords)): ?>
-                                    <div class="alert alert-info mb-0">No CA records were found for this semester.</div>
-                                <?php else: ?>
-                                    <div class="alert alert-info d-print-none mb-3">
-                                        <i class="fas fa-info-circle me-2"></i>This programme uses external final examinations. The portal report below shows continuous assessment marks only.
-                                    </div>
-                                    <div class="table-responsive">
-                                        <table class="transcript-table">
-                                            <thead>
-                                                <tr>
-                                                    <th style="width: 5%;">#</th>
-                                                    <th class="text-start" style="width: 15%;">Course Code</th>
-                                                    <th class="text-start" style="width: 40%;">Course Name</th>
-                                                    <th style="width: 10%;">Credits</th>
-                                                    <th style="width: 7%;">Assignment 1</th>
-                                                    <th style="width: 7%;">Assignment 2</th>
-                                                    <th style="width: 7%;">Test</th>
-                                                    <th style="width: 9%;">Total CA</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <?php $i = 1; foreach ($caRecords as $row): ?>
-                                                    <tr>
-                                                        <td class="text-center"><?php echo $i++; ?></td>
-                                                        <td class="fw-bold"><?php echo htmlspecialchars((string)$row['Course_Code'], ENT_QUOTES, 'UTF-8'); ?></td>
-                                                        <td><?php echo htmlspecialchars((string)$row['course_name'], ENT_QUOTES, 'UTF-8'); ?></td>
-                                                        <td class="text-center"><?php echo htmlspecialchars((string)($row['credit_units'] ?: '-'), ENT_QUOTES, 'UTF-8'); ?></td>
-                                                        <td class="text-center"><?php echo student_transcript_number($row['A1'] ?? null); ?></td>
-                                                        <td class="text-center"><?php echo student_transcript_number($row['A2'] ?? null); ?></td>
-                                                        <td class="text-center"><?php echo student_transcript_number($row['T1'] ?? null); ?></td>
-                                                        <td class="text-center fw-bold"><?php echo student_transcript_number($row['Total_CA'] ?? null); ?></td>
-                                                    </tr>
-                                                <?php endforeach; ?>
-                                                <tr class="fw-bold bg-light">
-                                                    <td colspan="3" class="text-end">Total Registered Credits:</td>
-                                                    <td class="text-center"><?php echo $hasCaCredits ? number_format($totalCaCredits, 1) : '-'; ?></td>
-                                                    <td colspan="4"></td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                <?php endif; ?>
-                            <?php elseif (empty($records)): ?>
-                                <div class="alert alert-info mb-0">No exam records were found for this semester.</div>
-                            <?php else: ?>
-                                <div class="table-responsive">
-                                    <table class="transcript-table">
-                                        <thead>
-                                            <tr>
-                                                <th style="width: 5%;">#</th>
-                                                <th class="text-start" style="width: 15%;">Course Code</th>
-                                                <th class="text-start" style="width: 40%;">Course Name</th>
-                                                <th style="width: 8%;">Credits</th>
-                                                <th style="width: 8%;">CA</th>
-                                                <th style="width: 8%;">Exam</th>
-                                                <th style="width: 10%;">Final Mark</th>
-                                                <th style="width: 8%;">Grade</th>
-                                                <th style="width: 8%;">Points</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <?php $i = 1; foreach ($records as $row): ?>
-                                                <tr>
-                                                    <td class="text-center"><?php echo $i++; ?></td>
-                                                    <td class="fw-bold"><?php echo htmlspecialchars((string)$row['Course_Code'], ENT_QUOTES, 'UTF-8'); ?></td>
-                                                    <td><?php echo htmlspecialchars((string)$row['course_name'], ENT_QUOTES, 'UTF-8'); ?></td>
-                                                    <td class="text-center"><?php echo htmlspecialchars((string)($row['credit_units'] ?: '-'), ENT_QUOTES, 'UTF-8'); ?></td>
-                                                    <td class="text-center"><?php echo number_format((float)$row['Total_CA'], 2); ?></td>
-                                                    <td class="text-center"><?php echo number_format((float)$row['Exam_marks'], 2); ?></td>
-                                                    <td class="text-center fw-bold"><?php echo number_format((float)$row['final_mark'], 2); ?></td>
-                                                    <td class="text-center fw-bold text-primary"><?php echo htmlspecialchars((string)$row['grade'], ENT_QUOTES, 'UTF-8'); ?></td>
-                                                    <td class="text-center"><?php echo number_format((float)$row['points'], 2); ?></td>
-                                                </tr>
-                                            <?php endforeach; ?>
-                                            <tr class="fw-bold bg-light" style="border-top: 2px solid #1f2937;">
-                                                <td colspan="3" class="text-end">Summary:</td>
-                                                <td class="text-center"><?php echo $hasCredits ? number_format($totalCredits, 1) : '-'; ?></td>
-                                                <td colspan="4" class="text-end">GPA:</td>
-                                                <td class="text-center"><?php echo number_format($gpa, 2); ?></td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            <?php endif; ?>
-
-                            <!-- Signature Section -->
-                            <?php if (!empty($records) || !empty($caRecords)): ?>
-                                <div class="signature-section container-fluid">
-                                    <div class="row">
-                                        <div class="col-6 text-center">
-                                            <div class="signature-line"></div>
-                                            <strong style="color: #2d1e54;">Registrar</strong>
-                                            <div class="text-muted small mt-1">Industrial Training Centre</div>
-                                        </div>
-                                        <div class="col-6 text-center">
-                                            <div class="signature-line"></div>
-                                            <strong style="color: #2d1e54;">Academic Office</strong>
-                                            <div class="text-muted small mt-1">Official Stamp & Date</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            <?php endif; ?>
-
-                            <!-- Official notice footer -->
-                            <div class="transcript-official-notice">
-                                <p class="mb-1">This transcript is valid only when it bears the official signature of the Registrar and the institutional stamp.</p>
-                                <p class="mb-0 text-uppercase fw-bold text-muted" style="font-size: 0.65rem; letter-spacing: 1px;">Industrial Training Centre • Academic Record • End of Record</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            <?php endif; ?>
         </div>
     </div>
+
+    <?php if ($periods === []): ?>
+    <div class="alert alert-info et-alert-compact">
+        <i class="fas fa-info-circle me-2"></i>No published exam transcript or CA report is available yet.
+    </div>
+    <?php else: ?>
+    <div class="row g-4">
+        <div class="col-lg-3 no-print">
+            <div class="card et-selection-card">
+                <div class="card-body">
+                    <h2 class="et-selection-title mb-0">
+                        <i class="fas fa-file-invoice me-2 text-primary" aria-hidden="true"></i>Available Reports
+                    </h2>
+                    <div class="d-grid gap-2 mt-3">
+                        <?php foreach ($periods as $period): ?>
+                            <?php $active = $period['year'] === $selectedYear && $period['semester'] === $selectedSemester; ?>
+                            <a class="et-period-pill <?= $active ? 'active' : '' ?>" href="examTranscript.php?year=<?= urlencode($period['year']) ?>&amp;semester=<?= urlencode($period['semester']) ?>">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong class="d-block"><?= et_h($period['year']) ?></strong>
+                                        <span class="small"><?= et_h($periodLabel) ?> <?= et_h($period['semester']) ?></span>
+                                    </div>
+                                    <i class="fas <?= $active ? 'fa-check-circle text-white' : 'fa-chevron-right text-muted' ?>" aria-hidden="true"></i>
+                                </div>
+                                <?php if (!empty($period['has_ca']) && empty($period['has_exam'])): ?>
+                                <span class="badge bg-info text-dark mt-2">CA Report</span>
+                                <?php endif; ?>
+                            </a>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-9">
+            <section class="et-header no-print mb-3" aria-label="Report summary">
+                <div class="et-toolbar">
+                    <h2 class="et-toolbar-title">
+                        <i class="fas fa-graduation-cap" aria-hidden="true"></i>
+                        <?= et_h($periodDisplay) ?>
+                    </h2>
+                    <div class="et-toolbar-stats">
+                        <span class="et-stat-pill neutral">
+                            <i class="fas fa-book" aria-hidden="true"></i>
+                            <span class="et-stat-label">Courses</span>
+                            <span class="et-stat-value"><?= (int)$activeRecordCount ?></span>
+                        </span>
+                        <?php if (!$caOnlyReport && $hasReportData): ?>
+                        <span class="et-stat-pill green">
+                            <i class="fas fa-star" aria-hidden="true"></i>
+                            <span class="et-stat-label">GPA</span>
+                            <span class="et-stat-value"><?= et_h(number_format($gpa, 2)) ?></span>
+                        </span>
+                        <span class="et-stat-pill neutral">
+                            <i class="fas fa-layer-group" aria-hidden="true"></i>
+                            <span class="et-stat-label">Credits</span>
+                            <span class="et-stat-value"><?= $hasCredits ? et_h(number_format($totalCredits, 1)) : '—' ?></span>
+                        </span>
+                        <?php elseif ($caOnlyReport && $hasReportData): ?>
+                        <span class="et-stat-pill neutral">
+                            <i class="fas fa-layer-group" aria-hidden="true"></i>
+                            <span class="et-stat-label">Credits</span>
+                            <span class="et-stat-value"><?= $hasCaCredits ? et_h(number_format($totalCaCredits, 1)) : '—' ?></span>
+                        </span>
+                        <?php endif; ?>
+                        <span class="et-stat-pill amber">
+                            <i class="fas fa-scale-balanced" aria-hidden="true"></i>
+                            <span class="et-stat-label">Rule</span>
+                            <span class="et-stat-value"><?= et_h($caOnlyReport ? 'CA only' : 'CA + Exam') ?></span>
+                        </span>
+                    </div>
+                </div>
+                <div class="et-identity-bar">
+                    <div class="et-letterhead">
+                        <img src="images/itc_logo.png" alt="" class="et-logo-img" width="48" height="48" onerror="this.style.display='none'">
+                        <div class="et-institution-name"><?= et_h($institutionName) ?></div>
+                        <div class="et-report-subtitle"><?= et_h($reportPaperTitle) ?></div>
+                    </div>
+                    <div class="et-student-identity">
+                        <div class="et-student-fullname"><?= et_h($studentFullName !== '' ? $studentFullName : 'Student') ?></div>
+                        <div class="et-student-meta-grid">
+                            <div>
+                                <div class="et-meta-key">Student ID</div>
+                                <div class="et-meta-val"><?= et_h($sid) ?></div>
+                            </div>
+                            <div>
+                                <div class="et-meta-key">Programme</div>
+                                <div class="et-meta-val"><?= et_h($programName) ?></div>
+                            </div>
+                            <div>
+                                <div class="et-meta-key">Assessment rule</div>
+                                <div class="et-meta-val"><?= et_h($assessmentRuleLabel) ?></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="et-legend">
+                    <span class="et-legend-title">How to read</span>
+                    <?php if ($caOnlyReport): ?>
+                    <span class="et-legend-item">
+                        <span class="et-legend-swatch is-empty">—</span>
+                        Component not published
+                    </span>
+                    <?php else: ?>
+                    <span class="et-legend-item">
+                        <span class="et-legend-swatch is-grade">B+</span>
+                        Final grade
+                    </span>
+                    <span class="et-legend-item">
+                        <span class="et-legend-swatch is-empty">—</span>
+                        Missing mark
+                    </span>
+                    <?php endif; ?>
+                    <span class="et-legend-item">Published marks only appear on this report.</span>
+                </div>
+            </section>
+
+            <div class="et-results-panel">
+            <div class="transcript-paper wuc-a4-sheet">
+                <div class="transcript-watermark"><?= et_h($caOnlyReport ? 'CA REPORT' : 'OFFICIAL RECORD') ?></div>
+
+                <div class="transcript-header-container text-center pb-2">
+                    <span class="wuc-logo-frame">
+                        <img src="images/itc_logo.png" alt="ITC Logo" class="wuc-logo-img report-logo" onerror="this.style.display='none'">
+                    </span>
+                    <h1 class="transcript-title-main mt-2"><?= et_h($institutionName) ?></h1>
+                    <div class="transcript-subtitle"><?= et_h($reportPaperTitle) ?></div>
+                    <div class="header-divider"></div>
+                </div>
+
+                <div class="student-meta-container">
+                    <div class="meta-grid">
+                        <div class="meta-item">
+                            <span class="meta-label">Student Name</span>
+                            <span class="meta-value"><?= et_h($studentFullName) ?></span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Student ID</span>
+                            <span class="meta-value"><?= et_h($sid) ?></span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Academic Period</span>
+                            <span class="meta-value"><?= et_h($periodDisplay) ?></span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Programme</span>
+                            <span class="meta-value"><?= et_h($programName) ?></span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Assessment Rule</span>
+                            <span class="meta-value"><?= et_h($assessmentRuleLabel) ?></span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Date Issued</span>
+                            <span class="meta-value"><?= et_h(date('d M Y')) ?></span>
+                        </div>
+                    </div>
+                </div>
+
+                <?php if ($caOnlyReport): ?>
+                    <?php if ($caRecords === []): ?>
+                    <div class="alert alert-info mb-0">No CA records were found for this period.</div>
+                    <?php else: ?>
+                    <div class="alert alert-info no-print mb-3">
+                        <i class="fas fa-info-circle me-2"></i>This programme uses external final examinations. The report below shows continuous assessment marks only.
+                    </div>
+                    <div class="et-table-wrap">
+                        <table class="transcript-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th class="text-start">Course Code</th>
+                                    <th class="text-start">Course Name</th>
+                                    <th>Credits</th>
+                                    <th>Ass1</th>
+                                    <th>Ass2</th>
+                                    <th>Test</th>
+                                    <th>Total CA</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php $i = 1; foreach ($caRecords as $row): ?>
+                                <tr>
+                                    <td class="text-center"><?= $i++ ?></td>
+                                    <td class="fw-bold"><?= et_h((string)$row['Course_Code']) ?></td>
+                                    <td><?= et_h((string)$row['course_name']) ?></td>
+                                    <td class="text-center"><?= et_h((string)($row['credit_units'] ?: '—')) ?></td>
+                                    <td class="text-center"><?= et_h(student_transcript_number($row['A1'] ?? null)) ?></td>
+                                    <td class="text-center"><?= et_h(student_transcript_number($row['A2'] ?? null)) ?></td>
+                                    <td class="text-center"><?= et_h(student_transcript_number($row['T1'] ?? null)) ?></td>
+                                    <td class="text-center fw-bold"><?= et_h(student_transcript_number($row['Total_CA'] ?? null)) ?></td>
+                                </tr>
+                                <?php endforeach; ?>
+                                <tr class="et-summary-row">
+                                    <td colspan="3" class="text-end">Total registered credits</td>
+                                    <td class="text-center"><?= $hasCaCredits ? et_h(number_format($totalCaCredits, 1)) : '—' ?></td>
+                                    <td colspan="4"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <?php endif; ?>
+                <?php elseif ($records === []): ?>
+                <div class="alert alert-info mb-0">No exam records were found for this period.</div>
+                <?php else: ?>
+                <div class="et-table-wrap">
+                    <table class="transcript-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th class="text-start">Course Code</th>
+                                <th class="text-start">Course Name</th>
+                                <th>Credits</th>
+                                <th>CA</th>
+                                <th>Exam</th>
+                                <th>Final</th>
+                                <th>Grade</th>
+                                <th>Points</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php $i = 1; foreach ($records as $row): ?>
+                            <tr>
+                                <td class="text-center"><?= $i++ ?></td>
+                                <td class="fw-bold"><?= et_h((string)$row['Course_Code']) ?></td>
+                                <td><?= et_h((string)$row['course_name']) ?></td>
+                                <td class="text-center"><?= et_h((string)($row['credit_units'] ?: '—')) ?></td>
+                                <td class="text-center"><?= et_h(number_format((float)$row['Total_CA'], 2)) ?></td>
+                                <td class="text-center"><?= et_h(number_format((float)$row['Exam_marks'], 2)) ?></td>
+                                <td class="text-center fw-bold"><?= et_h(number_format((float)$row['final_mark'], 2)) ?></td>
+                                <td class="text-center"><span class="et-grade-badge"><?= et_h((string)$row['grade']) ?></span></td>
+                                <td class="text-center"><?= et_h(number_format((float)$row['points'], 2)) ?></td>
+                            </tr>
+                            <?php endforeach; ?>
+                            <tr class="et-summary-row">
+                                <td colspan="3" class="text-end">Summary</td>
+                                <td class="text-center"><?= $hasCredits ? et_h(number_format($totalCredits, 1)) : '—' ?></td>
+                                <td colspan="4" class="text-end">GPA</td>
+                                <td class="text-center"><?= et_h(number_format($gpa, 2)) ?></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <?php endif; ?>
+
+                <?php if ($hasReportData): ?>
+                <div class="signature-section">
+                    <div class="row">
+                        <div class="col-md-6 text-center">
+                            <div class="signature-line"></div>
+                            <strong style="color:#2d1e54;">Registrar</strong>
+                            <div class="text-muted small mt-1"><?= et_h($institutionName) ?></div>
+                        </div>
+                        <div class="col-md-6 text-center">
+                            <div class="signature-line"></div>
+                            <strong style="color:#2d1e54;">Academic Office</strong>
+                            <div class="text-muted small mt-1">Official stamp &amp; date</div>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
+
+                <div class="transcript-official-notice">
+                    <p class="mb-1">This transcript is valid only when it bears the official signature of the Registrar and the institutional stamp.</p>
+                    <p class="mb-0 text-uppercase fw-bold text-muted" style="font-size:0.65rem;letter-spacing:1px;"><?= et_h($institutionName) ?> · Academic Record · End of Record</p>
+                </div>
+            </div>
+            </div><!-- .et-results-panel -->
+        </div>
+    </div>
+    <?php endif; ?>
+
 </div>
+</main>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

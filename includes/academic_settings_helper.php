@@ -20,49 +20,44 @@
 if (!function_exists('wuc_academic_year_options')) {
     function wuc_academic_year_options(mysqli $db): array
     {
-        // Per-request memo: the academic-year list is stable within a request
-        // yet this helper is called once per year <select> (filter forms,
-        // report forms, registration forms can render several). Cache it so the
-        // SHOW COLUMNS probe and DISTINCT scan run at most once per request.
-        static $cached = null;
-        if ($cached !== null) {
-            return $cached;
-        }
+        require_once __DIR__ . '/lookup_cache.php';
 
-        $years = [];
+        return wuc_cache_remember('academic_year_options', static function () use ($db): array {
+            $years = [];
 
-        // Detect dedicated academic_year column.
-        $ayColExists = false;
-        if ($r = @$db->query("SHOW COLUMNS FROM course_registration LIKE 'academic_year'")) {
-            $ayColExists = $r->num_rows > 0;
-            $r->free();
-        }
-
-        $sql = $ayColExists
-            ? "SELECT DISTINCT academic_year AS yr FROM course_registration
-               WHERE academic_year IS NOT NULL AND academic_year <> ''
-               ORDER BY academic_year DESC"
-            : "SELECT DISTINCT Year AS yr FROM course_registration
-               WHERE Year IS NOT NULL AND Year <> '' AND CAST(Year AS UNSIGNED) >= 1990
-               ORDER BY Year DESC";
-
-        if ($res = @$db->query($sql)) {
-            while ($row = $res->fetch_assoc()) {
-                $v = trim((string)($row['yr'] ?? ''));
-                // Accept 4-digit years only (bare YYYY format).
-                if (preg_match('/^\d{4}$/', $v) && !in_array($v, $years, true)) {
-                    $years[] = $v;
-                }
+            // Detect dedicated academic_year column.
+            $ayColExists = false;
+            if ($r = @$db->query("SHOW COLUMNS FROM course_registration LIKE 'academic_year'")) {
+                $ayColExists = $r->num_rows > 0;
+                $r->free();
             }
-            $res->free();
-        }
 
-        if (empty($years)) {
-            $y = (int)date('Y');
-            $years = [(string)$y, (string)($y - 1), (string)($y - 2)];
-        }
+            $sql = $ayColExists
+                ? "SELECT DISTINCT academic_year AS yr FROM course_registration
+                   WHERE academic_year IS NOT NULL AND academic_year <> ''
+                   ORDER BY academic_year DESC"
+                : "SELECT DISTINCT Year AS yr FROM course_registration
+                   WHERE Year IS NOT NULL AND Year <> '' AND CAST(Year AS UNSIGNED) >= 1990
+                   ORDER BY Year DESC";
 
-        return $cached = $years;
+            if ($res = @$db->query($sql)) {
+                while ($row = $res->fetch_assoc()) {
+                    $v = trim((string)($row['yr'] ?? ''));
+                    // Accept 4-digit years only (bare YYYY format).
+                    if (preg_match('/^\d{4}$/', $v) && !in_array($v, $years, true)) {
+                        $years[] = $v;
+                    }
+                }
+                $res->free();
+            }
+
+            if ($years === []) {
+                $y = (int)date('Y');
+                $years = [(string)$y, (string)($y - 1), (string)($y - 2)];
+            }
+
+            return $years;
+        }, 600);
     }
 }
 

@@ -205,10 +205,6 @@ if (!function_exists('audit_log')) {
             ? (string)$actor['actor_user_id']
             : ($actor['actor_staff_number'] !== '' ? $actor['actor_staff_number'] : 'guest');
 
-        // #region agent log
-        @file_put_contents('C:\\Users\\THIS PC\\debug-4a673c.log', json_encode(['sessionId'=>'4a673c','runId'=>'run1','hypothesisId'=>'A/C/D','location'=>'audit.php:208','message'=>'audit_log_current_user resolved actor & logUserId','data'=>['action'=>$action,'computed_logUserId'=>$logUserId,'actor_user_id'=>$actor['actor_user_id'],'actor_username'=>$actor['actor_username'],'actor_staff_number'=>$actor['actor_staff_number'],'session_user_id_db'=>$_SESSION['user_id_db']??null,'session_user_id'=>$_SESSION['user_id']??null,'session_staff_id'=>$_SESSION['staff_id']??null],'timestamp'=>round(microtime(true)*1000)], JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE)."\n", FILE_APPEND);
-        // #endregion
-
         audit_log($db, $logUserId, $action, $context);
     }
 

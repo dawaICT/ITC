@@ -279,9 +279,44 @@ class StudentDataService
     /**
      * Determine student's current year of study based on registration history
      */
-    public function getStudentYearOfStudy(string $studentId): int
+    public function getStudentYearOfStudy(string $studentId, ?string $academicYear = null): int
     {
         try {
+            // Resolve within the target academic year when supplied: a
+            // progression record for a future year must not leak backwards
+            // into the current year's enrolment.
+            if ($academicYear !== null && preg_match('/(\d{4})/', $academicYear, $ayMatch)) {
+                $stmt = $this->pdo->prepare("
+                    SELECT MAX(CAST(year_of_study AS UNSIGNED)) AS max_year
+                    FROM semester_registration
+                    WHERE student_id = ?
+                      AND LEFT(CAST(academic_year AS CHAR), 4) = ?
+                ");
+                $stmt->execute([$studentId, $ayMatch[1]]);
+                $row = $stmt->fetch();
+                if ($row && $row['max_year']) {
+                    return min((int)$row['max_year'], 4);
+                }
+
+                // No registration for that year yet: use the programme
+                // position maintained by admissions/progression.
+                $stmt = $this->pdo->prepare("
+                    SELECT COALESCE(NULLIF(current_year_number, 0), NULLIF(year_of_study, 0), 1) AS yos
+                    FROM student_program
+                    WHERE Sid = ?
+                      AND (status IS NULL OR status = '' OR LOWER(status) = 'active')
+                    ORDER BY id DESC
+                    LIMIT 1
+                ");
+                $stmt->execute([$studentId]);
+                $row = $stmt->fetch();
+                if ($row && (int)($row['yos'] ?? 0) > 0) {
+                    return min((int)$row['yos'], 4);
+                }
+
+                return 1;
+            }
+
             $stmt = $this->pdo->prepare("
                 SELECT MAX(CAST(year_of_study AS UNSIGNED)) AS max_year
                 FROM semester_registration

@@ -1,4 +1,7 @@
 <?php
+require_once __DIR__ . '/../includes/production_guards.php';
+wuc_require_cli_only();
+
 $host = 'localhost';
 $user = 'root';
 $pass = '';

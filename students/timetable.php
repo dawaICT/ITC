@@ -421,7 +421,7 @@ function getScheduleTypeBadge($type) {
   <div class="content-wrapper">
     <div class="container-fluid px-4">
       <!-- Header -->
-      <div class="d-flex justify-content-between align-items-center mb-4">
+      <header class="student-page-heading d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
         <div>
           <h3 class="mb-1"><i class="fas fa-calendar-alt me-2"></i>My Timetable</h3>
           <p class="text-muted mb-0">Year of Study <?php echo htmlspecialchars((string)$year); ?> - <?php echo $periodLabel . ' ' . $semester; ?></p>
@@ -434,7 +434,7 @@ function getScheduleTypeBadge($type) {
             <i class="fas fa-download me-1"></i>Export
           </button>
         </div>
-      </div>
+      </header>
 
       <!-- Filters -->
       <div class="card mb-4 no-print">

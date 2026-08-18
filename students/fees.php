@@ -20,12 +20,19 @@ $feesEligibility = $feesPeriod['ok']
     : null;
 
 // Students on the new Fees System have a unified printable statement. Only
-// send them there when an active fee account actually exists — otherwise the
-// statement page dead-ends with "Fee Account Not Found" while the dashboard
-// still shows a legacy-computed balance. Everyone else gets the legacy fees
-// page below, which matches the dashboard's fee summary.
+// send them there when an active fee account can actually be resolved with the
+// same join rules the statement page uses (LEFT JOIN courses — orphaned
+// course_id still counts). Otherwise fall through to the legacy fees page so
+// the student still sees balance/payment history instead of a dead-end.
 $feesHasNewAccount = false;
-if ($stmtFeeAcc = $db->prepare("SELECT 1 FROM student_fee_accounts WHERE student_id = ? AND status = 'active' LIMIT 1")) {
+if ($stmtFeeAcc = $db->prepare(
+    "SELECT sfa.id
+       FROM student_fee_accounts sfa
+       INNER JOIN students s ON s.SID = sfa.student_id
+      WHERE sfa.student_id = ? AND sfa.status = 'active'
+      ORDER BY sfa.id DESC
+      LIMIT 1"
+)) {
     $stmtFeeAcc->bind_param('s', $studentId);
     $stmtFeeAcc->execute();
     $stmtFeeAcc->store_result();
@@ -376,13 +383,27 @@ if (empty($errors)) {
     $totalPaid = (float)$combinedPayments['total_paid'];
     $paymentHistoryLimited = !empty($combinedPayments['limited']);
 
-    // Load fee line items for the breakdown table
+    // Load fee line items for the breakdown table (guard optional columns —
+    // fee_structure.entity_type is present on current local DB but is a known
+    // phantom on some installs; never hard-require it).
     $reg = is_array($currentProgramFeeSummary['registration'] ?? null) ? $currentProgramFeeSummary['registration'] : [];
-    if (!empty($currentProgramFeeSummary['has_fees']) && $reg) {
-        $feeItemsSql = 'SELECT fee_type, fee_description, amount FROM fee_structure
-            WHERE program_code = ? AND year_of_study = ? AND semester = ?
-            AND entity_type = \'program\' AND status = \'active\'
-            ORDER BY id';
+    if (!empty($currentProgramFeeSummary['has_fees']) && $reg && $studentTableExists($db, 'fee_structure')) {
+        $feeWhere = ['program_code = ?', 'year_of_study = ?', 'semester = ?'];
+        $feeCols = [];
+        if ($feeColRes = $db->query('SHOW COLUMNS FROM `fee_structure`')) {
+            while ($feeCol = $feeColRes->fetch_assoc()) {
+                $feeCols[strtolower((string)$feeCol['Field'])] = true;
+            }
+            $feeColRes->free();
+        }
+        if (!empty($feeCols['entity_type'])) {
+            $feeWhere[] = "entity_type = 'program'";
+        }
+        if (!empty($feeCols['status'])) {
+            $feeWhere[] = "status = 'active'";
+        }
+        $feeItemsSql = 'SELECT fee_type, fee_description, amount FROM fee_structure WHERE '
+            . implode(' AND ', $feeWhere) . ' ORDER BY id';
         if ($feeItemsStmt = $db->prepare($feeItemsSql)) {
             $feeProgramCode = (string)($currentProgramFeeSummary['program_code'] ?? '');
             $feeYear = (string)($reg['year_of_study'] ?? '');

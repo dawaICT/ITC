@@ -1,249 +1,277 @@
-/* Continuous Assessment — compact single-viewport layout */
+/* Continuous Assessment — portal-aligned, scrollable, readable */
 
-html:has(body.ca-page),
+/* ---------------------------------------------------------------------------
+   Layout: scroll with student chrome (do NOT lock body/viewport height)
+--------------------------------------------------------------------------- */
 body.ca-page {
-    height: 100%;
-    overflow: hidden;
+    min-height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    background: #f5f6fa;
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    font-size: 13px;
 }
 
 body.ca-page .ca-main.content-wrapper {
     min-height: 0 !important;
-    height: 100vh;
-    max-height: 100vh;
-    padding: 0.3rem 1rem 0.25rem !important;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 1rem 1.25rem 2rem !important;
+    display: block;
     box-sizing: border-box;
 }
 
 .ca-page .ca-viewport {
-    flex: 1;
-    min-height: 0;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0;
     display: flex;
     flex-direction: column;
-    padding: 0;
-    overflow: hidden;
+    gap: 0.85rem;
+    overflow: visible;
 }
 
-/* Header block: toolbar + inline student details */
+/* ---------------------------------------------------------------------------
+   Header card (toolbar + identity)
+--------------------------------------------------------------------------- */
 .ca-header {
-    flex-shrink: 0;
-    margin-bottom: 0.25rem;
     background: #fff;
     border: 1px solid rgba(111, 66, 193, 0.12);
-    border-radius: 10px;
-    box-shadow: 0 2px 8px rgba(80, 60, 180, 0.06);
+    border-radius: 14px;
+    box-shadow: 0 8px 28px rgba(80, 60, 180, 0.07);
     overflow: hidden;
 }
 
 .ca-toolbar {
     display: flex;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: 0.35rem 0.5rem;
-    flex-shrink: 0;
-    padding: 0.25rem 0.5rem;
-    margin-bottom: 0;
-    background: transparent;
-    border: none;
-    border-radius: 0;
-    box-shadow: none;
+    gap: 0.45rem 0.85rem;
+    padding: 0.5rem 0.85rem;
     border-bottom: 1px solid #f0edf8;
+    background: linear-gradient(180deg, #faf8ff 0%, #fff 100%);
 }
 
 .ca-toolbar-title-wrap {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.65rem 0.85rem;
     min-width: 0;
+    flex: 1 1 auto;
 }
 
 .ca-toolbar-title {
-    font-size: 0.95rem;
+    font-size: 1rem;
     font-weight: 700;
     color: #2d1e54;
     margin: 0;
-    white-space: nowrap;
     display: flex;
     align-items: center;
-    gap: 0.35rem;
+    gap: 0.45rem;
+    white-space: nowrap;
 }
 
 .ca-toolbar-title i {
     color: #6f42c1;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
 }
 
+/* Labeled summary stats (not icon-only) */
 .ca-toolbar-stats {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.25rem;
+    gap: 0.4rem;
 }
 
 .ca-stat-pill {
     display: inline-flex;
     align-items: center;
-    gap: 0.2rem;
-    padding: 0.1rem 0.45rem;
+    gap: 0.35rem;
+    padding: 0.3rem 0.65rem;
     border-radius: 999px;
-    font-size: 0.68rem;
+    font-size: 0.72rem;
     font-weight: 600;
     background: #f5f2fd;
     color: #5a32a3;
     border: 1px solid #e4defc;
+    line-height: 1.2;
+}
+
+.ca-stat-pill i {
+    font-size: 0.75rem;
+    opacity: 0.9;
+}
+
+.ca-stat-pill .ca-stat-label {
+    font-weight: 600;
+    color: inherit;
+    opacity: 0.85;
+    font-size: 0.68rem;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.ca-stat-pill .ca-stat-value {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
 }
 
 .ca-stat-pill.green {
     background: rgba(16, 185, 129, 0.1);
-    color: #059669;
-    border-color: rgba(16, 185, 129, 0.25);
+    color: #047857;
+    border-color: rgba(16, 185, 129, 0.28);
 }
 
 .ca-stat-pill.amber {
     background: rgba(245, 158, 11, 0.1);
     color: #b45309;
-    border-color: rgba(245, 158, 11, 0.25);
+    border-color: rgba(245, 158, 11, 0.28);
+}
+
+.ca-stat-pill.neutral {
+    background: #f8fafc;
+    color: #475569;
+    border-color: #e2e8f0;
 }
 
 .ca-toolbar-filters {
     display: flex;
     align-items: center;
-    gap: 0.35rem;
+    gap: 0.45rem;
     flex-wrap: wrap;
-    margin-left: auto;
+}
+
+.ca-toolbar-filters .form-label-inline {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #64748b;
+    margin: 0;
+    white-space: nowrap;
 }
 
 .ca-toolbar-filters .form-select-sm {
     width: auto;
-    min-width: 6.5rem;
-    max-width: 9rem;
+    min-width: 7.5rem;
+    max-width: 11rem;
     font-size: 0.78rem;
-    padding-top: 0.2rem;
-    padding-bottom: 0.2rem;
     border-color: #e4defc;
+    border-radius: 8px;
 }
 
 .ca-btn-icon {
-    width: 1.85rem;
-    height: 1.85rem;
+    width: 2.1rem;
+    height: 2.1rem;
     padding: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     border-radius: 8px;
+    border-color: #e4defc;
+    color: #5a32a3;
 }
 
-/* Centered letterhead + student details */
+/* Identity: left-aligned portal card (screen), not micro print letterhead */
 .ca-identity-bar {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.55rem 0.85rem;
     align-items: center;
-    text-align: center;
-    gap: 0.3rem;
-    padding: 0.4rem 0.75rem 0.45rem;
-    min-width: 0;
+    padding: 0.55rem 0.85rem 0.65rem;
+    text-align: left;
 }
 
 .ca-letterhead {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    width: 100%;
+    align-items: flex-start;
+    gap: 0.15rem;
 }
 
 .ca-logo-frame {
     display: flex;
     align-items: center;
-    justify-content: center;
-    margin: 0 auto 0.15rem;
+    justify-content: flex-start;
+    margin: 0 0 0.2rem;
 }
 
 .ca-logo-img {
     display: block;
-    max-height: 46px;
+    max-height: 48px;
     width: auto;
-    max-width: 56px;
+    max-width: 64px;
     object-fit: contain;
-    object-position: center center;
-    margin: 0 auto;
 }
 
 .ca-institution-name {
-    font-size: 0.86rem;
+    font-size: 0.95rem;
     font-weight: 700;
     color: #2d1e54;
-    line-height: 1.25;
-    text-align: center;
+    line-height: 1.3;
 }
 
 .ca-report-subtitle {
-    font-size: 0.66rem;
+    font-size: 0.72rem;
     font-weight: 600;
     color: #6f42c1;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.04em;
     line-height: 1.3;
-    margin-top: 0.1rem;
-    text-align: center;
 }
 
 .ca-letterhead-rule {
-    width: min(240px, 55%);
-    height: 2px;
-    margin: 0.3rem auto 0.15rem;
-    background: linear-gradient(90deg, transparent, rgba(111, 66, 193, 0.45), transparent);
-    border-radius: 999px;
+    display: none; /* screen: cleaner; print CSS restores if needed */
+}
+
+.ca-student-identity {
+    min-width: 0;
 }
 
 .ca-student-fullname {
-    font-size: 0.92rem;
+    font-size: 1.05rem;
     font-weight: 700;
     color: #1f2937;
-    line-height: 1.25;
-    text-align: center;
-    width: 100%;
+    line-height: 1.3;
+    margin-bottom: 0.45rem;
 }
 
 .ca-student-meta-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-    align-items: start;
-    justify-items: center;
-    justify-content: center;
-    gap: 0.35rem 0.75rem;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.35rem 0.85rem;
     width: 100%;
-    max-width: 760px;
-    margin: 0.1rem auto 0;
-    padding-top: 0.15rem;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    justify-items: start;
 }
 
 .ca-meta-item {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    text-align: center;
+    align-items: flex-start;
+    text-align: left;
     min-width: 0;
     width: 100%;
 }
 
 .ca-meta-key {
-    font-size: 0.58rem;
+    font-size: 0.68rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: #94a3b8;
     line-height: 1.2;
-    margin-bottom: 0.12rem;
+    margin-bottom: 0.15rem;
 }
 
 .ca-meta-val {
-    font-size: 0.72rem;
+    font-size: 0.88rem;
     font-weight: 600;
     color: #334155;
-    line-height: 1.3;
+    line-height: 1.35;
     word-break: break-word;
 }
 
@@ -256,44 +284,146 @@ body.ca-page .ca-main.content-wrapper {
     color: #6f42c1;
 }
 
-.ca-alert-compact {
-    flex-shrink: 0;
-    font-size: 0.8rem;
-    margin-bottom: 0.35rem !important;
-    padding-top: 0.35rem !important;
-    padding-bottom: 0.35rem !important;
+/* Legend — explains empty cells and row meaning */
+.ca-legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 0.85rem;
+    padding: 0.4rem 0.85rem 0.5rem;
+    border-top: 1px solid #f0edf8;
+    background: #fcfbff;
+    font-size: 0.75rem;
+    color: #475569;
 }
 
-/* Results panel fills remaining viewport */
+.ca-legend-title {
+    font-weight: 700;
+    color: #2d1e54;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-right: 0.15rem;
+}
+
+.ca-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    line-height: 1.3;
+}
+
+.ca-legend-swatch {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.6rem;
+    height: 1.25rem;
+    padding: 0 0.3rem;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    border: 1px solid transparent;
+}
+
+.ca-legend-swatch.is-score {
+    background: #fff;
+    border-color: #e2e8f0;
+    color: #334155;
+}
+
+.ca-legend-swatch.is-empty {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+    color: #94a3b8;
+}
+
+.ca-legend-swatch.is-final {
+    background: rgba(16, 185, 129, 0.12);
+    color: #047857;
+    border-radius: 999px;
+}
+
+.ca-legend-swatch.is-awaiting-row {
+    width: 0.85rem;
+    min-width: 0.85rem;
+    height: 0.85rem;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+}
+
+.ca-legend-swatch.is-published-row {
+    width: 0.85rem;
+    min-width: 0.85rem;
+    height: 0.85rem;
+    background: #fbf9ff;
+    border: 1px solid #e4defc;
+}
+
+.ca-alert-compact {
+    font-size: 0.875rem;
+    margin-bottom: 0 !important;
+    border-radius: 10px;
+}
+
+/* ---------------------------------------------------------------------------
+   Results panel + table
+--------------------------------------------------------------------------- */
 .ca-results-panel {
-    flex: 1;
-    min-height: 0;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow: visible;
 }
 
 .ca-paper {
-    flex: 1;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
     background: #fff;
     border: 1px solid rgba(111, 66, 193, 0.1);
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(80, 60, 180, 0.05);
+    border-radius: 14px;
+    box-shadow: 0 8px 28px rgba(80, 60, 180, 0.06);
     padding: 0;
     position: relative;
-    overflow: hidden;
+    overflow: visible;
 }
 
 .ca-paper-inner {
-    flex: 1;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
     position: relative;
     z-index: 1;
+    padding: 0.5rem 0.65rem 0.75rem;
+}
+
+.ca-paper .ca-exact-table-wrap {
+    overflow-x: auto;
+    background: transparent;
+    border-radius: 0 0 10px 10px;
+    box-shadow: none;
+    padding: 0 0.25rem 0.35rem;
+    margin: 0;
+}
+
+.ca-paper .ca-results-heading {
+    padding: 0.55rem 0.85rem 0.35rem;
+}
+
+.ca-results-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.35rem 0.75rem;
+    padding: 0.65rem 0.85rem 0.45rem;
+}
+
+.ca-results-heading h2 {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #2d1e54;
+}
+
+.ca-results-heading .ca-results-hint {
+    font-size: 0.78rem;
+    color: #64748b;
+    margin: 0;
 }
 
 .ca-watermark {
@@ -305,12 +435,14 @@ body.ca-page .ca-main.content-wrapper {
 }
 
 .ca-table-wrap {
-    flex: 1;
-    min-height: 0;
-    overflow: auto;
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
     background: #fff;
     border: 1px solid #e5e7eb;
     border-radius: 10px;
+    margin: 0 0.35rem 0.5rem;
+    max-width: 100%;
 }
 
 .ca-table {
@@ -319,7 +451,7 @@ body.ca-page .ca-main.content-wrapper {
     width: max(100%, 720px);
     max-width: none;
     margin: 0;
-    font-size: 0.82rem;
+    font-size: 0.78rem;
     color: #334155;
 }
 
@@ -332,8 +464,8 @@ body.ca-page .ca-main.content-wrapper {
     font-weight: 700;
     text-transform: uppercase;
     font-size: 0.68rem;
-    letter-spacing: 0.04em;
-    padding: 0.55rem 0.65rem;
+    letter-spacing: 0.03em;
+    padding: 0.6rem 0.55rem;
     border-bottom: 1px solid #e2e8f0;
     text-align: center;
     white-space: nowrap;
@@ -349,18 +481,11 @@ body.ca-page .ca-main.content-wrapper {
 
 .portal-dashboard .ca-table tbody td,
 .ca-table tbody td {
-    padding: 0.6rem 0.65rem;
+    padding: 0.5rem 0.45rem;
     border-color: #edf2f7;
     vertical-align: middle;
-    line-height: 1.35;
-    font-size: 0.82rem;
-}
-
-.portal-dashboard .ca-table tbody tr:nth-child(even) > *,
-.ca-table tbody tr:nth-child(even) > * {
-    --bs-table-bg: #fff;
-    background: #fff;
-    background-color: #fff;
+    line-height: 1.3;
+    font-size: 0.76rem;
 }
 
 .portal-dashboard .ca-table tbody tr:hover > *,
@@ -371,7 +496,7 @@ body.ca-page .ca-main.content-wrapper {
 }
 
 .ca-row-number {
-    width: 3.25rem;
+    width: 3rem;
 }
 
 .ca-code-column {
@@ -393,26 +518,28 @@ body.ca-page .ca-main.content-wrapper {
 .ca-group-heading {
     background: #f3f0fb !important;
     color: #2d1e54 !important;
-    font-size: 0.76rem !important;
+    font-size: 0.8rem !important;
     font-weight: 700 !important;
     text-transform: none !important;
+    letter-spacing: 0.01em !important;
 }
 
 .ca-name-column {
-    width: 6.75rem;
+    width: 14rem;
+    min-width: 10rem;
 }
 
 .ca-yos-column {
-    width: 4rem;
+    width: 3.5rem;
 }
 
 .ca-component-heading {
-    width: 4.5rem;
+    width: 4.25rem;
 }
 
 .ca-period-heading,
 .ca-final-heading {
-    width: 5.25rem;
+    width: 5rem;
 }
 
 .ca-period-cell,
@@ -421,6 +548,89 @@ body.ca-page .ca-main.content-wrapper {
 .ca-yos-cell {
     text-align: center;
     font-variant-numeric: tabular-nums;
+}
+
+/* Sticky name columns inside horizontal table scroll only */
+.ca-sticky-col {
+    position: sticky;
+    background: #fff;
+    z-index: 1;
+}
+.ca-sticky-num {
+    left: 0;
+    min-width: 2.75rem;
+    box-shadow: 1px 0 0 #edf2f7;
+}
+.ca-sticky-name {
+    left: 2.75rem;
+    min-width: 11rem;
+    max-width: 16rem;
+    text-align: left !important;
+    box-shadow: 4px 0 10px -4px rgba(45, 30, 84, 0.1);
+}
+.ca-table thead th.ca-sticky-num,
+.ca-table thead th.ca-name-column {
+    position: sticky;
+    z-index: 3;
+    background: #f8fafc !important;
+}
+.ca-table thead th.ca-sticky-num,
+.ca-table thead .ca-row-number {
+    left: 0;
+}
+.ca-table thead th.ca-name-column {
+    left: 2.75rem;
+}
+
+/* Published vs awaiting rows */
+.ca-row-has-marks > * {
+    --bs-table-bg: #fbf9ff;
+    background-color: #fbf9ff;
+}
+.ca-row-has-marks .ca-sticky-col {
+    background-color: #fbf9ff;
+}
+.ca-row-awaiting > * {
+    --bs-table-bg: #fcfcfd;
+    background-color: #fcfcfd;
+}
+.ca-row-awaiting .ca-sticky-col {
+    background-color: #fcfcfd;
+}
+.ca-row-awaiting .ca-course-name {
+    color: #64748b;
+    font-weight: 500;
+}
+
+.ca-component-cell.ca-has-score {
+    font-weight: 600;
+    color: #1f2937;
+}
+.ca-component-cell.ca-no-score {
+    background-color: rgba(248, 250, 252, 0.85);
+}
+
+.ca-score-value {
+    display: inline-flex;
+    min-width: 2rem;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: #1f2937;
+}
+
+.ca-course-name {
+    font-weight: 600;
+    color: #1f2937;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+
+.ca-course-code {
+    font-size: 0.68rem;
+    letter-spacing: 0.02em;
+    color: #94a3b8;
 }
 
 .ca-period-score {
@@ -437,9 +647,9 @@ body.ca-page .ca-main.content-wrapper {
     align-items: center;
     justify-content: center;
     min-width: 2.75rem;
-    padding: 0.2rem 0.5rem;
+    padding: 0.22rem 0.55rem;
     border-radius: 999px;
-    font-size: 0.78rem;
+    font-size: 0.72rem;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
 }
@@ -447,11 +657,24 @@ body.ca-page .ca-main.content-wrapper {
 .ca-total--pass { background: rgba(16,185,129,.12); color: #047857; }
 .ca-total--mid { background: rgba(245,158,11,.14); color: #b45309; }
 .ca-total--low { background: rgba(239,68,68,.1); color: #b91c1c; }
-.ca-total--neutral, .ca-total.is-missing { background: #f1f5f9; color: #94a3b8; font-weight: 600; }
+.ca-total--neutral,
+.ca-total.is-missing {
+    background: #f1f5f9;
+    color: #94a3b8;
+    font-weight: 600;
+}
 
 .ca-table.ca-table-annual {
-    min-width: 920px;
-    width: max(100%, 920px);
+    min-width: 960px;
+    width: max(100%, 960px);
+}
+
+/* Per-period tables are narrow — no horizontal scroll needed */
+.ca-table.ca-table-period,
+.ca-table.ca-table-summary {
+    table-layout: auto;
+    min-width: 0;
+    width: 100%;
 }
 
 .ca-duration-column {
@@ -464,19 +687,6 @@ body.ca-page .ca-main.content-wrapper {
     overflow-wrap: anywhere;
 }
 
-.ca-table-annual .ca-code-cell {
-    font-size: 0.76rem;
-    line-height: 1.15;
-    white-space: nowrap;
-    overflow-wrap: normal;
-}
-
-body.ca-page.student-portal .portal-dashboard table.ca-table-annual .ca-code-cell {
-    font-size: 0.72rem !important;
-    line-height: 1.12;
-    white-space: nowrap;
-}
-
 .ca-course-cell {
     color: #1f2937;
     font-weight: 500;
@@ -486,7 +696,7 @@ body.ca-page.student-portal .portal-dashboard table.ca-table-annual .ca-code-cel
 
 .ca-duration-cell {
     color: #64748b;
-    font-size: 0.78rem;
+    font-size: 0.8rem;
 }
 
 .ca-score {
@@ -496,6 +706,7 @@ body.ca-page.student-portal .portal-dashboard table.ca-table-annual .ca-code-cel
 
 .ca-score.missing {
     color: #94a3b8;
+    font-weight: 500;
 }
 
 .ca-total-score {
@@ -513,44 +724,14 @@ body.ca-page.student-portal .portal-dashboard table.ca-table-annual .ca-code-cel
     padding: 0.1rem 0.45rem;
 }
 
-body.ca-page.student-portal .portal-dashboard table.ca-table > :not(caption) > * > * {
-    padding: 0.6rem 0.65rem !important;
-    vertical-align: middle;
-}
-
-body.ca-page.student-portal .portal-dashboard table.ca-table thead th {
-    --bs-table-bg: #f8fafc;
-    background: #f8fafc !important;
-    background-color: #f8fafc !important;
-    border-bottom: 1px solid #e2e8f0 !important;
-    color: #475569 !important;
-    font-size: 0.68rem !important;
-    letter-spacing: 0.04em !important;
-    text-transform: uppercase !important;
-}
-
-body.ca-page.student-portal .portal-dashboard table.ca-table thead .ca-group-heading {
-    background: #f3f0fb !important;
-    background-color: #f3f0fb !important;
-    color: #2d1e54 !important;
-    text-transform: none !important;
-}
-
-body.ca-page.student-portal .portal-dashboard table.ca-table tbody td {
-    border-color: #edf2f7;
-    color: #334155;
-    font-size: 0.82rem;
-    line-height: 1.35;
-}
-
 .ca-empty {
     text-align: center;
-    padding: 1.5rem 0.75rem;
+    padding: 2rem 1rem;
     color: #6b7280;
 }
 
 .ca-empty-compact {
-    padding: 0.75rem;
+    padding: 1rem;
 }
 
 .ca-empty i {
@@ -612,51 +793,82 @@ body.ca-page.student-portal .portal-dashboard table.ca-table tbody td {
     border-top: 1px dashed #e5e7eb;
 }
 
-@media (max-width: 991.98px) {
-    body.ca-page .ca-main.content-wrapper {
-        height: calc(100dvh - 4.45rem);
-        max-height: calc(100dvh - 4.45rem);
-        padding: 0.25rem 0.85rem 0.35rem !important;
-    }
+/* ---------------------------------------------------------------------------
+   Period Tabs
+--------------------------------------------------------------------------- */
+.ca-period-tabs {
+    border-bottom: 2px solid #e4defc;
+    margin: 0 0.35rem;
+    gap: 0.15rem;
 }
 
-@media (max-width: 991.98px) {
-    html:has(body.ca-page),
-    body.ca-page {
-        height: auto;
-        overflow: auto;
-    }
-
-    body.ca-page .ca-main.content-wrapper {
-        height: auto;
-        max-height: none;
-        overflow: visible;
-    }
-
-    .ca-page .ca-viewport,
-    .ca-results-panel,
-    .ca-paper {
-        overflow: visible;
-        min-height: auto;
-    }
-
-    .ca-table-wrap {
-        overflow-x: auto;
-        overflow-y: visible;
-    }
+.ca-period-tabs .nav-link {
+    border: none;
+    border-bottom: 3px solid transparent;
+    border-radius: 8px 8px 0 0;
+    padding: 0.5rem 0.95rem;
+    font-size: 0.76rem;
+    font-weight: 600;
+    color: #64748b;
+    background: transparent;
+    transition: color 0.2s, border-color 0.2s, background 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
 }
 
+.ca-period-tabs .nav-link:hover {
+    color: #5a32a3;
+    background: rgba(111, 66, 193, 0.04);
+}
+
+.ca-period-tabs .nav-link.active {
+    color: #5a32a3;
+    border-bottom-color: #6f42c1;
+    background: #fbf9ff;
+    font-weight: 700;
+}
+
+.ca-period-tabs .nav-link i {
+    font-size: 0.68rem;
+    opacity: 0.75;
+}
+
+.ca-period-tabs .nav-link.active i {
+    opacity: 1;
+}
+
+.ca-tab-content {
+    margin: 0 0.35rem 0.5rem;
+}
+
+.ca-tab-content > .tab-pane {
+    padding-top: 0.5rem;
+}
+
+.ca-period-print-title {
+    color: #2d1e54;
+    font-size: 0.85rem;
+    font-weight: 700;
+    margin: 0.85rem 0 0.5rem;
+    padding-bottom: 0.35rem;
+    border-bottom: 1px solid #e4defc;
+}
+
+/* ---------------------------------------------------------------------------
+   Responsive
+--------------------------------------------------------------------------- */
 @media (max-width: 767.98px) {
-    .ca-toolbar {
-        flex-wrap: wrap;
+    body.ca-page .ca-main.content-wrapper {
+        padding: 0.75rem 0.75rem 1.5rem !important;
     }
 
-    .ca-toolbar-title-wrap {
-        flex: 1 1 100%;
+    .ca-identity-bar {
+        grid-template-columns: 1fr;
+        text-align: left;
     }
 
     .ca-toolbar-filters {
-        margin-left: 0;
         width: 100%;
     }
 
@@ -667,8 +879,11 @@ body.ca-page.student-portal .portal-dashboard table.ca-table tbody td {
     }
 
     .ca-student-meta-grid {
-        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-        max-width: 100%;
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .ca-legend {
+        gap: 0.45rem 0.75rem;
     }
 }
 
@@ -678,6 +893,9 @@ body.ca-page.student-portal .portal-dashboard table.ca-table tbody td {
     }
 }
 
+/* ---------------------------------------------------------------------------
+   Print
+--------------------------------------------------------------------------- */
 @media print {
     .ca-page,
     .ca-page .ca-main,
@@ -685,10 +903,31 @@ body.ca-page.student-portal .portal-dashboard table.ca-table tbody td {
         height: auto !important;
         max-height: none !important;
         overflow: visible !important;
+        padding: 0 !important;
+    }
+
+    /* Force all tab panes visible for print */
+    .ca-tab-content > .tab-pane {
+        display: block !important;
+        opacity: 1 !important;
+    }
+
+    .ca-period-tabs {
+        display: none !important;
+    }
+
+    .ca-period-print-title {
+        display: block !important;
     }
 
     .ca-print-only {
         display: block !important;
+    }
+
+    .ca-legend,
+    .ca-toolbar,
+    .no-print {
+        display: none !important;
     }
 
     .ca-watermark {
@@ -715,10 +954,17 @@ body.ca-page.student-portal .portal-dashboard table.ca-table tbody td {
 
     .ca-table-wrap {
         overflow: visible !important;
+        margin: 0 !important;
+        border: none !important;
     }
 
     .ca-table {
         min-width: 0;
+    }
+
+    .ca-sticky-col {
+        position: static !important;
+        box-shadow: none !important;
     }
 
     .ca-table thead th {
@@ -735,4 +981,190 @@ body.ca-page.student-portal .portal-dashboard table.ca-table tbody td {
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
+
+    .ca-identity-bar {
+        display: none !important; /* print uses ca-print-only letterhead */
+    }
+
+    /* Print styling for the custom exact table */
+    .ca-exact-table-wrap {
+        overflow: visible !important;
+        margin: 0 !important;
+        border: none !important;
+    }
+
+    .ca-exact-table {
+        min-width: 0 !important;
+        width: 100% !important;
+    }
+
+    .ca-exact-table th {
+        background-color: #f3e8ff !important;
+        color: #5a32a3 !important;
+        border: 1px solid #d8cfe7 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .ca-exact-row:nth-child(odd) td {
+        background-color: #f6f0fe !important;
+        border: 1px solid #e4defc !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .ca-exact-row:nth-child(even) td {
+        background-color: #ffffff !important;
+        border: 1px solid #e4defc !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
 }
+
+/* ---------------------------------------------------------------------------
+   CA Results Exact Template Styling (Screen & Print)
+--------------------------------------------------------------------------- */
+.ca-exact-header {
+    background: #fff;
+    padding: 1.15rem 1.35rem 0.5rem;
+    border-radius: 12px 12px 0 0;
+}
+
+.ca-exact-main-title {
+    font-size: 1.625rem;
+    font-weight: 800;
+    color: #6f42c1; /* brand purple matching ITC logo */
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+}
+
+.ca-exact-year {
+    font-size: 1.05rem;
+    font-weight: 500;
+    color: #5a32a3; /* dark purple */
+    margin-top: 0.15rem;
+}
+
+.ca-exact-table-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #6f42c1;
+}
+
+.ca-exact-print-btn {
+    width: 2.1rem;
+    height: 2.1rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+    border: 1px solid #d8cfe7;
+    border-radius: 6px;
+    color: #6f42c1;
+    font-size: 0.88rem;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.ca-exact-print-btn:hover {
+    background: #fbf9ff;
+    color: #5a32a3;
+}
+
+/* Exact Table Layout */
+.ca-exact-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    background: #fff;
+    border-radius: 0 0 12px 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    padding: 0 1.35rem 1.5rem;
+}
+
+.ca-exact-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    font-size: 0.76rem;
+    color: #1f2937;
+    border: 1px solid #d8cfe7;
+}
+
+/* Table header cells */
+.ca-exact-table th {
+    background-color: #f3e8ff; /* soft purple header */
+    color: #5a32a3; /* dark purple text */
+    font-weight: 700;
+    border: 1px solid #d8cfe7;
+    padding: 0.35rem 0.5rem;
+    text-shadow: none;
+}
+
+/* Group Headers */
+.ca-exact-group-row th {
+    font-size: 0.8rem;
+    text-transform: none;
+    letter-spacing: 0.02em;
+}
+
+/* Column Headers */
+.ca-exact-col-row th {
+    font-size: 0.74rem;
+}
+
+/* Data cells */
+.ca-exact-table td {
+    border: 1px solid #e4defc;
+    padding: 0.35rem 0.5rem;
+    line-height: 1.3;
+}
+
+/* Alternating Rows */
+.ca-exact-row:nth-child(odd) td {
+    background-color: #f6f0fe; /* soft purple rows */
+}
+
+.ca-exact-row:nth-child(even) td {
+    background-color: #ffffff; /* white rows */
+}
+
+.ca-exact-row.ca-row-has-marks:nth-child(odd) td {
+    background-color: #fbf9ff;
+}
+
+.ca-exact-row.ca-row-awaiting .ca-course-name {
+    color: #64748b;
+    font-weight: 500;
+}
+
+.ca-exact-row.ca-row-awaiting .ca-cell-code {
+    opacity: 0.85;
+}
+
+/* Column-specific alignments and widths */
+.ca-col-no, .ca-cell-no {
+    width: 3rem;
+}
+
+.ca-col-code, .ca-cell-code {
+    width: 6rem;
+}
+
+.ca-col-name, .ca-cell-name {
+    min-width: 14rem;
+}
+
+.ca-col-yos, .ca-cell-yos {
+    width: 3.5rem;
+}
+
+.ca-col-score, .ca-cell-score {
+    width: 4.5rem;
+}
+
+.ca-col-ca, .ca-cell-ca {
+    width: 5.5rem;
+    background-color: #f3e8ff; /* light purple highlight for CA total column */
+    color: #5a32a3;
+}
+

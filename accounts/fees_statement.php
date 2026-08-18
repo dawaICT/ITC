@@ -48,44 +48,8 @@ function fees_statement_render_error(string $title, string $message, bool $isStu
     exit;
 }
 
-/**
- * Load a student fee account with joined course/student details.
- */
-function fees_statement_fetch_account(mysqli $db, string $studentId, int $courseFilter = 0, ?int $accountId = null): ?array
-{
-    $select = "SELECT sfa.*, c.course_name, c.course_code, tm.mode_name, d.department_name, s.Fname, s.Lname
-               FROM student_fee_accounts sfa
-               INNER JOIN courses c ON sfa.course_id = c.id
-               INNER JOIN training_modes tm ON sfa.training_mode_id = tm.id
-               INNER JOIN students s ON sfa.student_id = s.SID
-               LEFT JOIN departments d ON c.department_id = d.id";
-
-    if ($accountId !== null && $accountId > 0) {
-        $stmt = $db->prepare($select . " WHERE sfa.id = ? AND sfa.status = 'active' LIMIT 1");
-        if (!$stmt) {
-            return null;
-        }
-        $stmt->bind_param('i', $accountId);
-    } elseif ($courseFilter > 0) {
-        $stmt = $db->prepare($select . " WHERE sfa.student_id = ? AND sfa.course_id = ? AND sfa.status = 'active' LIMIT 1");
-        if (!$stmt) {
-            return null;
-        }
-        $stmt->bind_param('si', $studentId, $courseFilter);
-    } else {
-        $stmt = $db->prepare($select . " WHERE sfa.student_id = ? AND sfa.status = 'active' ORDER BY sfa.id DESC LIMIT 1");
-        if (!$stmt) {
-            return null;
-        }
-        $stmt->bind_param('s', $studentId);
-    }
-
-    $stmt->execute();
-    $account = $stmt->get_result()->fetch_assoc() ?: null;
-    $stmt->close();
-
-    return $account;
-}
+// fees_statement_fetch_account() lives in includes/fees_helpers.php (already
+// required above) so CLI tests and this page share one implementation.
 
 // Auth: student (own statement) or finance staff (any student via student_id param).
 $studentId = '';
@@ -284,9 +248,11 @@ function fees_statement_gateway_type(string $type): string
 // All of this student's active fee accounts (one per course). With more than
 // one, the page renders course tabs that switch statements via ?course_id=.
 $accountOptions = [];
-$optStmt = $db->prepare("SELECT sfa.course_id, c.course_code, c.course_name
+$optStmt = $db->prepare("SELECT sfa.course_id,
+                                COALESCE(NULLIF(TRIM(c.course_code), ''), 'PROGRAMME') AS course_code,
+                                COALESCE(NULLIF(TRIM(c.course_name), ''), 'Programme / general fee account') AS course_name
                            FROM student_fee_accounts sfa
-                          INNER JOIN courses c ON c.id = sfa.course_id
+                           LEFT JOIN courses c ON c.id = sfa.course_id
                           WHERE sfa.student_id = ? AND sfa.status = 'active'
                           ORDER BY sfa.id DESC");
 if ($optStmt) {

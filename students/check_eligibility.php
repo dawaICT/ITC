@@ -6,13 +6,9 @@
 error_reporting(E_ALL);
 ini_set('display_errors', '0');
 
-header('Content-Type: application/json');
-if (session_status() === PHP_SESSION_NONE) { session_start(); }
+header('Content-Type: application/json; charset=utf-8');
 
-$_SESSION['eligibility_cache'] = $_SESSION['eligibility_cache'] ?? [];
-$eligibilityCache = &$_SESSION['eligibility_cache'];
-$eligibilityCacheTTL = 30; // seconds
-
+require_once __DIR__ . '/../includes/production_guards.php';
 require_once __DIR__ . '/includes/Database.php';
 require_once __DIR__ . '/includes/EligibilityService.php';
 
@@ -21,13 +17,13 @@ try {
         throw new Exception('Invalid request method');
     }
 
-    $studentId = $_POST['student_id'] ?? ($_SESSION['Sid'] ?? null);
+    $studentId = wuc_force_session_student_id($_POST['student_id'] ?? null, true);
     $academicYear = $_POST['academic_year'] ?? null;
     $semester = (int)($_POST['semester'] ?? 0);
 
-    if (!$studentId) {
-        throw new Exception('Student ID is missing from session/request.');
-    }
+    $_SESSION['eligibility_cache'] = $_SESSION['eligibility_cache'] ?? [];
+    $eligibilityCache = &$_SESSION['eligibility_cache'];
+    $eligibilityCacheTTL = 30; // seconds
 
     $cacheKey = (string)$studentId;
     if (isset($eligibilityCache[$cacheKey])) {
@@ -85,5 +81,6 @@ try {
     echo json_encode($response);
 
 } catch (Exception $e) {
-    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    error_log('check_eligibility failed: ' . $e->getMessage());
+    echo json_encode(['success' => false, 'error' => 'Unable to check eligibility. Please try again.']);
 }

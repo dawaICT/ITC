@@ -171,20 +171,10 @@ require_once 'includes/header.php';
             </div>
         </div>
         <div class="card-body p-0">
-            <?php
-            $sql = "SELECT s.SID, s.Fname, s.Lname, s.sex, s.email,
-                           COALESCE(sp.intake, s.intake) as intake,
-                           COALESCE(sp.program_code, s.program) as program_code,
-                           COALESCE(p.program_name, sc.course_name) as program_name
-                    FROM students s
-                    LEFT JOIN student_program sp ON s.SID = sp.Sid
-                    LEFT JOIN programs p ON COALESCE(sp.program_code, s.program) = p.program_code
-                    LEFT JOIN short_courses sc ON COALESCE(sp.program_code, s.program) = sc.course_code
-                    ORDER BY s.SID ASC";
-            $results = $db->query($sql);
-            $rows = $results ? $results->fetch_all(MYSQLI_ASSOC) : [];
-            ?>
-            <?php if (!empty($rows)): ?>
+            <div class="px-3 pt-3" style="max-width:360px;">
+                <input type="search" id="studentSearch" class="form-control form-control-sm"
+                       placeholder="Search by name, student no. or program…" autocomplete="off">
+            </div>
             <div class="table-responsive">
                 <table id="myTable" class="table table-hover align-middle mb-0" width="100%">
                     <thead class="table-light">
@@ -198,117 +188,114 @@ require_once 'includes/header.php';
                             <th width="10%" class="text-end pe-3">Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <?php foreach ($rows as $index => $r):
-                            $initials = strtoupper(substr($r['Fname'] ?? '', 0, 1) . substr($r['Lname'] ?? '', 0, 1));
-                            $isMale = ($r['sex'] ?? '') === 'M';
-                        ?>
-                        <tr>
-                            <td class="text-center fw-bold text-muted"><?= $index + 1 ?></td>
-                            <td>
-                                <span class="badge bg-light text-dark border font-monospace">
-                                    <?= htmlspecialchars($r['SID']) ?>
-                                </span>
-                            </td>
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    <div class="avatar-circle me-3"><?= htmlspecialchars($initials) ?></div>
-                                    <div>
-                                        <div class="fw-bold"><?= htmlspecialchars($r['Fname'] . ' ' . $r['Lname']) ?></div>
-                                        <small class="text-muted"><?= htmlspecialchars($r['email'] ?? '') ?></small>
-                                    </div>
-                                </div>
-                            </td>
-                            <td data-gender="<?= htmlspecialchars($r['sex'] ?? '') ?>">
-                                <?php if ($isMale): ?>
-                                    <span class="badge bg-blue-subtle text-primary border border-primary-subtle rounded-pill">
-                                        <i class="fas fa-mars me-1"></i>Male
-                                    </span>
-                                <?php else: ?>
-                                    <span class="badge bg-pink-subtle text-danger border border-danger-subtle rounded-pill">
-                                        <i class="fas fa-venus me-1"></i>Female
-                                    </span>
-                                <?php endif; ?>
-                            </td>
-                            <td data-program="<?= htmlspecialchars($r['program_name'] ?? '') ?>">
-                                <div class="text-truncate fw-semibold text-primary" style="max-width: 240px;" title="<?= htmlspecialchars($r['program_name'] ?? '') ?>">
-                                    <?= htmlspecialchars($r['program_name'] ?? 'No Program') ?>
-                                </div>
-                                <small class="text-muted font-monospace"><?= htmlspecialchars($r['program_code'] ?? '') ?></small>
-                            </td>
-                            <td data-intake="<?= htmlspecialchars($r['intake'] ?? '') ?>">
-                                <span class="badge bg-light text-dark border"><?= htmlspecialchars($r['intake'] ?? 'N/A') ?></span>
-                            </td>
-                            <td class="text-end pe-3">
-                                <div class="btn-group btn-group-sm action-btns" role="group" aria-label="Student actions">
-                                    <a href="view_student.php?view=<?= urlencode($r['SID']) ?>" class="btn btn-outline-secondary" title="View student" aria-label="View student">
-                                        <i class="fas fa-eye"></i><span class="d-none d-lg-inline ms-1">View</span>
-                                    </a>
-                                    <a href="editStudent.php?update=<?= urlencode($r['SID']) ?>" class="btn btn-outline-primary" title="Edit student" aria-label="Edit student">
-                                        <i class="fas fa-pen"></i><span class="d-none d-lg-inline ms-1">Edit</span>
-                                    </a>
-                                    <button type="button" onclick="deleteStudent('<?= htmlspecialchars(addslashes($r['SID']), ENT_QUOTES) ?>')" class="btn btn-outline-danger" title="Delete student" aria-label="Delete student">
-                                        <i class="fas fa-trash-alt"></i><span class="d-none d-lg-inline ms-1">Delete</span>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
+                    <tbody id="studentsBody">
+                        <tr><td colspan="7" class="text-center text-muted py-4">Loading…</td></tr>
                     </tbody>
                 </table>
             </div>
-            <?php else: ?>
-            <div class="text-center py-5">
-                <div class="mb-3">
-                    <span class="fa-stack fa-2x text-muted">
-                        <i class="fas fa-circle fa-stack-2x opacity-25"></i>
-                        <i class="fas fa-user-graduate fa-stack-1x"></i>
-                    </span>
+            <div class="d-flex justify-content-between align-items-center px-3 py-2 border-top">
+                <div id="studentsInfo" class="small text-muted">—</div>
+                <div class="btn-group btn-group-sm">
+                    <button type="button" class="btn btn-outline-secondary" id="studentsPrev" disabled>Prev</button>
+                    <button type="button" class="btn btn-outline-secondary" id="studentsNext" disabled>Next</button>
                 </div>
-                <h5>No Students Found</h5>
-                <p class="text-muted">Students will appear here once they are registered or admitted.</p>
-                <a href="regNewStud.php" class="btn btn-primary rounded-pill px-4">
-                    <i class="fas fa-user-plus me-2"></i>Register New Student
-                </a>
             </div>
-            <?php endif; ?>
         </div>
     </div>
 </div>
 
 <script>
-$(document).ready(function() {
-    // Initialize DataTable (layout consistent with manage_admitted_students.php)
-    if ($.fn.DataTable && $('#myTable').length) {
-        $('#myTable').DataTable({
-            responsive: true,
-            pageLength: 25,
-            lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
-            order: [[1, 'asc']],
-            language: {
-                search: "_INPUT_",
-                searchPlaceholder: "Search students...",
-                lengthMenu: "Show _MENU_",
-                info: "Showing _START_ to _END_ of _TOTAL_ students",
-                emptyTable: "No students found",
-                zeroRecords: "No matching students found"
-            },
-            columnDefs: [
-                { orderable: false, targets: -1 },
-                { responsivePriority: 1, targets: [1, 2, -1] }
-            ],
-            dom: '<"row align-items-center mb-3"<"col-md-6"l><"col-md-6"f>>' +
-                 '<"table-responsive"t>' +
-                 '<"row align-items-center mt-3"<"col-md-5"i><"col-md-7"p>>'
+(function() {
+    function esc(s) {
+        return String(s == null ? '' : s)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+    var state = { page: 1, perPage: 25, q: '', totalPages: 1, timer: null };
+
+    function renderRows(payload) {
+        var body = document.getElementById('studentsBody');
+        var rows = payload.rows || [];
+        if (!rows.length) {
+            body.innerHTML = '<tr><td colspan="7" class="text-center py-5 text-muted">' +
+                '<div class="mb-2"><i class="fas fa-user-graduate fa-2x opacity-50"></i></div>' +
+                '<div>No students found.</div></td></tr>';
+            return;
+        }
+        var html = '';
+        rows.forEach(function(r, i) {
+            var sid = String(r.SID || '');
+            var fname = String(r.Fname || '');
+            var lname = String(r.Lname || '');
+            var initials = ((fname.charAt(0) || '') + (lname.charAt(0) || '')).toUpperCase();
+            var isMale = String(r.sex || '') === 'M';
+            var genderBadge = isMale
+                ? '<span class="badge bg-blue-subtle text-primary border border-primary-subtle rounded-pill"><i class="fas fa-mars me-1"></i>Male</span>'
+                : '<span class="badge bg-pink-subtle text-danger border border-danger-subtle rounded-pill"><i class="fas fa-venus me-1"></i>Female</span>';
+            var n = (payload.offset || 0) + i + 1;
+            html += '<tr>' +
+                '<td class="text-center fw-bold text-muted">' + n + '</td>' +
+                '<td><span class="badge bg-light text-dark border font-monospace">' + esc(sid) + '</span></td>' +
+                '<td><div class="d-flex align-items-center"><div class="avatar-circle me-3">' + esc(initials) + '</div>' +
+                '<div><div class="fw-bold">' + esc(fname + ' ' + lname) + '</div>' +
+                '<small class="text-muted">' + esc(r.email || '') + '</small></div></div></td>' +
+                '<td>' + genderBadge + '</td>' +
+                '<td><div class="text-truncate fw-semibold text-primary" style="max-width:240px;" title="' + esc(r.program_name || '') + '">' +
+                esc(r.program_name || 'No Program') + '</div>' +
+                '<small class="text-muted font-monospace">' + esc(r.program_code || '') + '</small></td>' +
+                '<td><span class="badge bg-light text-dark border">' + esc(r.intake || 'N/A') + '</span></td>' +
+                '<td class="text-end pe-3"><div class="btn-group btn-group-sm action-btns" role="group">' +
+                '<a href="view_student.php?view=' + encodeURIComponent(sid) + '" class="btn btn-outline-secondary" title="View student"><i class="fas fa-eye"></i><span class="d-none d-lg-inline ms-1">View</span></a>' +
+                '<a href="editStudent.php?update=' + encodeURIComponent(sid) + '" class="btn btn-outline-primary" title="Edit student"><i class="fas fa-pen"></i><span class="d-none d-lg-inline ms-1">Edit</span></a>' +
+                '<button type="button" onclick="deleteStudent(' + JSON.stringify(sid) + ')" class="btn btn-outline-danger" title="Delete student"><i class="fas fa-trash-alt"></i><span class="d-none d-lg-inline ms-1">Delete</span></button>' +
+                '</div></td></tr>';
         });
+        body.innerHTML = html;
     }
 
-    // Delete logic (SweetAlert2 with native confirm fallback)
+    function load() {
+        var url = 'students_data.php?page=' + state.page + '&per_page=' + state.perPage + '&q=' + encodeURIComponent(state.q);
+        fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' })
+            .then(function(r) { return r.json(); })
+            .then(function(payload) {
+                if (!payload || !payload.ok) {
+                    throw new Error((payload && payload.error) || 'Load failed');
+                }
+                state.totalPages = payload.total_pages || 1;
+                renderRows(payload);
+                var start = payload.total ? (payload.offset + 1) : 0;
+                var end = payload.offset + (payload.rows ? payload.rows.length : 0);
+                document.getElementById('studentsInfo').textContent =
+                    'Showing ' + start + '–' + end + ' of ' + payload.total + ' students';
+                document.getElementById('studentsPrev').disabled = state.page <= 1;
+                document.getElementById('studentsNext').disabled = state.page >= state.totalPages;
+            })
+            .catch(function(err) {
+                document.getElementById('studentsBody').innerHTML =
+                    '<tr><td colspan="7" class="text-center text-danger py-4">' + esc(err.message || 'Failed to load') + '</td></tr>';
+            });
+    }
+
+    document.getElementById('studentsPrev').addEventListener('click', function() {
+        if (state.page > 1) { state.page--; load(); }
+    });
+    document.getElementById('studentsNext').addEventListener('click', function() {
+        if (state.page < state.totalPages) { state.page++; load(); }
+    });
+    document.getElementById('studentSearch').addEventListener('input', function(e) {
+        clearTimeout(state.timer);
+        state.timer = setTimeout(function() {
+            state.q = e.target.value.trim();
+            state.page = 1;
+            load();
+        }, 300);
+    });
+
     window.deleteStudent = function(id) {
         if (typeof Swal !== 'undefined') {
             Swal.fire({
                 title: 'Are you sure?',
-                html: "You are about to delete student <strong>" + id + "</strong>. This cannot be undone!",
+                html: 'You are about to delete student <strong>' + esc(id) + '</strong>. This cannot be undone!',
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#dc3545',
@@ -316,7 +303,7 @@ $(document).ready(function() {
                 confirmButtonText: '<i class="fas fa-trash-alt me-1"></i>Yes, delete it!',
                 cancelButtonText: 'Cancel',
                 reverseButtons: true
-            }).then((result) => {
+            }).then(function(result) {
                 if (result.isConfirmed) {
                     window.location.href = 'delete_student.php?sid=' + encodeURIComponent(id);
                 }
@@ -325,7 +312,9 @@ $(document).ready(function() {
             window.location.href = 'delete_student.php?sid=' + encodeURIComponent(id);
         }
     };
-});
+
+    load();
+})();
 </script>
 
 <?php require 'includes/footer.php'; ?>

@@ -5,7 +5,7 @@ require_once __DIR__ . '/../../includes/elearning_live_sessions.php';
 
 $studentId = (string)($_SESSION['Sid'] ?? '');
 if ($studentId === '' || !isset($db) || !($db instanceof mysqli)) {
-    header('Location: /wucportal/student_login.php');
+    header('Location: /wucportal/elearning_login.php');
     exit();
 }
 

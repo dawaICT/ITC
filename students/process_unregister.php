@@ -1,64 +1,73 @@
 <?php
+declare(strict_types=1);
+
 error_reporting(E_ALL);
 ini_set('display_errors', '0');
-header('Content-Type: application/json');
+header('Content-Type: application/json; charset=utf-8');
 
-if (session_status() === PHP_SESSION_NONE) { session_start(); }
-require_once 'includes/Database.php';
+require_once __DIR__ . '/../includes/production_guards.php';
 
 try {
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        throw new Exception('Invalid request method');
+    wuc_require_post();
+    $studentId = wuc_force_session_student_id($_POST['student_id'] ?? null, true);
+    wuc_require_csrf();
+
+    $academicYear = trim((string)($_POST['academic_year'] ?? ''));
+    $semester = trim((string)($_POST['semester'] ?? ''));
+    $yearOfStudy = trim((string)($_POST['year_of_study'] ?? ''));
+
+    if ($academicYear === '' || $semester === '') {
+        wuc_json_abort('Missing identification parameters for unregistration', 400);
     }
 
-    $studentId = $_POST['student_id'] ?? ($_SESSION['Sid'] ?? null);
-    $academicYear = $_POST['academic_year'] ?? null;
-    $semester = $_POST['semester'] ?? null;
-    $yearOfStudy = $_POST['year_of_study'] ?? null;
-
-    if (empty($studentId) || empty($academicYear) || empty($semester)) {
-        throw new Exception('Missing identification parameters for unregistration');
-    }
-
+    require_once __DIR__ . '/includes/Database.php';
     $db = new Database();
     $conn = $db->getConnection();
     $conn->beginTransaction();
 
-    // 1. Fetch semester_registration ID if it exists (to clean course_registration more accurately)
-    $stmtId = $conn->prepare("SELECT id FROM semester_registration WHERE (student_id = ? OR Sid = ?) AND academic_year = ? AND semester = ?");
+    $stmtId = $conn->prepare(
+        'SELECT id FROM semester_registration WHERE (student_id = ? OR Sid = ?) AND academic_year = ? AND semester = ?'
+    );
     $stmtId->execute([$studentId, $studentId, $academicYear, $semester]);
     $srRow = $stmtId->fetch(PDO::FETCH_ASSOC);
     $srId = $srRow ? $srRow['id'] : null;
 
-    // 2. Delete from invoices
-    $delInv = $conn->prepare("DELETE FROM invoices WHERE (student_id = ? OR SID = ?) AND academic_year = ? AND semester = ?");
+    $delInv = $conn->prepare(
+        'DELETE FROM invoices WHERE (student_id = ? OR SID = ?) AND academic_year = ? AND semester = ?'
+    );
     $delInv->execute([$studentId, $studentId, $academicYear, $semester]);
 
-    // 3. Delete from course_registration
     if ($srId) {
-        $delCR = $conn->prepare("DELETE FROM course_registration WHERE semester_registration_id = ?");
+        $delCR = $conn->prepare('DELETE FROM course_registration WHERE semester_registration_id = ?');
         $delCR->execute([$srId]);
     } else {
-        // Fallback to SID/Semester/Year
-        $delCR = $conn->prepare("DELETE FROM course_registration WHERE Sid = ? AND semester = ? AND Year = ?");
+        $delCR = $conn->prepare('DELETE FROM course_registration WHERE Sid = ? AND semester = ? AND Year = ?');
         $delCR->execute([$studentId, $semester, $yearOfStudy]);
     }
 
-    // 4. Delete from semester_registration
-    $delSR = $conn->prepare("DELETE FROM semester_registration WHERE (student_id = ? OR Sid = ?) AND academic_year = ? AND semester = ?");
+    $delSR = $conn->prepare(
+        'DELETE FROM semester_registration WHERE (student_id = ? OR Sid = ?) AND academic_year = ? AND semester = ?'
+    );
     $delSR->execute([$studentId, $studentId, $academicYear, $semester]);
 
     $conn->commit();
 
-    echo json_encode([
-        'success' => true, 
-        'message' => "Unregistered student $studentId for $academicYear Semester $semester successfully."
-    ]);
+    error_log(sprintf(
+        'student_unregister sid=%s year=%s semester=%s ip=%s',
+        $studentId,
+        $academicYear,
+        $semester,
+        $_SERVER['REMOTE_ADDR'] ?? ''
+    ));
 
-} catch (Exception $e) {
-    if (isset($conn) && $conn->inTransaction()) {
+    echo json_encode([
+        'success' => true,
+        'message' => "Unregistered student {$studentId} for {$academicYear} Semester {$semester} successfully.",
+    ]);
+} catch (Throwable $e) {
+    if (isset($conn) && $conn instanceof PDO && $conn->inTransaction()) {
         $conn->rollBack();
     }
-    http_response_code(500);
-    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    error_log('process_unregister failed: ' . $e->getMessage());
+    wuc_json_abort('Unregistration failed. Please try again.', 500);
 }

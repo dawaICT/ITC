@@ -56,9 +56,16 @@ if (!function_exists('wuc_portal_favicon_links_html')) {
      */
     function wuc_portal_favicon_links_html(string $basePath = '/wucportal'): string
     {
-        ob_start();
-        wuc_portal_favicon_links($basePath);
-        return (string) ob_get_clean();
+        // Build the markup directly — never call ob_start() here. Legacy chrome
+        // (includes/legacy_staff_chrome.php) invokes this from inside an output
+        // buffer callback, and PHP 8.4 fatals on nested buffering in display handlers.
+        $base = rtrim($basePath, '/');
+        $h = static fn(string $url): string => htmlspecialchars($url, ENT_QUOTES, 'UTF-8');
+
+        return '<link rel="icon" href="' . $h($base . '/images/favicon.ico') . '" sizes="any">' . "\n"
+            . '    <link rel="icon" type="image/png" sizes="32x32" href="' . $h($base . '/images/favicon-32.png') . '">' . "\n"
+            . '    <link rel="icon" type="image/png" sizes="16x16" href="' . $h($base . '/images/favicon-16.png') . '">' . "\n"
+            . '    <link rel="apple-touch-icon" href="' . $h($base . '/images/apple-touch-icon.png') . '">' . "\n";
     }
 }
 

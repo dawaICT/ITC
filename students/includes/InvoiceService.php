@@ -1,4 +1,6 @@
 <?php
+require_once dirname(__DIR__, 2) . '/includes/invoice_helpers.php';
+
 /**
  * InvoiceService - Handles invoice generation and management
  * Manages invoice creation, retrieval, and status tracking
@@ -75,7 +77,10 @@ class InvoiceService {
             ? 'amount_paid'
             : "(CASE WHEN LOWER({$statusExpr}) IN ('paid','completed','cleared') THEN {$totalExpr} ELSE 0 END)";
         $balanceExpr = $this->hasInvoiceColumn('balance') ? 'balance' : "({$totalExpr} - {$paidExpr})";
-        $dueExpr     = $this->hasInvoiceColumn('due_date') ? 'due_date' : 'invoice_date';
+        $dateExpr    = $this->hasInvoiceColumn('invoice_date')
+            ? 'invoice_date'
+            : ($this->hasInvoiceColumn('date_generated') ? 'date_generated' : 'created_at');
+        $dueExpr     = $this->hasInvoiceColumn('due_date') ? 'due_date' : 'NULL';
         $studentExpr = $this->hasInvoiceColumn('student_id') ? 'student_id' : ($this->hasInvoiceColumn('SID') ? 'SID' : "''");
         $regExpr     = $this->hasInvoiceColumn('registration_id') ? 'registration_id' : 'NULL';
         $descExpr    = $this->hasInvoiceColumn('description') ? 'description' : "''";
@@ -86,7 +91,7 @@ class InvoiceService {
                 {$studentExpr} AS student_id,
                 {$regExpr} AS registration_id,
                 {$descExpr} AS description,
-                invoice_date,
+                {$dateExpr} AS invoice_date,
                 {$totalExpr} AS total_amount,
                 {$totalExpr} AS amount,
                 {$paidExpr} AS amount_paid,
@@ -143,97 +148,41 @@ class InvoiceService {
      * @throws Exception if invoice generation fails
      */
     public function generateInvoice($studentId, $registrationId, $totalAmount, $academicYear, $semester) {
-        try {
-            $this->db->begin_transaction();
-            
-            // Generate unique invoice number
-            $invoiceNumber = $this->generateInvoiceNumber();
-            
-            // Calculate due date (typically 30 days from now, or customize as needed)
-            $dueDate = date('Y-m-d', strtotime('+30 days'));
-            
-            $invoiceColumns = $this->invoiceColumns();
-            $fields = [];
-            $placeholders = [];
-            $types = '';
-            $params = [];
-
-            $add = function (string $column, string $type, $value, bool $raw = false) use (&$fields, &$placeholders, &$types, &$params, $invoiceColumns): void {
-                if (!in_array($column, $invoiceColumns, true)) {
-                    return;
-                }
-                $fields[] = "`{$column}`";
-                if ($raw) {
-                    $placeholders[] = (string)$value;
-                    return;
-                }
-                $placeholders[] = '?';
-                $types .= $type;
-                $params[] = $value;
-            };
-
-            $numberColumn = $this->invoiceNumberColumn();
-            if ($numberColumn !== null) {
-                $add($numberColumn, 's', $invoiceNumber);
-            }
-            $add('student_id', 's', $studentId);
-            $add('SID', 's', $studentId);
-            $add('registration_id', 'i', $registrationId);
-            $add('invoice_date', '', 'NOW()', true);
-            $add('date_generated', '', 'NOW()', true);
-            $add('description', 's', 'Course registration invoice');
-            $add('amount', 'd', $totalAmount);
-            $add('total_amount', 'd', $totalAmount);
-            $add('amount_paid', 'd', 0.0);
-            $add('balance', 'd', $totalAmount);
-            $add('status', 's', 'pending');
-            $add('payment_status', 's', 'pending');
-            $add('due_date', 's', $dueDate);
-            $add('academic_year', 's', $academicYear);
-            $add('semester', 's', $semester);
-            $add('created_at', '', 'NOW()', true);
-            $add('updated_at', '', 'NOW()', true);
-
-            if (empty($fields)) {
-                throw new Exception('Invoices table has no supported columns.');
-            }
-
-            $stmt = $this->db->prepare("INSERT INTO invoices (" . implode(', ', $fields) . ") VALUES (" . implode(', ', $placeholders) . ")");
-            if (!$stmt) {
-                throw new Exception("Failed to prepare invoice: " . $this->db->error);
-            }
-            if ($types !== '') {
-                $stmt->bind_param($types, ...$params);
-            }
-            
-            if (!$stmt->execute()) {
-                throw new Exception("Failed to create invoice: " . $this->db->error);
-            }
-            
-            $courseRegColumns = $this->courseRegistrationColumns();
-            if (in_array('invoice_number', $courseRegColumns, true) || in_array('invoice_no', $courseRegColumns, true)) {
-                $courseInvoiceColumn = in_array('invoice_number', $courseRegColumns, true) ? 'invoice_number' : 'invoice_no';
-                $sets = ["`{$courseInvoiceColumn}` = ?"];
-                if (in_array('invoice_generated_date', $courseRegColumns, true)) {
-                    $sets[] = "invoice_generated_date = NOW()";
-                }
-                $updateStmt = $this->db->prepare("UPDATE course_registration SET " . implode(', ', $sets) . " WHERE semester_registration_id = ?");
-                if ($updateStmt) {
-                    $updateStmt->bind_param("si", $invoiceNumber, $registrationId);
-                    $updateStmt->execute();
-                    $updateStmt->close();
-                }
-            }
-            
-            $this->db->commit();
-            
-            return $invoiceNumber;
-            
-        } catch (Exception $e) {
-            $this->db->rollback();
-            error_log("ERROR in generateInvoice: " . $e->getMessage());
-            throw $e;
+        $result = invoice_create_for_student(
+            $this->db,
+            (string)$studentId,
+            (float)$totalAmount,
+            (string)$academicYear,
+            (string)$semester,
+            'Course registration invoice'
+        );
+        if (empty($result['success']) && empty($result['duplicate'])) {
+            throw new Exception((string)($result['message'] ?? 'The course invoice could not be created.'));
         }
+
+        $invoiceNumber = (string)($result['invoice_number'] ?? '');
+        if ($invoiceNumber === '') {
+            throw new Exception('The course invoice reference is unavailable.');
+        }
+
+        $courseRegColumns = $this->courseRegistrationColumns();
+        if (in_array('invoice_number', $courseRegColumns, true) || in_array('invoice_no', $courseRegColumns, true)) {
+            $courseInvoiceColumn = in_array('invoice_number', $courseRegColumns, true) ? 'invoice_number' : 'invoice_no';
+            $sets = ["`{$courseInvoiceColumn}` = ?"];
+            if (in_array('invoice_generated_date', $courseRegColumns, true)) {
+                $sets[] = 'invoice_generated_date = NOW()';
+            }
+            $updateStmt = $this->db->prepare(
+                'UPDATE course_registration SET ' . implode(', ', $sets) . ' WHERE semester_registration_id = ?'
+            );
+            if ($updateStmt) {
+                $updateStmt->bind_param('si', $invoiceNumber, $registrationId);
+                $updateStmt->execute();
+                $updateStmt->close();
+            }
+        }
+
+        return $invoiceNumber;
     }
     
     /**
@@ -371,13 +320,7 @@ class InvoiceService {
             $newBalance = $invoice['total_amount'] - $newAmountPaid;
             
             // Determine new status
-            if ($newBalance <= 0) {
-                $newStatus = 'paid';
-            } elseif ($newAmountPaid > 0) {
-                $newStatus = 'partial';
-            } else {
-                $newStatus = 'pending';
-            }
+            $newStatus = $newBalance <= 0 ? 'Paid' : 'Pending';
             
             $numberColumn = $this->invoiceNumberColumn();
             if ($numberColumn === null) {

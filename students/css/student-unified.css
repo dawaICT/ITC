@@ -16,7 +16,7 @@
     --sp-text-body: #334155;
     --sp-text-muted: #64748b;
     --sp-text-light: #94a3b8;
-    --sp-bg: #f1f5f9;
+    --sp-bg: #f8f9fa;
     --sp-card: #ffffff;
     --sp-border: #e2e8f0;
     --sp-radius: 8px;
@@ -47,6 +47,10 @@ html,
 body.student-portal {
     max-width: 100%;
     overflow-x: hidden;
+}
+
+body.student-portal {
+    background: var(--sp-bg) !important;
 }
 
 body.student-portal img,
@@ -154,6 +158,38 @@ body.student-portal video {
 }
 
 /* Page Header */
+.student-page-heading {
+    min-width: 0;
+}
+
+.student-page-heading h1,
+.student-page-heading h2,
+.student-page-heading h3 {
+    color: var(--sp-text-dark);
+    font-size: clamp(1.15rem, 0.55vw + 1rem, 1.35rem);
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+.student-page-heading h1 i,
+.student-page-heading h2 i,
+.student-page-heading h3 i {
+    color: var(--sp-primary);
+}
+
+.student-page-heading p {
+    max-width: 850px;
+}
+
+.student-page-heading > :first-child {
+    min-width: 0;
+}
+
+.student-page-heading .btn,
+.student-page-heading .badge {
+    flex: 0 0 auto;
+}
+
 .page-header {
     display: flex;
     justify-content: space-between;
@@ -652,6 +688,13 @@ body.student-portal .portal-dashboard .data-table-card .card-body {
     max-width: 320px;
 }
 
+/* Document / statement pages — keep sidebar offset; never margin:0 auto on .content-wrapper */
+body.student-portal .content-wrapper.balance-statement-page,
+body.student-portal .content-wrapper.receipt-page {
+    margin-left: var(--sidebar-width, 280px);
+    width: calc(100% - var(--sidebar-width, 280px));
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: var(--sp-bg); }
@@ -664,8 +707,12 @@ body.student-portal .portal-dashboard .data-table-card .card-body {
     }
 
     body.student-portal .content-wrapper,
-    body.student-portal .dash-content {
+    body.student-portal .dash-content,
+    body.student-portal .content-wrapper.balance-statement-page,
+    body.student-portal .content-wrapper.receipt-page {
         padding: 4.35rem 1rem 1.1rem !important;
+        margin-left: 0 !important;
+        width: 100% !important;
     }
 
     .content-wrapper > .container,
@@ -702,6 +749,7 @@ body.student-portal .portal-dashboard .data-table-card .card-body {
     }
 
     .page-header,
+    .student-page-heading,
     .card .card-header,
     .card-hdr {
         align-items: flex-start;
@@ -712,6 +760,11 @@ body.student-portal .portal-dashboard .data-table-card .card-body {
     .page-title {
         font-size: 1.12rem;
         line-height: 1.25;
+    }
+
+    .student-page-heading .btn,
+    .student-page-heading .btn-group {
+        width: 100%;
     }
 
     .page-subtitle,

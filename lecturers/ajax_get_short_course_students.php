@@ -71,8 +71,6 @@ $response = [
     'short_course_name' => $displayName,
 ];
 if ($count === 0) {
-    $safeName = htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8');
-    $response['info'] = "No students are enrolled in {$safeName}. "
-        . "Please check enrollments in the Short Course management area, or contact the Registrar.";
+    $response['info'] = 'No students enrolled in ' . $displayName . '.';
 }
 echo json_encode($response);

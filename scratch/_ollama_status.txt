@@ -1,0 +1,32 @@
+﻿WUC Portal Ollama + Learning Materials Status
+Generated: 2026-07-20 08:45:17
+
+=== 1) ollama.exe locations ===
+PATH (Get-Command / where.exe): NOT FOUND
+%LOCALAPPDATA%\Programs\Ollama\ollama.exe: MISSING (directory does not exist)
+C:\Program Files\Ollama\ollama.exe: MISSING
+
+=== 2) ollama list ===
+SKIPPED - ollama not available on PATH or standard install paths
+
+=== 3) Server start attempt ===
+Initial http://localhost:11434/api/tags: Unable to connect to the remote server
+No ollama.exe found - did not start 'ollama serve' or Ollama app
+
+=== 4) Re-check http://localhost:11434/api/tags ===
+STILL UNREACHABLE - Ollama appears not installed on this machine
+
+=== 5) Models (deepseek-r1:1.5b) ===
+Cannot enumerate models - API unavailable
+deepseek-r1:1.5b: UNKNOWN (server down)
+Other chat models: N/A
+
+=== MySQL learning-material tables (DCSE-101 corpus candidates) ===
+knowledge_documents=0
+knowledge_chunks=0
+syllabus_versions=0
+repository_materials=0
+course_materials=MISSING
+materials=MISSING
+elearning_resources=1
+course_resources=MISSING

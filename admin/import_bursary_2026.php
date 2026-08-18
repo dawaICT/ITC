@@ -22,7 +22,7 @@
  * Usage (from a shell):
  *   php admin/import_bursary_2026.php                 # dry run
  *   php admin/import_bursary_2026.php --commit        # perform admission
- *   php admin/import_bursary_2026.php --commit --file="C:/path/to/file.xlsx"
+ *   php admin/import_bursary_2026.php --commit --file="C:/path/to/file.xlsx" --staff="ITC123"
  */
 
 require __DIR__ . '/../db/connect.php';
@@ -30,16 +30,18 @@ require_once __DIR__ . '/../includes/applicant_admission.php';
 
 // ── CLI args ───────────────────────────────────────────────────────────────
 $COMMIT = in_array('--commit', $argv, true);
-$FILE   = 'C:/Users/Dawa/Downloads/Industrial TC Bursary 2026.xlsx';
+$FILE   = __DIR__ . '/../data/Industrial TC Bursary 2026.xlsx';
+$STAFF  = 'bursary_import';
 foreach ($argv as $a) {
     if (strpos($a, '--file=') === 0) {
         $FILE = substr($a, 7);
+    } elseif (strpos($a, '--staff=') === 0) {
+        $STAFF = trim(substr($a, 8));
     }
 }
 $SPONSOR      = 'TEVETA';   // → 100% bursary
 $ENTRY_YEAR   = 2026;
 $SHEET        = 'xl/worksheets/sheet2.xml'; // "2026" sheet
-$STAFF        = 'ITC900';
 
 function out(string $s = ''): void { echo $s . "\n"; }
 
@@ -254,12 +256,13 @@ function admitBursaryStudent(mysqli $db, array $std, string $sponsor, int $entry
         $totalFees = admissionsAssignCourses($db, $studentId, $programCode, $period, $academicYear);
         admissionsEnsureStudentLogin($db, $studentId, $nrc, null);
 
-        // TEVETA bursary = 100% → invoice nets to zero but documents the award.
+        // TEVETA bursary = 100%; the sponsorship and fee-account records document
+        // the award, while the invoice service correctly skips a zero-value charge.
         $bursary       = in_array(strtoupper($sponsor), ['TEVETA', 'CDF'], true) ? 100.0 : 0.0;
         $invoiceAmount = $totalFees * (1 - $bursary / 100);
         $desc = $program['name'] . ' registration - ' . $intake
             . ($bursary > 0 ? sprintf(' (%s bursary %.0f%%)', $sponsor, $bursary) : '');
-        admissionsCreateInvoice($db, $studentId, $invoiceAmount, $desc);
+        admissionsCreateInvoice($db, $studentId, $invoiceAmount, $desc, $academicYear, $period, 1, 'bursary_import');
 
         $db->commit();
         return ['status' => 'admitted', 'sid' => $studentId, 'program' => $programCode, 'intake' => $intake];

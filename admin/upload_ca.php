@@ -1,5 +1,7 @@
 <?php
 require_once __DIR__ . '/includes/admin.php';
+require_once dirname(__DIR__) . '/includes/auth_helpers.php';
+$csrfToken = wuc_csrf_token();
 $page_title = "Upload Continuous Assessment";
 require_once __DIR__ . '/includes/header.php';
 ?>
@@ -135,6 +137,7 @@ require_once __DIR__ . '/includes/header.php';
     </div>
     <div class="card-body">
       <form action="uploaded_ca.php" method="post" enctype="multipart/form-data" class="row g-3">
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>">
         <div class="col-lg-4 col-md-6">
           <label class="form-label">CSV File</label>
           <input type="file" class="form-control" name="file" accept=".csv" required>

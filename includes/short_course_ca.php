@@ -4,7 +4,7 @@
  *
  * Short courses have no semester/term/year, so CA is stored in
  * short_course_assessment keyed on (short_course_id, student_id). Total_CA is
- * the average of the entered local components — same rule as the mainstream CA
+ * the average of the entered raw components — same rule as the mainstream CA
  * (ca_calculate_total_ca in includes/ca_helpers.php), so reporting stays
  * consistent across both flows.
  */

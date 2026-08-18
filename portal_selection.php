@@ -12,12 +12,17 @@ require_once __DIR__ . '/includes/portal_switch.php';
 
 $userId = wuc_resolve_session_user_id($db);
 $userKind = !empty($_SESSION['Sid']) || ($_SESSION['user_role'] ?? '') === 'student' ? 'student' : 'staff';
+// Primary role only — systems_admin / multi-role staff keep institutional copy.
+$isLecturer = $userKind !== 'student' && (string)($_SESSION['role'] ?? '') === 'lecturer';
 
 if ($userId <= 0 || empty($_SESSION['logged_in'])) {
     wuc_redirect($userKind === 'student' ? 'student_login.php' : 'staff_login.php');
 }
 
-$portals = wuc_user_active_portals($db, $userId);
+$portals = array_values(array_filter(
+    wuc_user_active_portals($db, $userId),
+    static fn(array $portal): bool => strtolower((string)($portal['portal_code'] ?? '')) !== 'enterprise'
+));
 if (count($portals) === 0) {
     $_SESSION[$userKind === 'student' ? 'errorMssg' : 'errorMessage'] =
         'Your account is active, but no portal access has been assigned. Please contact the system administrator.';
@@ -69,14 +74,25 @@ foreach (['errorMessage', 'errorMssg'] as $flashKey) {
 
 $csrfToken = wuc_csrf_token();
 $displayName = (string)($_SESSION['user_name'] ?? $_SESSION['user_id'] ?? 'User');
+// Role-aware card copy: DB portals.description is staff-admin oriented and must
+// not be shown verbatim to students/lecturers on the picker.
 $portalMeta = [
-    'academic' => ['icon' => 'fa-building-columns', 'accent' => 'academic', 'summary' => 'Admissions, registration, finance, results, library, reports and institutional services.'],
-    'elearning' => ['icon' => 'fa-laptop-file', 'accent' => 'elearning', 'summary' => 'Courses, lessons, resources, assignments, quizzes, discussions and learning progress.'],
+    'academic' => ['icon' => 'fa-building-columns', 'accent' => 'academic', 'summary' => 'Admissions, registration, finance, results, reports, library, HOS and staff administration.'],
+    'elearning' => ['icon' => 'fa-laptop-file', 'accent' => 'elearning', 'summary' => 'Teaching and learning workspace for courses, lessons, assignments, quizzes, discussions and progress.'],
     'library' => ['icon' => 'fa-book-open', 'accent' => 'library', 'summary' => 'Library resources, loans, fines, repositories and digital collections.'],
     'applicant' => ['icon' => 'fa-file-signature', 'accent' => 'applicant', 'summary' => 'Applications, admissions requirements and applicant follow-up.'],
     'alumni' => ['icon' => 'fa-graduation-cap', 'accent' => 'alumni', 'summary' => 'Graduate services, certificates and alumni engagement.'],
     'employer' => ['icon' => 'fa-briefcase', 'accent' => 'employer', 'summary' => 'Employer placements, internships and recruitment services.'],
 ];
+if ($userKind === 'student') {
+    $portalMeta['academic']['summary'] = 'Registration, fees, results, timetable and student academic services.';
+    $portalMeta['elearning']['summary'] = 'Your courses, lessons, assignments, quizzes and learning progress.';
+    $portalMeta['alumni']['summary'] = 'Graduate records, certificates and alumni services.';
+    $portalMeta['library']['summary'] = 'Borrowing, digital collections and library account services.';
+} elseif ($isLecturer) {
+    $portalMeta['academic']['summary'] = 'Class lists, marks entry, CA upload, timetable and teaching tools.';
+    $portalMeta['elearning']['summary'] = 'Course materials, assignments, quizzes, discussions and learner progress.';
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -255,7 +271,9 @@ $portalMeta = [
                 <?php
                 $code = (string)$portal['portal_code'];
                 $meta = $portalMeta[$code] ?? ['icon' => 'fa-table-columns', 'accent' => 'academic', 'summary' => (string)($portal['description'] ?? '')];
-                $desc = trim((string)($portal['description'] ?? '')) !== '' ? (string)$portal['description'] : $meta['summary'];
+                $dbDesc = trim((string)($portal['description'] ?? ''));
+                // Prefer audience-specific summary over shared DB description.
+                $desc = trim((string)($meta['summary'] ?? '')) !== '' ? (string)$meta['summary'] : $dbDesc;
                 ?>
                 <button type="submit" name="portal" value="<?= htmlspecialchars($code) ?>" class="portal-card <?= htmlspecialchars($meta['accent']) ?>">
                     <span class="portal-icon"><i class="fas <?= htmlspecialchars($meta['icon']) ?>"></i></span>
@@ -264,6 +282,7 @@ $portalMeta = [
                     <span class="portal-open">Open portal <i class="fas fa-arrow-right"></i></span>
                 </button>
             <?php endforeach; ?>
+
         </form>
 
         <div class="portal-footer">

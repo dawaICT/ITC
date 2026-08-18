@@ -21,6 +21,7 @@ require_once __DIR__ . '/../app/autoload.php';          // App\ namespace autolo
 require_once __DIR__ . '/../includes/role_helpers.php'; // hasAnyRole(), requireRole()
 require_once __DIR__ . '/../includes/audit.php';        // audit_log_current_user()
 require_once __DIR__ . '/../includes/helpers/academic_structure_helpers.php';
+require_once __DIR__ . '/../includes/cse_progression.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -109,6 +110,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'type'    => 'warning',
             'message' => 'Program code "' . htmlspecialchars($newProgramId, ENT_QUOTES, 'UTF-8') . '" does not exist.',
         ];
+        header('Location: ' . SELF_URL);
+        exit;
+    }
+
+    if ($stageError = wuc_cse_direct_assignment_error($newProgramId)) {
+        $_SESSION['flash'] = ['type' => 'warning', 'message' => $stageError];
         header('Location: ' . SELF_URL);
         exit;
     }
@@ -233,7 +240,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // ── GET: load programs list for dropdown ─────────────────────────────────────
 $programs = [];
 $programsResult = $db->query(
-    "SELECT program_code, program_name FROM programs ORDER BY program_name ASC"
+    "SELECT program_code, program_name
+       FROM programs
+      WHERE COALESCE(is_active, 1) = 1
+        AND program_code NOT IN ('CSE', 'ICT-002')
+      ORDER BY program_name ASC"
 );
 if ($programsResult) {
     while ($row = $programsResult->fetch_assoc()) {

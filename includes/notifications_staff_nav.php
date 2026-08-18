@@ -13,6 +13,7 @@ require_once __DIR__ . '/helpers/redirect_helper.php';
 require_once __DIR__ . '/staff_role_helpers.php';
 require_once __DIR__ . '/role_helpers.php';
 require_once __DIR__ . '/portal_alerts.php';
+require_once __DIR__ . '/portal_context.php';
 
 if (!function_exists('wuc_notifications_absolutize_menu_hrefs')) {
     /**
@@ -112,7 +113,19 @@ $allRoles = array_map(
     (array)($_SESSION['all_roles'] ?? [])
 );
 
-$target = wuc_notifications_staff_nav_target($primaryRole, $allRoles);
+$notificationsRequestContext = wuc_portal_context_from_request();
+$notificationsPortalContext = wuc_current_portal_context($notificationsRequestContext);
+$notificationsUseElearningNav = strpos(strtolower($notificationsRequestContext), 'elearning') !== false
+    || strpos(strtolower($notificationsPortalContext), 'elearning') !== false;
+if ($notificationsUseElearningNav) {
+    $target = [
+        'nav_file' => dirname(__DIR__) . '/lecturers/includes/nav.php',
+        'module_base' => '/wucportal/lecturers/',
+        'footer_file' => dirname(__DIR__) . '/lecturers/includes/footer.php',
+    ];
+} else {
+    $target = wuc_notifications_staff_nav_target($primaryRole, $allRoles);
+}
 
 if ($target === null) {
     $module_config = [

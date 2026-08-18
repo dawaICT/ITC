@@ -21,8 +21,10 @@ if (!function_exists('wuc_staff_role_map')) {
             'administrator' => 'systems_admin',
             'administration' => 'systems_admin',
             'administrative' => 'systems_admin',
-            'manager' => 'systems_admin',
-            'director' => 'systems_admin',
+            // Job titles must not silently become Systems Admin.
+            // Assign systems_admin explicitly via staff_positions / roles UI.
+            'manager' => 'staff',
+            'director' => 'staff',
 
             'lecturer' => 'lecturer',
             'assistant lecturer' => 'lecturer',

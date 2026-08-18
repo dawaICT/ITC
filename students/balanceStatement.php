@@ -220,8 +220,9 @@ foreach ($paymentsByPeriod as $y => $sems) {
     <style>
         :root { --primary-blue: #2563eb; --success-green: #059669; --danger-red: #dc2626; }
         
-        .content-wrapper { padding: 2rem; max-width: 1200px; margin: 0 auto; position: relative; }
-        .content-wrapper::before {
+        /* Do not set margin on .content-wrapper — student-unified.css owns sidebar offset. */
+        .content-wrapper.balance-statement-page { padding: 2rem; max-width: 1200px; position: relative; }
+        .content-wrapper.balance-statement-page::before {
             content: '';
             position: fixed;
             top: 50%;
@@ -235,7 +236,7 @@ foreach ($paymentsByPeriod as $y => $sems) {
             pointer-events: none;
             z-index: 0;
         }
-        .content-wrapper > * { position: relative; z-index: 1; }
+        .content-wrapper.balance-statement-page > * { position: relative; z-index: 1; }
         
         .page-header { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e2e8f0; text-align: center; }
         .page-logo { width: 70px; height: 70px; object-fit: contain; }
@@ -312,22 +313,24 @@ foreach ($paymentsByPeriod as $y => $sems) {
         
         @media print {
             .nav-tabs, .no-print { display: none !important; }
-            .content-wrapper { padding: 0; max-width: 100%; }
-            .content-wrapper::before { display: none; }
+            .content-wrapper.balance-statement-page { padding: 0; max-width: 100%; }
+            .content-wrapper.balance-statement-page::before { display: none; }
         }
         
         @media (max-width: 768px) {
-            .content-wrapper { padding: 1rem; }
+            .content-wrapper.balance-statement-page { padding: 1rem; }
             .data-table { font-size: 0.8rem; }
             .data-table th, .data-table td { padding: 0.5rem; }
             .stat-card { min-width: 100%; }
+            .year-header { flex-direction: column; align-items: flex-start; }
         }
+    </style>
     <link rel="stylesheet" media="print" href="/wucportal/css/wuc-print.css">
 </head>
-<body class="bg-light single-page-document">
+<body class="single-page-document">
     <?php require_once __DIR__ . '/includes/navbar.php'; ?>
 
-    <div class="content-wrapper wuc-a4-sheet">
+    <div class="content-wrapper balance-statement-page wuc-a4-sheet">
         <div class="page-header no-print">
             <img src="../images/favicon.png" alt="ITC" class="page-logo">
             <div class="page-header-text">

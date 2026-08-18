@@ -2,10 +2,20 @@
 $page_title = 'Edit Staff';
 include "includes/admin.php";
 require_once dirname(__DIR__) . '/includes/role_helpers.php';
+require_once dirname(__DIR__) . '/includes/auth_helpers.php';
 wuc_require_systems_admin('/wucportal/portal_selection.php');
 error_reporting(0);
 
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 if(isset($_POST['update'])){
+    if (!wuc_validate_csrf($_POST['csrf_token'] ?? null)) {
+        echo "<script>alert('Invalid or expired form token. Please try again.')</script>";
+        echo "<script>window.open('staff.php','_self')</script>";
+        exit;
+    }
 
     $staff_id = trim($_POST["staff_id"]);
     $deptId = trim($_POST["deptId"]);
@@ -20,12 +30,17 @@ if(isset($_POST['update'])){
     $address = trim($_POST["address"]);
     $qualification = trim($_POST["qualification"]);
 
-   $sql = "update staff set deptId = '$deptId', title = '$title', Fname='$Fname', 
-   Lname='$Lname', sex='$sex', country='$country', nrc_pass ='$nrc_pass', mobile = '$mobile', 
-   email = '$email', address = '$address', qualification = '$qualification' 
-   WHERE staff_id ='$staff_id'";
+    $stmt = $db->prepare(
+        'UPDATE staff SET deptId = ?, title = ?, Fname = ?, Lname = ?, sex = ?, country = ?, nrc_pass = ?, mobile = ?, email = ?, address = ?, qualification = ? WHERE staff_id = ?'
+    );
+    if ($stmt) {
+        $stmt->bind_param('ssssssssssss', $deptId, $title, $Fname, $Lname, $sex, $country, $nrc_pass, $mobile, $email, $address, $qualification, $staff_id);
+        $result = $stmt->execute();
+        $stmt->close();
+    } else {
+        $result = false;
+    }
 
-    $result = mysqli_query($db, $sql);
     if (!empty($result)) {
       echo "<script>alert('Staff information was successfully upadated')</script>";
           echo"<script>window.open('staff.php','_self')</script>";
@@ -61,16 +76,19 @@ if(isset($_POST['update'])){
 				<div class="container">
 					<?php
 						if (isset($_GET['update'])) {
-							$update = ($_GET['update']);
-								if($results = $db->query("SELECT * FROM staff 
-									WHERE staff_id = '$update'")) {
-										if($count = $results->num_rows) {
-										while($row = $results->fetch_object()){
-										$records_1[] = $row;
-										}
-										$results->free();
-									}
-								}
+							$update = trim($_GET['update']);
+                            $records_1 = [];
+                            if ($stmt = $db->prepare('SELECT * FROM staff WHERE staff_id = ?')) {
+                                $stmt->bind_param('s', $update);
+                                $stmt->execute();
+                                $results = $stmt->get_result();
+                                if ($results && $results->num_rows) {
+                                    while ($row = $results->fetch_object()) {
+                                        $records_1[] = $row;
+                                    }
+                                }
+                                $stmt->close();
+                            }
 							}
 
                     ?>
@@ -80,6 +98,7 @@ if(isset($_POST['update'])){
 					?>
 					<h3 class="w3-center"><strong>Edit Staff Personal Information</strong></h3>
                     <form action="editStaff.php" method="post" class="#" role="form">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8'); ?>">
 					<table id="myTable" class="table table-hover align-middle">
                         <thead class="table-light">
                         <tr>

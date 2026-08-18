@@ -13,7 +13,23 @@ function course_reg_h(string $value): string
     return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 }
 
+/** Catalogue credits: treat 0 / empty as missing so the UI never shows blank 0s. */
+function course_reg_credit_hours(array $course, int $default = 3): int
+{
+    $raw = $course['credit_hours'] ?? $course['credits'] ?? null;
+    if ($raw === null || $raw === '' || (is_numeric($raw) && (float)$raw <= 0)) {
+        return $default;
+    }
+    return max(0, (int)$raw);
+}
+
 $sid = (string)($_SESSION['Sid'] ?? '');
+require_once dirname(__DIR__) . '/includes/short_course_student.php';
+// Short-course portal students do not use long-term course enrolment.
+if ($sid !== '' && function_exists('isShortCourseStudent') && isShortCourseStudent($db, $sid)) {
+    header('Location: short_courses.php');
+    exit;
+}
 $regData = new RegistrationDataService($db);
 $sessionService = new AcademicSessionService($db);
 
@@ -70,7 +86,7 @@ $enrolledCount = 0;
 foreach ($courses as $course) {
     if (!empty($course['is_enrolled'])) {
         $enrolledCount++;
-        $totalCredits += (int)($course['credit_hours'] ?? $course['credits'] ?? 3);
+        $totalCredits += course_reg_credit_hours($course);
     }
 }
 $catalogCount = count($courses);
@@ -110,6 +126,32 @@ if ($sid !== '') {
     <link rel="stylesheet" href="/wucportal/css/admin-style.css">
     <link rel="stylesheet" href="/wucportal/css/portal-dashboard.css">
     <link rel="stylesheet" href="../css/consistent-styles.css">
+    <style>
+        .text-purple { color: #6f42c1 !important; }
+        .course-reg-table-card .card-header {
+            background: linear-gradient(180deg, #faf8ff 0%, #fff 100%);
+            border-bottom: 1px solid rgba(111, 66, 193, 0.12);
+        }
+        .course-reg-table thead th {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #64748b;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        .course-reg-col-code { width: 7.5rem; }
+        .course-reg-col-status { width: 8.5rem; }
+        .course-reg-col-credits { width: 5.5rem; }
+        .course-reg-code { color: #2d1e54; }
+        .course-reg-name { color: #1f2937; font-weight: 500; }
+        .course-reg-row-enrolled td { background: rgba(16, 185, 129, 0.03); }
+        .course-reg-row-pending td { opacity: 0.92; }
+        .course-reg-credits { font-variant-numeric: tabular-nums; color: #475569; }
+        .bg-success-subtle { background-color: rgba(16, 185, 129, 0.12) !important; }
+        .bg-secondary-subtle { background-color: #f1f5f9 !important; }
+        .border-success-subtle { border-color: rgba(16, 185, 129, 0.28) !important; }
+    </style>
 </head>
 <body>
 <?php require_once __DIR__ . '/includes/navbar.php'; ?>
@@ -190,34 +232,40 @@ if ($sid !== '') {
                     <?php endif; ?>
                 </div>
             <?php else: ?>
-                <section class="data-table-card mb-4">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0"><i class="fas fa-book me-2"></i>Academic year courses</h5>
-                        <span class="badge bg-primary"><?= (int)$enrolledCount ?> / <?= (int)$catalogCount ?> enrolled</span>
+                <section class="data-table-card mb-4 course-reg-table-card">
+                    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+                        <h5 class="mb-0"><i class="fas fa-book me-2 text-purple"></i>Academic year courses</h5>
+                        <div class="d-flex flex-wrap gap-2 align-items-center">
+                            <span class="badge rounded-pill text-bg-primary"><?= (int)$enrolledCount ?> / <?= (int)$catalogCount ?> enrolled</span>
+                            <span class="badge rounded-pill text-bg-light border text-secondary"><?= (int)$totalCredits ?> credits</span>
+                        </div>
                     </div>
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
+                        <table class="table table-hover align-middle mb-0 course-reg-table">
                             <thead class="table-light">
                                 <tr>
-                                    <th scope="col">Code</th>
+                                    <th scope="col" class="course-reg-col-code">Code</th>
                                     <th scope="col">Course name</th>
-                                    <th scope="col">Status</th>
-                                    <th scope="col" class="text-end">Credits</th>
+                                    <th scope="col" class="course-reg-col-status">Status</th>
+                                    <th scope="col" class="text-end course-reg-col-credits">Credits</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php foreach ($courses as $course): ?>
-                                <tr class="<?= !empty($course['is_enrolled']) ? '' : 'table-light' ?>">
-                                    <td class="fw-semibold"><?= course_reg_h((string)($course['course_code'] ?? '')) ?></td>
-                                    <td><?= course_reg_h((string)($course['course_name'] ?? '')) ?></td>
+                                <?php foreach ($courses as $course):
+                                    $isEnrolled = !empty($course['is_enrolled']);
+                                    $credits = course_reg_credit_hours($course);
+                                ?>
+                                <tr class="<?= $isEnrolled ? 'course-reg-row-enrolled' : 'course-reg-row-pending table-light' ?>">
+                                    <td class="fw-semibold text-nowrap course-reg-code"><?= course_reg_h((string)($course['course_code'] ?? '')) ?></td>
+                                    <td class="course-reg-name"><?= course_reg_h((string)($course['course_name'] ?? '')) ?></td>
                                     <td>
-                                        <?php if (!empty($course['is_enrolled'])): ?>
-                                            <span class="badge bg-success">Enrolled</span>
+                                        <?php if ($isEnrolled): ?>
+                                            <span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle"><i class="fas fa-check-circle me-1"></i>Enrolled</span>
                                         <?php else: ?>
-                                            <span class="badge bg-secondary">Pending</span>
+                                            <span class="badge rounded-pill bg-secondary-subtle text-secondary border"><i class="fas fa-clock me-1"></i>Pending</span>
                                         <?php endif; ?>
                                     </td>
-                                    <td class="text-end"><?= (int)($course['credit_hours'] ?? $course['credits'] ?? 3) ?></td>
+                                    <td class="text-end font-monospace course-reg-credits"><?= (int)$credits ?></td>
                                 </tr>
                                 <?php endforeach; ?>
                             </tbody>

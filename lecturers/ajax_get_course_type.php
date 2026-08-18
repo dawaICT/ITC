@@ -3,10 +3,15 @@
  * AJAX endpoint to detect course academic structure and default registration period/year.
  */
 header('Content-Type: application/json');
-require_once __DIR__ . '/includes/guard.php';
-require_once dirname(__DIR__) . '/includes/ca_helpers.php';
-require_once dirname(__DIR__) . '/includes/elearning_access.php';
-
+try {
+    require_once __DIR__ . '/includes/guard.php';
+    require_once dirname(__DIR__) . '/includes/ca_helpers.php';
+    require_once dirname(__DIR__) . '/includes/elearning_access.php';
+} catch (Throwable $e) {
+    error_log('ajax_get_course_type bootstrap failed: ' . $e->getMessage());
+    echo json_encode(['success' => false, 'error' => 'System error. Please try again or contact support.', 'type' => 'semester']);
+    exit;
+}
 if (!isset($_SESSION['staff_id'])) {
     echo json_encode(['success' => false, 'error' => 'Unauthorized', 'type' => 'semester']);
     exit;

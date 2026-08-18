@@ -47,7 +47,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && (string)($_POST['action'
     }
 
     $amount = isset($_POST['amount']) && is_numeric($_POST['amount']) ? payment_decimal($_POST['amount']) : 0.0;
-    $bankReference = trim((string)($_POST['bank_reference'] ?? ''));
+    $bankReference = payment_normalize_bank_reference((string)($_POST['bank_reference'] ?? ''));
     $narration = trim((string)($_POST['narration'] ?? 'Tuition Fee'));
     $selectedBank = trim((string)($_POST['bank_name'] ?? ($bankDetails['bank_name'] ?? 'Bank Transfer')));
 
@@ -60,6 +60,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && (string)($_POST['action'
 
     if ($bankReference === '') {
         $errors[] = 'Please provide the bank reference, deposit slip number, or transaction ID.';
+    } elseif (strlen($bankReference) < 4 || strlen($bankReference) > 100 || !preg_match('/^[A-Z0-9][A-Z0-9 ._\/-]*$/', $bankReference)) {
+        $errors[] = 'Please enter a valid bank reference using letters, numbers, spaces, dots, slashes, underscores, or hyphens.';
+    } elseif (payment_find_bank_transaction_by_reference($db, $bankReference)) {
+        $errors[] = 'This bank reference has already been submitted or reviewed. Contact finance if the earlier decision needs reconsideration.';
     }
 
     if (!isset($_FILES['payment_proof']) || (int)($_FILES['payment_proof']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
@@ -118,6 +122,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && (string)($_POST['action'
                             'narration' => $narration,
                             'provider' => 'BANK_TRANSFER',
                             'reference_number' => $referenceNumber,
+                            'provider_transaction_id' => $bankReference,
                             'status' => 'pending_verification',
                             'proof_file' => $proofFile,
                             'proof_mime' => $detectedMime,

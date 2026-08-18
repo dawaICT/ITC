@@ -257,11 +257,6 @@ while ($row = $studentsRes->fetch_assoc()) {
         continue;
     }
 
-    $sidNumeric = ctype_digit($studentId) ? $studentId : preg_replace('/\D+/', '', $studentId);
-    if ($sidNumeric === '') {
-        $sidNumeric = '0';
-    }
-
     $fields = [];
     $values = [];
     $types = '';
@@ -279,7 +274,7 @@ while ($row = $studentsRes->fetch_assoc()) {
     }
     $add('student_id', 's', $studentId);
     if (finance_ai_has_col($invoiceCols, 'SID')) {
-        $add('SID', 's', $sidNumeric);
+        $add('SID', 's', $studentId);
     }
     if (finance_ai_has_col($invoiceCols, 'registration_id') && $registrationId !== null) {
         $add('registration_id', 'i', $registrationId);
@@ -308,6 +303,9 @@ while ($row = $studentsRes->fetch_assoc()) {
     if (finance_ai_has_col($invoiceCols, 'academic_year')) {
         $add('academic_year', 's', $currentAcademicYear);
     }
+    if (finance_ai_has_col($invoiceCols, 'year_of_study')) {
+        $add('year_of_study', 'i', (int)$yearOfStudy);
+    }
     if (finance_ai_has_col($invoiceCols, 'invoice_date')) {
         $add('invoice_date', 's', date('Y-m-d'));
     }
@@ -315,7 +313,7 @@ while ($row = $studentsRes->fetch_assoc()) {
         $add('due_date', 's', $dueDate);
     }
     if (finance_ai_has_col($invoiceCols, 'status')) {
-        $add('status', 's', 'pending');
+        $add('status', 's', 'Pending');
     }
     if (finance_ai_has_col($invoiceCols, 'payment_status')) {
         $add('payment_status', 's', 'PENDING');
@@ -392,4 +390,3 @@ json_success([
     'failed' => $failed,
     'message' => "Auto-invoice complete: {$created} created, {$skippedExisting} existing, {$skippedNoFee} missing fee setup, {$skippedInvalid} invalid records, {$failed} failed."
 ]);
-

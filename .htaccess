@@ -1,10 +1,35 @@
 Options +FollowSymLinks -MultiViews
 RewriteEngine On
 
+# Lightweight uptime probe (no secrets). Same handler as api/health.php.
+RewriteRule ^health/?$ api/health.php [L,QSA]
+
+# Skills & Enterprise is now an independent sibling application. Keep old
+# bookmarks from reopening the retired WUCPortal implementation.
+RewriteRule ^(?:enterprise|opportunities|network|showcase)(?:/.*)?$ /skills-enterprise-network/ [R=302,L,NE]
+RewriteRule ^(?:admin|lecturers|students)/enterprise(?:/.*)?$ /skills-enterprise-network/ [R=302,L,NE]
+
 # Production boundary: operational data and executable maintenance tooling must
-# never be served from the application document root.
-RewriteRule ^(?:backups|logs|migrations|scripts|tmp(?:_|/)|\.git|\.github)(?:/|$) - [F,L,NC]
+# never be served from the application document root. docs/ holds internal
+# runbooks and audit reports; authenticated pages (e.g. admin/teaching_planner_guide.php)
+# read them from disk, so nothing needs them over HTTP.
+RewriteRule ^(?:backups|docs|logs|migrations|scripts|tmp(?:_|/)|\.git|\.github)(?:/|$) - [F,L,NC]
+# The tmp_ segment above only matches a directory; also block tmp_* diagnostic
+# FILES (schema dumps, smoke output, install logs) left over from local work.
+RewriteRule ^tmp_[^/]*\.(?:php|txt|log|html?)$ - [F,L,NC]
+# Captured HTML page snapshots and other leading-underscore artifacts.
+RewriteRule ^_[^/]*\.html?$ - [F,L,NC]
+# Internal Markdown reports/guides at the document root are developer docs,
+# not public pages. (docs/ is already blocked wholesale above.)
+RewriteRule ^[^/]*\.md$ - [F,L,NC]
+# Debug/test/workflow output captures at the document root.
+RewriteRule ^(?:debug|fix|test|validate|conversion|workflow|admin_quick)[^/]*\.(?:html?|txt)$ - [F,L,NC]
 RewriteRule ^(?:debug|check|apply|cleanup|seed|fix|create|describe|dump|cli_|database_health)[^/]*\.php$ - [F,L,NC]
+# Live test-timetable pages are genuine nav-linked portal pages, not
+# diagnostic scripts: lecturers/test_schedule.php and
+# students|registrar|hod/test_timetable.php. Keep them reachable (same
+# exception pattern as check_eligibility.php below).
+RewriteCond %{REQUEST_URI} !/(?:test_schedule|test_timetable)\.php$ [NC]
 RewriteRule (?:^|/)(?:debug|test|setup|migrate|fix|insert_demo|simple_db|update_tables)[^/]*\.php$ - [F,L,NC]
 # 2026-07-06 audit: the same class of diagnostic/maintenance scripts also lives
 # inside module subdirectories (admin/, students/, …). Block them there too —
@@ -24,7 +49,9 @@ RewriteRule (?:^|/)db(?:/|$) - [F,L,NC]
 # grant_access.php has a hardcoded auth-bypass query param that can reset any
 # password or change any role, and execute_updates.php drops and rebuilds the
 # live students/programs tables. See audit report for details.
-RewriteRule ^(?:grant_access|execute_updates|session_debug|delete_orphaned_invoices|reset_registration|temp_check_credentials|optimize_database|data_cleanup_tool|layout)\.php$ - [F,L,NC]
+RewriteRule ^(?:grant_access|execute_updates|session_debug|delete_orphaned_invoices|reset_registration|temp_check_credentials|optimize_database|data_cleanup_tool|layout|setup_database)\.php$ - [F,L,NC]
+# Destructive / schema DDL under admin must never be HTTP-reachable.
+RewriteRule ^admin/(?:update_database|drop_table|db_repair_standalone|fix_schema|setup_database|debug_database|fix_db)\.php$ - [F,L,NC]
 # scratch_* dumps login_activity rows (user ids, IPs, user agents) and
 # _inspect_schema.php dumps live table schemas — CLI diagnostics only.
 RewriteRule ^(?:scratch_|_inspect)[^/]*\.php$ - [F,L,NC]
@@ -56,7 +83,7 @@ DirectoryIndex index.php
 Options -Indexes
 
 # Keep project metadata and build/dependency files out of the public web root.
-<FilesMatch "(^\.|^composer\.(json|lock|phar)$|^package(-lock)?\.json$|^webpack\.config\.js$|^\.babelrc$|^(?:README|CHANGELOG|LICENSE)(?:\..*)?$)">
+<FilesMatch "(^\.|^composer\.(json|lock|phar)$|^package(-lock)?\.json$|^webpack\.config\.js$|^vite\.config\.js$|^phpunit\.xml$|^\.babelrc$|^(?:README|CHANGELOG|LICENSE)(?:\..*)?$)">
     Require all denied
 </FilesMatch>
 

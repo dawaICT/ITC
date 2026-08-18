@@ -289,6 +289,24 @@ if (!function_exists('student_ca_assessment_row')) {
         $publishedOnly = student_ca_published_status_clause($db);
         $yearCandidates = student_ca_year_candidates($academicYear, (string)($yearOfStudy ?? ''));
 
+        $hydrate = static function (?object $row): ?object {
+            if (!$row) {
+                return null;
+            }
+            $ass1 = student_ca_score_or_null($row->A1 ?? null);
+            $ass2 = student_ca_score_or_null($row->A2 ?? null);
+            $test = student_ca_score_or_null($row->T1 ?? null);
+            if ($test === null) {
+                $test = student_ca_score_or_null($row->T2 ?? null);
+            }
+            $stored = student_ca_score_or_null($row->Total_CA ?? null);
+            $derived = student_ca_derive_period_total($stored, $ass1, $ass2, $test);
+            if ($derived !== null) {
+                $row->Total_CA = $derived;
+            }
+            return $row;
+        };
+
         foreach ($yearCandidates as $yearVal) {
             $sql = "SELECT A1, A2, T1, T2, Total_CA
                     FROM semester_assessment
@@ -301,7 +319,7 @@ if (!function_exists('student_ca_assessment_row')) {
             if ($stmt = $db->prepare($sql)) {
                 $stmt->bind_param('ssss', $sid, $courseCode, $yearVal, $period);
                 $stmt->execute();
-                $row = $stmt->get_result()->fetch_object();
+                $row = $hydrate($stmt->get_result()->fetch_object() ?: null);
                 $stmt->close();
                 if ($row) {
                     return $row;
@@ -320,7 +338,7 @@ if (!function_exists('student_ca_assessment_row')) {
         if ($stmt = $db->prepare($sql)) {
             $stmt->bind_param('sss', $sid, $courseCode, $period);
             $stmt->execute();
-            $row = $stmt->get_result()->fetch_object();
+            $row = $hydrate($stmt->get_result()->fetch_object() ?: null);
             $stmt->close();
             if ($row) {
                 return $row;
@@ -642,7 +660,7 @@ if (!function_exists('student_ca_fetch_period_totals_map')) {
 
 if (!function_exists('student_ca_compute_final_ca')) {
     /**
-     * Year-end CA from published period totals (average of available periods).
+     * Year-end CA percentage from published period percentages.
      *
      * @param array<int, float|null> $periodTotals
      */
@@ -657,7 +675,7 @@ if (!function_exists('student_ca_compute_final_ca')) {
         if ($values === []) {
             return null;
         }
-        return round(array_sum($values) / count($values), 1);
+        return min(100.0, round(array_sum($values) / count($values), 1));
     }
 }
 
@@ -668,6 +686,28 @@ if (!function_exists('student_ca_score_or_null')) {
             return null;
         }
         return (float)$score;
+    }
+}
+
+if (!function_exists('student_ca_derive_period_total')) {
+    /**
+     * Prefer stored Total_CA; when missing, average available raw marks.
+     */
+    function student_ca_derive_period_total(?float $storedTotal, ?float $ass1, ?float $ass2, ?float $test): ?float
+    {
+        if ($storedTotal !== null) {
+            return $storedTotal;
+        }
+        $parts = [];
+        foreach ([$ass1, $ass2, $test] as $value) {
+            if ($value !== null) {
+                $parts[] = $value;
+            }
+        }
+        if ($parts === []) {
+            return null;
+        }
+        return min(100.0, round(array_sum($parts) / count($parts), 2));
     }
 }
 
@@ -740,15 +780,18 @@ if (!function_exists('student_ca_fetch_period_components_map')) {
             if (!isset($map[$code])) {
                 $map[$code] = [];
             }
+            $ass1 = student_ca_score_or_null($row['A1'] ?? null);
+            $ass2 = student_ca_score_or_null($row['A2'] ?? null);
             $testScore = student_ca_score_or_null($row['T1'] ?? null);
             if ($testScore === null) {
                 $testScore = student_ca_score_or_null($row['T2'] ?? null);
             }
+            $storedTotal = student_ca_score_or_null($row['Total_CA'] ?? null);
             $map[$code][$period] = [
-                'ass1' => student_ca_score_or_null($row['A1'] ?? null),
-                'ass2' => student_ca_score_or_null($row['A2'] ?? null),
+                'ass1' => $ass1,
+                'ass2' => $ass2,
                 'test' => $testScore,
-                'total' => student_ca_score_or_null($row['Total_CA'] ?? null),
+                'total' => student_ca_derive_period_total($storedTotal, $ass1, $ass2, $testScore),
             ];
         }
         $stmt->close();
@@ -866,13 +909,14 @@ if (!function_exists('student_ca_fetch_assessments_fallback_map')) {
                 $map[$code][$period] = student_ca_empty_period_components();
             }
             $map[$code][$period][$componentKey] = $mark;
-            $parts = array_filter(
-                [$map[$code][$period]['ass1'], $map[$code][$period]['ass2'], $map[$code][$period]['test']],
-                static fn($v): bool => $v !== null
+            // Always recompute from components — do not pass the running total as
+            // $storedTotal or the first component freezes the period total.
+            $map[$code][$period]['total'] = student_ca_derive_period_total(
+                null,
+                $map[$code][$period]['ass1'] ?? null,
+                $map[$code][$period]['ass2'] ?? null,
+                $map[$code][$period]['test'] ?? null
             );
-            if ($parts !== []) {
-                $map[$code][$period]['total'] = round(array_sum($parts), 1);
-            }
         }
         $stmt->close();
 
@@ -929,11 +973,85 @@ if (!function_exists('student_ca_count_pending_publication')) {
     }
 }
 
+if (!function_exists('student_ca_course_weights')) {
+    /**
+     * Get component and total CA weights for a course and student.
+     *
+     * @return array{ass1:float,ass2:float,test:float,total:float}
+     */
+    function student_ca_course_weights(?mysqli $db, string $sid, string $courseCode): array
+    {
+        $weights = ['ass1' => 30.0, 'ass2' => 30.0, 'test' => 40.0, 'total' => 100.0];
+        if ($db === null) {
+            return $weights;
+        }
+
+        // Default weights based on student program policy
+        require_once dirname(dirname(__DIR__)) . '/includes/assessment_weighting_helpers.php';
+        $policy = assessment_weighting_policy_for_student($db, $sid);
+        $totalCaWeight = (float)($policy['ca_weight'] ?? 100.0);
+
+        if ($totalCaWeight == 40.0) {
+            $weights = ['ass1' => 10.0, 'ass2' => 10.0, 'test' => 20.0, 'total' => 40.0];
+        } elseif ($totalCaWeight == 50.0) {
+            $weights = ['ass1' => 15.0, 'ass2' => 15.0, 'test' => 20.0, 'total' => 50.0];
+        }
+
+        // Try to load course-specific scheme components
+        $programCode = '';
+        if ($sp = assessment_weighting_student_program($db, $sid)) {
+            $programCode = (string)($sp['program_code'] ?? '');
+        }
+
+        if ($programCode !== '' && $courseCode !== '') {
+            $sql = "SELECT ac.component_name, ac.weight, ac.component_type
+                    FROM assessment_schemes sch
+                    JOIN assessment_components ac ON ac.assessment_scheme_id = sch.id
+                    WHERE sch.program_code = ?
+                      AND sch.course_code = ?
+                      AND sch.status = 'active'
+                      AND ac.component_type <> 'EXAM'";
+            if ($stmt = $db->prepare($sql)) {
+                $stmt->bind_param('ss', $programCode, $courseCode);
+                $stmt->execute();
+                $res = $stmt->get_result();
+                $dbWeights = [];
+                $dbTotal = 0.0;
+                while ($row = $res->fetch_assoc()) {
+                    $name = strtolower(trim((string)$row['component_name']));
+                    $w = (float)$row['weight'];
+                    if (str_contains($name, 'assignment 1') || $name === 'a1') {
+                        $dbWeights['ass1'] = $w;
+                    } elseif (str_contains($name, 'assignment 2') || $name === 'a2') {
+                        $dbWeights['ass2'] = $w;
+                    } elseif (str_contains($name, 'test 1') || str_contains($name, 'test') || str_contains($name, 'practical')) {
+                        $dbWeights['test'] = ($dbWeights['test'] ?? 0.0) + $w;
+                    }
+                    $dbTotal += $w;
+                }
+                $stmt->close();
+
+                if ($dbTotal > 0.0) {
+                    if (isset($dbWeights['ass1'])) { $weights['ass1'] = $dbWeights['ass1']; }
+                    if (isset($dbWeights['ass2'])) { $weights['ass2'] = $dbWeights['ass2']; }
+                    if (isset($dbWeights['test'])) { $weights['test'] = $dbWeights['test']; }
+                    $weights['total'] = $dbTotal;
+                }
+            }
+        }
+
+        return $weights;
+    }
+}
+
 if (!function_exists('student_ca_build_annual_records')) {
     /**
      * @param list<array<string,mixed>> $courses
      * @param array<string, array<int, array{ass1:?float,ass2:?float,test:?float,total:?float}>> $componentsMap
      * @param int[] $periods
+     * @param string $yearOfStudy
+     * @param mysqli|null $db
+     * @param string $sid
      * @return list<object{
      *   course_code:string,
      *   course_name:string,
@@ -942,7 +1060,7 @@ if (!function_exists('student_ca_build_annual_records')) {
      *   final_ca:?float
      * }>
      */
-    function student_ca_build_annual_records(array $courses, array $componentsMap, array $periods, string $yearOfStudy = ''): array
+    function student_ca_build_annual_records(array $courses, array $componentsMap, array $periods, string $yearOfStudy = '', ?mysqli $db = null, string $sid = ''): array
     {
         $records = [];
         foreach ($courses as $courseRow) {
@@ -953,10 +1071,41 @@ if (!function_exists('student_ca_build_annual_records')) {
             $mapKey = student_ca_normalize_course_code($code);
             $periodValues = [];
             $periodTotals = [];
+
+            // Get weights for this course
+            $w = student_ca_course_weights($db, $sid, $code);
             foreach ($periods as $period) {
-                $periodValues[$period] = $componentsMap[$mapKey][$period] ?? student_ca_empty_period_components();
-                $periodTotals[$period] = $periodValues[$period]['total'] ?? null;
+                $periodData = $componentsMap[$mapKey][$period] ?? student_ca_empty_period_components();
+
+                $ass1 = $periodData['ass1'] !== null && $periodData['ass1'] !== '' ? (float)$periodData['ass1'] : null;
+                $ass2 = $periodData['ass2'] !== null && $periodData['ass2'] !== '' ? (float)$periodData['ass2'] : null;
+                $test = $periodData['test'] !== null && $periodData['test'] !== '' ? (float)$periodData['test'] : null;
+                $storedTotal = $periodData['total'] !== null && $periodData['total'] !== '' ? (float)$periodData['total'] : null;
+
+                // Components are raw marks out of 100. Apply scheme weights to
+                // their average; never divide a raw mark by its weight.
+                $marksSum = 0.0;
+                $weightsSum = 0.0;
+
+                if ($ass1 !== null) { $marksSum += $ass1 * $w['ass1']; $weightsSum += $w['ass1']; }
+                if ($ass2 !== null) { $marksSum += $ass2 * $w['ass2']; $weightsSum += $w['ass2']; }
+                if ($test !== null) { $marksSum += $test * $w['test']; $weightsSum += $w['test']; }
+
+                if ($weightsSum > 0.0) {
+                    $periodTotalPct = min(100.0, $marksSum / $weightsSum);
+                } else {
+                    $periodTotalPct = $storedTotal !== null ? min(100.0, $storedTotal) : null;
+                }
+
+                $periodValues[$period] = [
+                    'ass1' => $ass1,
+                    'ass2' => $ass2,
+                    'test' => $test,
+                    'total' => $periodTotalPct,
+                ];
+                $periodTotals[$period] = $periodTotalPct;
             }
+
             $records[] = (object)[
                 'course_code' => $code,
                 'course_name' => (string)($courseRow['course_name'] ?? $code),
@@ -1058,9 +1207,9 @@ if (!function_exists('student_ca_render_component_score_html')) {
     function student_ca_render_component_score_html(?float $score): string
     {
         if ($score === null) {
-            return '<span class="ca-score missing">-</span>';
+            return '<span class="ca-score missing" title="Not published">—</span>';
         }
-        return student_ca_h(student_ca_format_score($score));
+        return '<span class="ca-score-value">' . student_ca_h(student_ca_format_score($score)) . '</span>';
     }
 }
 
@@ -1068,7 +1217,7 @@ if (!function_exists('student_ca_render_final_score_html')) {
     function student_ca_render_final_score_html(?float $score): string
     {
         if ($score === null) {
-            return '<span class="ca-total is-missing">-</span>';
+            return '<span class="ca-total is-missing" title="Awaiting published marks">—</span>';
         }
         $tone = student_ca_total_badge_class($score);
         $toneClass = 'neutral';

@@ -35,7 +35,9 @@ if (isset($db) && $db instanceof mysqli) {
         ? 'period_mode'
         : (isset($program_cols['period_type']) ? 'period_type AS period_mode' : 'NULL AS period_mode');
     $study_select  = isset($program_cols['study_mode']) ? 'study_mode' : 'NULL AS study_mode';
-    $active_filter = isset($program_cols['is_active']) ? 'WHERE COALESCE(is_active, 1) = 1' : '';
+    $active_filter = isset($program_cols['is_active'])
+        ? "WHERE COALESCE(is_active, 1) = 1 AND program_code NOT IN ('CSE', 'ICT-002')"
+        : "WHERE program_code NOT IN ('CSE', 'ICT-002')";
 
     $programs_query = "SELECT program_code, program_name, {$period_select}, {$study_select},
                               academic_structure, duration_value, duration_unit, uses_terms,

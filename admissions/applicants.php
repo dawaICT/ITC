@@ -7,18 +7,9 @@ if (session_status() === PHP_SESSION_NONE) {
 // ===== CRITICAL FIX 2: AUTHENTICATION CHECK =====
 require_once dirname(__DIR__) . '/db/connect.php';
 require_once __DIR__ . '/includes/session_handler.php';
+require_once dirname(__DIR__) . '/includes/guards/admissions_guard.php';
 
-// Ensure session timeout is checked
-if (!checkSessionTimeout(30) || !isAdminAuthenticated()) {
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
-        http_response_code(401);
-        echo json_encode(['success' => false, 'message' => 'Unauthorized access']);
-        exit;
-    }
-    setFlashMessage('error', 'Session expired or unauthorized access');
-    header('Location: /wucportal/staff_login.php');
-    exit;
-}
+checkSessionTimeout(30);
 
 // Security headers (MUST come after session_start)
 header("X-Content-Type-Options: nosniff");
@@ -64,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
     
     $response = ['success' => false, 'message' => 'Unknown action'];
-    $user_name = $_SESSION['username'] ?? 'system';
+    $user_name = (string)($_SESSION['staff_id'] ?? $_SESSION['user_id'] ?? '');
     
     try {
         // Input validation

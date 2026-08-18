@@ -29,18 +29,25 @@ $courseProgramMap = []; // course_code => [{program_code, period_mode}]
 if (isset($_SESSION['staff_id'])) {
     $staffId = (string)$_SESSION['staff_id'];
 
-    // Courses assigned to this lecturer
-    $stmt = $db->prepare("SELECT DISTINCT cl.course_code, c.course_name
-            FROM course_lecturer cl
-            LEFT JOIN courses c ON cl.course_code = c.course_code
-            WHERE cl.staff_id = ?
-            ORDER BY cl.course_code");
-    if ($stmt) {
-        $stmt->bind_param('s', $staffId);
-        $stmt->execute();
-        $res = $stmt->get_result();
-        while ($row = $res->fetch_object()) { $records[] = $row; }
-        $stmt->close();
+    // Courses assigned to this lecturer (canonical + orphan lecturer_courses sync)
+    require_once __DIR__ . '/../includes/helpers/lecturer_course_helpers.php';
+    require_once __DIR__ . '/../includes/elearning_access.php';
+    wuc_sync_legacy_lecturer_courses_table($db, $staffId);
+    $assignedCodes = getLecturerAssignedCourses($db, $staffId);
+    foreach ($assignedCodes as $code) {
+        $obj = new stdClass();
+        $obj->course_code = $code;
+        $obj->course_name = $code;
+        if ($nameStmt = $db->prepare('SELECT course_name FROM courses WHERE course_code = ? LIMIT 1')) {
+            $nameStmt->bind_param('s', $code);
+            $nameStmt->execute();
+            $nameRes = $nameStmt->get_result();
+            if ($nameRes && ($nameRow = $nameRes->fetch_assoc())) {
+                $obj->course_name = (string)($nameRow['course_name'] ?? $code);
+            }
+            $nameStmt->close();
+        }
+        $records[] = $obj;
     }
 
     $programPeriodExpr = "'semester'";

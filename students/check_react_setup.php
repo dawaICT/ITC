@@ -14,9 +14,10 @@ require_once __DIR__ . '/includes/guard.php';
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
-<body class="bg-light">
+<body>
     <?php require_once __DIR__ . '/includes/navbar.php'; ?>
     
+    <main class="content-wrapper pt-3 pb-5">
     <div class="container mt-4">
         <h1>React Setup Checker</h1>
         
@@ -102,6 +103,7 @@ npm run build
             </div>
         </div>
     </div>
+    </main>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     

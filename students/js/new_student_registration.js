@@ -24,6 +24,11 @@ $(document).ready(function() {
 		const $btn = $(this);
 		$btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin me-1"></i>Clearing...');
 
+		const csrfToken = $('meta[name="csrf-token"]').attr('content')
+			|| $('input[name="csrf_token"]').first().val()
+			|| window.WUC_CSRF_TOKEN
+			|| '';
+
 		$.ajax({
 			url: 'process_unregister.php',
 			method: 'POST',
@@ -31,7 +36,8 @@ $(document).ready(function() {
 				student_id: studentId,
 				academic_year: academicYear,
 				semester: semester,
-				year_of_study: yearOfStudy
+				year_of_study: yearOfStudy,
+				csrf_token: csrfToken
 			},
 			dataType: 'json',
 			success: function(resp) {

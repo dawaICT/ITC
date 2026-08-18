@@ -10,6 +10,7 @@
 // POST handler MUST run after admin.php sets up $db, but we need CSRF token first
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
 require_once __DIR__ . '/../includes/helpers/academic_structure_helpers.php';
+require_once __DIR__ . '/../includes/exhibition_mode.php';
 
 // CSRF token
 if (empty($_SESSION['csrf_token'])) {
@@ -255,6 +256,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
             case 'delete_student':
                 $sid = trim($_POST['sid'] ?? '');
                 if (empty($sid)) throw new Exception('Student ID is required');
+                wuc_exhibition_assert_destructive_target($db, $sid);
                 
                 // Verify student exists
                 $check = $db->prepare("SELECT SID FROM students WHERE TRIM(UPPER(SID)) = TRIM(UPPER(?))");

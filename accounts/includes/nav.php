@@ -19,8 +19,8 @@ $module_config = array(
 		array(
 			'title' => 'Transactions',
 			'items' => array(
-				array('href' => 'payments2.php', 'icon' => 'fas fa-cash-register', 'label' => 'Cash Payment', 'active_on' => 'payments2.php'),
-				array('href' => 'updateBank_payment.php', 'icon' => 'fas fa-university', 'label' => 'Update Bank Payment', 'active_on' => 'updateBank_payment.php'),
+				array('href' => 'fees_student_payments.php', 'icon' => 'fas fa-cash-register', 'label' => 'Process Payments', 'active_on' => 'fees_student_payments.php'),
+				array('href' => 'pendingPayments.php', 'icon' => 'fas fa-university', 'label' => 'Review Bank Transfers', 'active_on' => array('pendingPayments.php', 'paymentProof.php')),
 				array('href' => 'invoice_student.php', 'icon' => 'fas fa-file-invoice', 'label' => 'Invoice', 'active_on' => 'invoice_student.php'),
 			),
 		),
@@ -34,7 +34,6 @@ $module_config = array(
 				array('href' => 'fees_items.php', 'icon' => 'fas fa-tags', 'label' => 'Fee Items', 'active_on' => 'fees_items.php'),
 				array('href' => 'fees_course_fee_breakdown.php', 'icon' => 'fas fa-chart-pie', 'label' => 'Fee Breakdowns', 'active_on' => 'fees_course_fee_breakdown.php'),
 				array('href' => 'fees_student_accounts.php', 'icon' => 'fas fa-user-circle', 'label' => 'Student Accounts', 'active_on' => 'fees_student_accounts.php'),
-				array('href' => 'fees_student_payments.php', 'icon' => 'fas fa-receipt', 'label' => 'Process Payments', 'active_on' => 'fees_student_payments.php'),
 			),
 		),
 		array(

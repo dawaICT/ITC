@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 define('IS_SCRIPT', true);
 require_once __DIR__ . '/includes/admin.php';
+require_once dirname(__DIR__) . '/includes/role_helpers.php';
 require_once dirname(__DIR__) . '/includes/teaching_planner/init.php';
 
 if (!function_exists('isSystemsAdmin') || !isSystemsAdmin()) {

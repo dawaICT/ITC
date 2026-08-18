@@ -62,21 +62,32 @@ if (isset($_POST['search'])) {
                     s.Fname,
                     s.Lname,
                     s.nrc_pass,
-                    sp.program_code,
-                    (
-                        SELECT COALESCE(SUM(COALESCE(i.total_amount, i.amount, 0)), 0)
-                        FROM invoices i
-                        WHERE CAST(i.SID AS CHAR(50)) COLLATE utf8mb4_general_ci = s.SID COLLATE utf8mb4_general_ci
-                           OR i.student_id COLLATE utf8mb4_general_ci = s.SID COLLATE utf8mb4_general_ci
-                    ) - (
-                        SELECT COALESCE(SUM(p.amount_paid), 0)
-                        FROM student_payments p
-                        WHERE p.Sid COLLATE utf8mb4_general_ci = s.SID COLLATE utf8mb4_general_ci
-                    ) AS calculated_balance
+                    COALESCE(
+                        (SELECT sp.program_code
+                           FROM student_program sp
+                          WHERE sp.Sid = s.SID
+                            AND COALESCE(sp.status, 'active') <> 'inactive'
+                          ORDER BY sp.id DESC LIMIT 1),
+                        NULLIF(s.program, '')
+                    ) AS program_code,
+                    COALESCE(
+                        (SELECT sr.academic_year FROM semester_registration sr
+                          WHERE sr.student_id = s.SID ORDER BY sr.id DESC LIMIT 1),
+                        NULLIF(s.academic_year, ''),
+                        YEAR(CURDATE())
+                    ) AS current_academic_year,
+                    COALESCE(
+                        (SELECT sr.year_of_study FROM semester_registration sr
+                          WHERE sr.student_id = s.SID ORDER BY sr.id DESC LIMIT 1),
+                        NULLIF(s.year, ''),
+                        1
+                    ) AS current_year_of_study,
+                    (SELECT COALESCE(SUM(i.balance), 0)
+                       FROM invoices i
+                      WHERE i.student_id = s.SID
+                        AND i.status IN ('Pending', 'Overdue')) AS calculated_balance
                 FROM students s
-                INNER JOIN student_program sp
-                    ON sp.Sid COLLATE utf8mb4_general_ci = s.SID COLLATE utf8mb4_general_ci
-                WHERE sp.Sid COLLATE utf8mb4_general_ci = ?
+                WHERE s.SID = ?
                 LIMIT 1";
 
         if ($stmt = $db->prepare($sql)) {
@@ -214,13 +225,24 @@ if (isset($_POST['search'])) {
                             </div>
 
                             <div class="col-md-3">
+                                <label for="academic_year" class="form-label">
+                                    Academic Year <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" class="form-control" name="academic_year" id="academic_year"
+                                       value="<?php echo htmlspecialchars((string)($student['current_academic_year'] ?? date('Y')), ENT_QUOTES, 'UTF-8'); ?>"
+                                       pattern="[0-9]{4}" maxlength="4" readonly required>
+                            </div>
+
+                            <div class="col-md-3">
                                 <label for="semester" class="form-label">
                                     Semester/Term <span class="text-danger">*</span>
                                 </label>
                                 <select class="form-select" name="semester" id="semester" required>
                                     <option value="" disabled selected>Select</option>
-                                    <option value="1">Semester 1</option>
-                                    <option value="2">Semester 2</option>
+                                    <option value="1">Period 1</option>
+                                    <option value="2">Period 2</option>
+                                    <option value="3">Period 3</option>
+                                    <option value="4">Period 4</option>
                                 </select>
                             </div>
 
@@ -231,7 +253,7 @@ if (isset($_POST['search'])) {
                                 <select class="form-select" id="year_of_study" name="year_of_study" required>
                                     <option value="" disabled selected>Year of study</option>
                                     <?php for ($year = 1; $year <= $max_year_of_study; $year++): ?>
-                                        <option value="<?php echo $year; ?>">Year <?php echo $year; ?></option>
+                                        <option value="<?php echo $year; ?>" <?php echo (int)($student['current_year_of_study'] ?? 0) === $year ? 'selected' : ''; ?>>Year <?php echo $year; ?></option>
                                     <?php endfor; ?>
                                 </select>
                             </div>

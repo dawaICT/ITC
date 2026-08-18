@@ -12,32 +12,27 @@
 require dirname(__DIR__) . '/db/connect.php';
 require_once dirname(__DIR__) . '/includes/ca_helpers.php';
 require_once dirname(__DIR__) . '/includes/result_entry_helpers.php';
+require_once dirname(__DIR__) . '/includes/auth_helpers.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Access control: only Registrar (and Systems Admin) can access
-if (!isset($_SESSION['staff_id'])) {
+// Access control: Registrar or Systems Admin (canonical RBAC).
+if (!isset($_SESSION['staff_id']) && !isset($_SESSION['user_id'])) {
     $_SESSION['loginMaster'] = 'Please you need to login!';
-    header('Location: /wucportal/index.php');
+    header('Location: /wucportal/staff_login.php');
     exit;
 }
 
-$allowedRoles = array('Registrar', 'Systems Admin');
-$userRole = null;
-if ($stmt = $db->prepare("SELECT ar.assigned_access FROM access_right ar WHERE ar.staff_id = ? LIMIT 1")) {
-    $stmt->bind_param('s', $_SESSION['staff_id']);
-    $stmt->execute();
-    $res = $stmt->get_result();
-    if ($res && $res->num_rows) {
-        $row = $res->fetch_assoc();
-        $userRole = $row['assigned_access'];
-    }
-    $stmt->close();
+require_once dirname(__DIR__) . '/includes/role_helpers.php';
+require_once dirname(__DIR__) . '/includes/staff_role_helpers.php';
+$staffId = (string)($_SESSION['staff_id'] ?? $_SESSION['user_id'] ?? '');
+if ($staffId !== '' && function_exists('wuc_hydrate_staff_roles')) {
+    wuc_hydrate_staff_roles($db, $staffId);
 }
-if ($userRole !== null && !in_array($userRole, $allowedRoles, true)) {
-    header('Location: /wucportal/error/404.php');
+if (!canAccessRegistrar()) {
+    header('Location: /wucportal/portal_selection.php');
     exit;
 }
 
@@ -45,6 +40,10 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['import'])) {
     $_SESSION['errorMsg'] = 'Please choose a CA CSV file to upload.';
     header('Location: upload_ca.php');
     exit;
+}
+if (!wuc_validate_csrf($_POST['csrf_token'] ?? null)) {
+    http_response_code(403);
+    exit('Invalid request.');
 }
 
 $year     = trim((string)($_POST['Year'] ?? ''));
@@ -64,6 +63,11 @@ if (!in_array($semester, ['1', '2', '3'], true)) {
 
 if (!isset($_FILES['file']) || (int)($_FILES['file']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
     $_SESSION['errorMsg'] = 'The CSV file could not be uploaded. Please try again.';
+    header('Location: upload_ca.php');
+    exit;
+}
+if ((int)($_FILES['file']['size'] ?? 0) <= 0 || (int)$_FILES['file']['size'] > 5 * 1024 * 1024) {
+    $_SESSION['errorMsg'] = 'The CSV file must be between 1 byte and 5 MB.';
     header('Location: upload_ca.php');
     exit;
 }
@@ -114,6 +118,11 @@ if (!$handle) {
 $rowNumber = 0;
 while (($row = fgetcsv($handle, 10000, ',')) !== false) {
     $rowNumber++;
+    if ($rowNumber > 10001) {
+        $summary['failed']++;
+        $messages[] = ['type' => 'danger', 'text' => 'Import stopped after 10,000 data rows. Split larger files into separate uploads.'];
+        break;
+    }
     $row = array_map(static function ($value) {
         return trim((string)$value);
     }, $row);

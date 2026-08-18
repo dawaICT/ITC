@@ -31,7 +31,9 @@ wuc_enforce_session_guard([
 
 require_once dirname(__DIR__, 2) . '/includes/role_helpers.php';
 $lecturerGuardEarlyUri = str_replace('\\', '/', (string)($_SERVER['REQUEST_URI'] ?? ''));
+$lecturerGuardPortalHint = strtolower(trim((string)($_GET['portal'] ?? '')));
 $lecturerGuardLooksElearning = strpos($lecturerGuardEarlyUri, '/elearning/') !== false
+    || $lecturerGuardPortalHint === 'elearning'
     || strpos($lecturerGuardEarlyUri, '/lecturers/materials.php') !== false
     || strpos($lecturerGuardEarlyUri, '/lecturers/course_resources.php') !== false
     || strpos($lecturerGuardEarlyUri, '/lecturers/post_assign.php') !== false

@@ -453,7 +453,7 @@ $brand_accent = isset($module_config['brand_color_accent']) ? $module_config['br
 
 <body class="has-unified-sidebar">
 <!-- Mobile Toggle Button -->
-<button id="sidebarToggle" class="sidebar-toggle d-lg-none" type="button" aria-label="Open navigation menu" aria-controls="sidebar" aria-expanded="false">
+<button id="sidebarToggle" class="sidebar-toggle" type="button" aria-label="Open navigation menu" aria-controls="sidebar" aria-expanded="false">
 	<i class="fas fa-bars" aria-hidden="true"></i>
 </button>
 <div class="sidebar-backdrop" data-unified-sidebar-backdrop></div>
@@ -469,7 +469,8 @@ $brand_accent = isset($module_config['brand_color_accent']) ? $module_config['br
 	<div class="sidebar-content">
 		<div class="nav-section">
 			<div class="nav-section-title">Updates</div>
-			<a href="/wucportal/notifications.php" class="nav-item <?php echo basename($_SERVER['PHP_SELF']) === 'notifications.php' ? 'active' : ''; ?>">
+			<?php $navNotificationsHref = '/wucportal/notifications.php' . ($wucRequiredArea === 'elearning' ? '?portal=elearning' : ''); ?>
+			<a href="<?php echo htmlspecialchars($navNotificationsHref, ENT_QUOTES, 'UTF-8'); ?>" class="nav-item <?php echo basename($_SERVER['PHP_SELF']) === 'notifications.php' ? 'active' : ''; ?>">
 				<i class="fas fa-bell"></i><span>Notifications</span>
 				<?php if ($navUnreadAlertCount > 0): ?>
 					<span class="badge bg-danger ms-auto"><?php echo htmlspecialchars((string)$navUnreadAlertCount); ?></span>
@@ -554,7 +555,8 @@ $brand_accent = isset($module_config['brand_color_accent']) ? $module_config['br
 							continue;
 						}
 
-						$modKey = $getModuleKeyForMenuItem($href, $label, $sectionTitle);
+						$explicitModule = strtolower(trim((string)($item['module'] ?? '')));
+						$modKey = $explicitModule !== '' ? $explicitModule : $getModuleKeyForMenuItem($href, $label, $sectionTitle);
 						
                 // Lecturer portal items are role-inherent; do not hide them when RBAC
                 // rows were not yet provisioned for a new lecturer account.
@@ -716,6 +718,7 @@ document.addEventListener('DOMContentLoaded', function() {
 		document.body.style.overflow = open && mobileQuery.matches ? 'hidden' : '';
 		if (toggle) {
 			toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+			toggle.setAttribute('aria-label', open ? 'Close navigation menu' : 'Open navigation menu');
 		}
 		if (backdrop) {
 			backdrop.classList.toggle('show', open);

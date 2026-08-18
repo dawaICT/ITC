@@ -127,50 +127,63 @@ function ollama_installed_models(): array
 }
 
 /**
+ * Return the installed model name that matches $want, or null.
+ * Handles bare names vs ":latest" (Ollama reports either form).
+ */
+function ollama_match_installed_model(string $want, array $installedNames): ?string
+{
+    $want = trim($want);
+    if ($want === '' || $installedNames === []) {
+        return null;
+    }
+    $set = array_fill_keys($installedNames, true);
+    if (isset($set[$want])) {
+        return $want;
+    }
+    if (strpos($want, ':') === false && isset($set[$want . ':latest'])) {
+        return $want . ':latest';
+    }
+    if (str_ends_with($want, ':latest')) {
+        $bare = substr($want, 0, -7);
+        if (isset($set[$bare])) {
+            return $bare;
+        }
+    }
+    return null;
+}
+
+/**
  * Check whether a named Ollama model is installed locally.
- *
- * Ollama may report models with an explicit ":latest" tag even when the
- * configured name omits it, so both forms are treated as the same model.
  */
 function ollama_model_available(string $modelName): bool
 {
-    $modelName = trim($modelName);
-    if ($modelName === '') {
-        return false;
-    }
-
     try {
+        $names = [];
         foreach (ollama_installed_models() as $model) {
             $installedName = (string)($model['model'] ?? $model['name'] ?? '');
-            if ($installedName === $modelName) {
-                return true;
-            }
-            if (strpos($modelName, ':') === false && $installedName === $modelName . ':latest') {
-                return true;
+            if ($installedName !== '') {
+                $names[] = $installedName;
             }
         }
+        return ollama_match_installed_model($modelName, $names) !== null;
     } catch (Throwable $e) {
         return false;
     }
-
-    return false;
 }
 
 /**
  * Resolve the chat model to use now.
  *
  * Priority:
- *   1. explicit function argument,
+ *   1. explicit function argument (only if installed),
  *   2. configured AI_CHAT_MODEL if installed,
  *   3. configured fallback list if installed,
  *   4. first locally installed non-embedding model,
- *   5. configured AI_CHAT_MODEL so Ollama can return a useful pull error.
+ *   5. preferred/configured name so Ollama can return a useful pull error.
  */
 function ai_resolve_chat_model(?string $preferred = null): string
 {
-    if ($preferred !== null && trim($preferred) !== '') {
-        return trim($preferred);
-    }
+    $preferred = $preferred !== null ? trim($preferred) : '';
 
     $installed = [];
     try {
@@ -181,32 +194,43 @@ function ai_resolve_chat_model(?string $preferred = null): string
             }
         }
     } catch (Throwable $e) {
-        return AI_CHAT_MODEL;
+        return $preferred !== '' ? $preferred : AI_CHAT_MODEL;
     }
 
-    $configured = AI_CHAT_MODEL;
-    if (isset($installed[$configured])) {
-        return $configured;
-    }
+    $installedNames = array_keys($installed);
+    $candidates = array_values(array_filter(array_merge(
+        [$preferred, AI_CHAT_MODEL],
+        AI_CHAT_MODEL_FALLBACKS
+    ), static fn($n) => is_string($n) && trim($n) !== ''));
 
-    foreach (AI_CHAT_MODEL_FALLBACKS as $candidate) {
-        if (isset($installed[$candidate])) {
-            return $candidate;
+    foreach ($candidates as $candidate) {
+        $matched = ollama_match_installed_model($candidate, $installedNames);
+        if ($matched !== null) {
+            return $matched;
         }
     }
 
     foreach ($installed as $name => $model) {
         $capabilities = $model['capabilities'] ?? [];
-        if (is_array($capabilities) && !in_array('embedding', $capabilities, true)) {
-            return $name;
+        // Skip pure embedding models (nomic-embed-text, etc.)
+        if (stripos($name, 'embed') !== false) {
+            continue;
         }
+        if (is_array($capabilities) && in_array('embedding', $capabilities, true)
+            && !in_array('completion', $capabilities, true)) {
+            continue;
+        }
+        return $name;
     }
 
-    return $configured;
+    return $preferred !== '' ? $preferred : AI_CHAT_MODEL;
 }
 
 /**
  * Embed a single string -> float vector of length AI_EMBED_DIM.
+ *
+ * Prefers the current Ollama /api/embed endpoint; falls back to legacy
+ * /api/embeddings for older servers / mock_server.php.
  */
 function ollama_embed(string $text): array
 {
@@ -214,15 +238,32 @@ function ollama_embed(string $text): array
     if ($text === '') {
         throw new InvalidArgumentException("Cannot embed empty text");
     }
+
+    $pullHint = 'Is the model pulled? Run: ollama pull ' . AI_EMBED_MODEL;
+
+    try {
+        $data = ollama_post('/api/embed', [
+            'model' => AI_EMBED_MODEL,
+            'input' => $text,
+        ], AI_EMBED_TIMEOUT);
+        if (!empty($data['embeddings'][0]) && is_array($data['embeddings'][0])) {
+            return $data['embeddings'][0];
+        }
+        if (!empty($data['embedding']) && is_array($data['embedding'])) {
+            return $data['embedding'];
+        }
+    } catch (Throwable $e) {
+        // Fall through to legacy endpoint for older Ollama / local mock.
+        error_log('ollama_embed /api/embed failed, trying legacy: ' . $e->getMessage());
+    }
+
     $data = ollama_post('/api/embeddings', [
         'model'  => AI_EMBED_MODEL,
         'prompt' => $text,
     ], AI_EMBED_TIMEOUT);
 
     if (empty($data['embedding']) || !is_array($data['embedding'])) {
-        throw new RuntimeException(
-            "No embedding returned. Is the model pulled? Run: ollama pull " . AI_EMBED_MODEL
-        );
+        throw new RuntimeException('No embedding returned. ' . $pullHint);
     }
     return $data['embedding'];
 }

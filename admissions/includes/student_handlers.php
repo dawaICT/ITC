@@ -270,7 +270,13 @@ function handleDeleteStudent($db, $input) {
         return ['success' => false, 'message' => 'Student ID is required'];
     }
     
-    $sid = $input['sid'];
+    $sid = trim((string)$input['sid']);
+    require_once dirname(__DIR__, 2) . '/includes/exhibition_mode.php';
+    try {
+        wuc_exhibition_assert_destructive_target($db, $sid);
+    } catch (DomainException $e) {
+        return ['success' => false, 'message' => $e->getMessage()];
+    }
     
     // Start transaction
     $db->begin_transaction();

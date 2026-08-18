@@ -1,0 +1,67 @@
+/* Enterprise portal — unified ITC sidebar (same shell as certificate student portal) */
+@import url('/wucportal/css/unified-sidebar.css');
+
+:root {
+    --sidebar-logo-size: 70px;
+    --sidebar-width: 280px;
+    --enterprise-mobile-sidebar-width: clamp(220px, 72vw, 260px);
+}
+
+.sidebar {
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+.sidebar .user-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(27, 42, 74, 0.25), 0 0 0 2px rgba(255, 255, 255, 0.12);
+}
+
+.sidebar .logo {
+    width: min(var(--sidebar-logo-width, 220px), 100%);
+    height: auto;
+    max-height: var(--sidebar-logo-size);
+    border-radius: 12px;
+    margin: 0 auto;
+    background-color: #ffffff;
+    padding: 6px 10px;
+    display: block;
+    object-fit: contain;
+    border: 2px solid rgba(255, 255, 255, 0.95);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28), 0 0 0 3px rgba(255, 255, 255, 0.18);
+}
+
+.sidebar .logo-text {
+    color: #fff;
+    font-size: 1.22rem;
+    line-height: var(--sidebar-logo-size);
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.sidebar .logo-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.65rem;
+}
+
+.sidebar .sidebar-header {
+    padding: 0.85rem 0.9rem;
+}
+
+.sidebar .nav-item,
+.sidebar .nav-link {
+    font-size: 1rem;
+}
+
+.sidebar-toggle {
+    display: none;
+}
+
+@media (max-width: 991.98px) {
+    .sidebar {
+        width: var(--enterprise-mobile-sidebar-width);
+    }
+}

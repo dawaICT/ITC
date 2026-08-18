@@ -6,16 +6,15 @@ declare(strict_types=1);
  * failover.
  *
  * The portal tries an ordered CHAIN of providers and uses the first that
- * succeeds. This gives reliability without a heavy local model download:
+ * succeeds:
  *
- *   - With a free API key configured  -> chain = [groq, pollinations]
- *     (Groq preferred: high limits + real concurrency; keyless fallback if it
- *      ever errors or rate-limits.)
- *   - With no key                     -> chain = [pollinations]
- *     (Free, keyless, zero-config.)
+ *   - With a free API key configured  -> chain = [groq, openrouter-qwen]
+ *   - With no key                     -> cloud chain is empty (use Ollama or
+ *     add ai/cloud_key.txt). Pollinations legacy text API is no longer a
+ *     reliable keyless default (HTTP 402 / deprecation).
  *
- * Each provider call retries transient failures (HTTP 429 "queue full", 5xx,
- * transport errors) with backoff before the chain moves on to the next provider.
+ * Each provider call retries transient failures (HTTP 429, 5xx, transport
+ * errors) with backoff before the chain moves on.
  *
  * SECRET HANDLING — keyed providers read the API key from, in order:
  *   1. environment variable WUC_AI_CLOUD_API_KEY
@@ -23,7 +22,7 @@ declare(strict_types=1);
  * Keep cloud_key.txt out of version control.
  *
  * Env overrides:
- *   WUC_AI_CLOUD_CHAIN     comma list, e.g. "groq,pollinations" (full control)
+ *   WUC_AI_CLOUD_CHAIN     comma list, e.g. "groq,openrouter-qwen"
  *   WUC_AI_CLOUD_PROVIDER  force a single primary provider
  *   WUC_AI_CLOUD_MODEL / _BASE_URL / _ENDPOINT   override the primary provider
  *   WUC_AI_CLOUD_RETRIES   transient retries per provider (default 3)
@@ -34,14 +33,7 @@ if (!function_exists('wuc_ai_cloud_profiles')) {
     function wuc_ai_cloud_profiles(): array
     {
         return [
-            // Free, keyless, no signup — the zero-config fallback.
-            'pollinations' => [
-                'base_url'     => 'https://text.pollinations.ai',
-                'endpoint'     => '/openai',
-                'model'        => 'openai',
-                'requires_key' => false,
-            ],
-            // Free tier, fast, real concurrency — needs a free key (no card).
+            // Free tier, fast — needs a free key from https://console.groq.com/keys
             'groq' => [
                 'base_url'     => 'https://api.groq.com/openai/v1',
                 'endpoint'     => '/chat/completions',
@@ -54,7 +46,6 @@ if (!function_exists('wuc_ai_cloud_profiles')) {
                 'model'        => 'meta-llama/llama-3.1-8b-instruct:free',
                 'requires_key' => true,
             ],
-            // Free-tier Qwen via OpenRouter
             'openrouter-qwen' => [
                 'base_url'     => 'https://openrouter.ai/api/v1',
                 'endpoint'     => '/chat/completions',
@@ -65,6 +56,14 @@ if (!function_exists('wuc_ai_cloud_profiles')) {
                 'base_url'     => 'https://api.together.xyz/v1',
                 'endpoint'     => '/chat/completions',
                 'model'        => 'meta-llama/Llama-3.1-8B-Instruct-Turbo',
+                'requires_key' => true,
+            ],
+            // Pollinations now requires auth / pollen balance — only use when
+            // explicitly selected and a key is supplied (enter.pollinations.ai).
+            'pollinations' => [
+                'base_url'     => 'https://gen.pollinations.ai',
+                'endpoint'     => '/v1/chat/completions',
+                'model'        => 'openai',
                 'requires_key' => true,
             ],
         ];
@@ -85,6 +84,10 @@ if (!function_exists('wuc_ai_cloud_read_key')) {
             foreach (preg_split('/\R/', $raw) ?: [] as $line) {
                 $line = trim($line);
                 if ($line !== '' && strpos($line, '#') !== 0) {
+                    // Ignore the placeholder from the example file if copied as-is.
+                    if (stripos($line, 'PASTE_YOUR') !== false || stripos($line, 'YOUR_') === 0) {
+                        continue;
+                    }
                     return $line;
                 }
             }
@@ -95,9 +98,9 @@ if (!function_exists('wuc_ai_cloud_read_key')) {
 
 if (!function_exists('wuc_ai_cloud_chain')) {
     /**
-     * Ordered list of resolved provider configs to attempt. Providers that need
-     * a key but have none are dropped, so this is always usable (pollinations is
-     * keyless) when cURL is available.
+     * Ordered list of resolved provider configs. Keyed providers without a key
+     * are skipped. Without any usable key the chain is empty — callers fall
+     * back to local Ollama or static text.
      */
     function wuc_ai_cloud_chain(): array
     {
@@ -118,12 +121,10 @@ if (!function_exists('wuc_ai_cloud_chain')) {
             if ($primary !== '') {
                 $order[] = $primary;
             } elseif ($key !== '') {
-                // Recommendation: prefer Groq when a key is available, then OpenRouter Qwen.
                 $order[] = 'groq';
                 $order[] = 'openrouter-qwen';
             }
-            // Always keep the keyless provider as a final fallback.
-            $order[] = 'pollinations';
+            // Do not auto-append pollinations — legacy keyless endpoint returns HTTP 402.
         }
         $order = array_values(array_unique(array_filter($order)));
 
@@ -149,7 +150,7 @@ if (!function_exists('wuc_ai_cloud_chain')) {
                 'timeout'      => $timeout,
             ];
             if ($cfg['requires_key'] && $cfg['api_key'] === '') {
-                continue; // can't use a keyed provider without a key
+                continue;
             }
             $resolved[] = $cfg;
         }
@@ -168,11 +169,11 @@ if (!function_exists('wuc_ai_cloud_config')) {
             return $chain[0];
         }
         return [
-            'provider' => 'pollinations',
-            'base_url' => 'https://text.pollinations.ai',
-            'endpoint' => '/openai',
-            'model'    => 'openai',
-            'requires_key' => false,
+            'provider' => 'none',
+            'base_url' => '',
+            'endpoint' => '/chat/completions',
+            'model'    => '',
+            'requires_key' => true,
             'api_key'  => '',
             'timeout'  => 90,
         ];
@@ -204,6 +205,13 @@ if (!function_exists('wuc_ai_cloud_label')) {
     }
 }
 
+if (!function_exists('wuc_ai_cloud_setup_hint')) {
+    function wuc_ai_cloud_setup_hint(): string
+    {
+        return 'Install Ollama and run ai\\setup_ollama.ps1 (pulls llama3.2:3b + nomic-embed-text), or add a free Groq key to ai/cloud_key.txt. Pollinations keyless text API is deprecated (HTTP 402).';
+    }
+}
+
 if (!function_exists('wuc_ai_cloud_request')) {
     /**
      * Single-provider request with transient retry. Throws on failure.
@@ -222,6 +230,10 @@ if (!function_exists('wuc_ai_cloud_request')) {
         if ($cfg['api_key'] !== '') {
             $headers[] = 'Authorization: Bearer ' . $cfg['api_key'];
         }
+        if (($cfg['provider'] ?? '') === 'openrouter' || ($cfg['provider'] ?? '') === 'openrouter-qwen') {
+            $headers[] = 'HTTP-Referer: http://localhost/wucportal/';
+            $headers[] = 'X-Title: ITC WUC Portal';
+        }
 
         $url = $cfg['base_url'] . $cfg['endpoint'];
         $maxAttempts = max(1, min(5, $maxAttempts));
@@ -230,9 +242,6 @@ if (!function_exists('wuc_ai_cloud_request')) {
         $lastErr = '';
 
         for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
-            // Each attempt can legitimately run up to the provider timeout,
-            // which exceeds max_execution_time (60s). Without this the request
-            // fatals mid-call instead of reaching the caller's fallback.
             $maxExec = (int)ini_get('max_execution_time');
             $needed = max(10, (int)$cfg['timeout']) + 30;
             if ($maxExec > 0 && $needed > $maxExec) {
@@ -253,6 +262,7 @@ if (!function_exists('wuc_ai_cloud_request')) {
             $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
             curl_close($ch);
 
+            // 402 is permanent for pollen/payment — do not retry the same provider.
             $transient = ($body === false) || $code === 429 || ($code >= 500 && $code <= 599);
             if ($transient && $attempt < $maxAttempts) {
                 $lastErr = $transportErr !== '' ? $transportErr : ('HTTP ' . $code);
@@ -272,6 +282,12 @@ if (!function_exists('wuc_ai_cloud_request')) {
             $msg = is_array($data) ? ($data['error']['message'] ?? ($data['error'] ?? $body)) : $body;
             if (is_array($msg)) {
                 $msg = json_encode($msg);
+            }
+            if ($code === 402) {
+                throw new RuntimeException(
+                    "{$cfg['provider']} requires a paid balance or valid API key (HTTP 402). "
+                    . wuc_ai_cloud_setup_hint()
+                );
             }
             throw new RuntimeException("{$cfg['provider']} API error (HTTP {$code}): " . (string)$msg);
         }
@@ -297,17 +313,12 @@ if (!function_exists('wuc_ai_cloud_chat')) {
     {
         $chain = wuc_ai_cloud_chain();
         if ($chain === []) {
-            throw new RuntimeException('No cloud AI provider is configured.');
+            throw new RuntimeException('No cloud AI provider is configured. ' . wuc_ai_cloud_setup_hint());
         }
 
-        // Fewer retries per provider when we have a fallback, so we fail over sooner.
         $baseRetries = (int)(getenv('WUC_AI_CLOUD_RETRIES') ?: 3);
         $perProvider = count($chain) > 1 ? max(1, min($baseRetries, 2)) : $baseRetries;
 
-        // Release the session file lock for the duration of the (potentially
-        // minutes-long) provider chain. Holding it blocks every other request
-        // from the same browser inside session_start() until each one dies at
-        // max_execution_time — the portal-wide "could not load this page" storm.
         $reopenSession = false;
         if (session_status() === PHP_SESSION_ACTIVE) {
             session_write_close();
@@ -322,14 +333,11 @@ if (!function_exists('wuc_ai_cloud_chat')) {
                 } catch (Throwable $e) {
                     $errors[] = $e->getMessage();
                     error_log('wuc_ai_cloud_chat: provider ' . $cfg['provider'] . ' failed: ' . $e->getMessage());
-                    // try next provider in the chain
                 }
             }
 
             throw new RuntimeException('All cloud AI providers failed: ' . implode(' | ', $errors));
         } finally {
-            // Callers (e.g. students/ai_chat_ajax.php) write chat history to
-            // $_SESSION after this returns, so the lock must be re-acquired.
             if ($reopenSession && session_status() === PHP_SESSION_NONE && !headers_sent()) {
                 @session_start();
             }
@@ -345,13 +353,13 @@ if (!function_exists('wuc_ai_cloud_status')) {
         $providers = array_map(static fn($c) => $c['provider'] . ':' . $c['model'], $chain);
         return [
             'enabled'   => $enabled,
-            'provider'  => $chain[0]['provider'] ?? 'pollinations',
-            'model'     => $chain[0]['model'] ?? 'openai',
+            'provider'  => $chain[0]['provider'] ?? 'none',
+            'model'     => $chain[0]['model'] ?? '',
             'label'     => wuc_ai_cloud_label(),
             'chain'     => $providers,
             'message'   => $enabled
                 ? 'Cloud AI ready. Chain: ' . implode(' -> ', $providers)
-                : 'Cloud AI not available (cURL missing or no provider).',
+                : 'Cloud AI not configured. ' . wuc_ai_cloud_setup_hint(),
         ];
     }
 }

@@ -11,12 +11,14 @@ if (defined('APP_ENV') && APP_ENV === 'development' && isset($_GET['dev'], $_GET
 require_once __DIR__ . '/includes/guard.php';
 require_once __DIR__ . '/../includes/elearning_access.php';
 require_once __DIR__ . '/../includes/short_course_student.php';
+require_once __DIR__ . '/../includes/student_program_portal.php';
 require_once __DIR__ . '/../includes/academic_risk_engine.php';
 require_once __DIR__ . '/includes/period_mode_helper.php';
 require_once __DIR__ . '/includes/student_fee_records.php';
 require_once __DIR__ . '/includes/StudentAcademicWorkflowService.php';
 require_once __DIR__ . '/includes/student_document_notifications.php';
 require_once __DIR__ . '/../includes/portal_alerts.php';
+require_once __DIR__ . '/../includes/qr_helper.php';
 
 if ($db->connect_error) {
     error_log("Database connection failed: " . $db->connect_error);
@@ -32,9 +34,26 @@ if (!preg_match('/^[A-Za-z0-9\/\-_]+$/', $_SESSION['Sid'])) {
 
 $student_id = $_SESSION['Sid'];
 $is_dev_mode = defined('APP_ENV') && APP_ENV === 'development';
+$studentProgramPortal = wuc_student_program_portal_profile($db, (string)$student_id);
+$studentPortalProgramCode = (string)($studentProgramPortal['program_code'] ?? '');
+$isCertificateProgramPortal = (string)($studentProgramPortal['type'] ?? '') === 'certificate';
+
+// The dedicated landing pages are guarded by the resolved live assignment.
+// A student cannot force a certificate/diploma/trade-test/short-course view by
+// typing another portal URL.
+if (isset($expectedStudentProgramPortal)
+    && $expectedStudentProgramPortal !== (string)$studentProgramPortal['type']) {
+    header('Location: ' . (string)$studentProgramPortal['route'], true, 302);
+    exit();
+}
 
 $studentRec = null;
 $isShortCourseStudent = false;
+
+// Long-term programmes only (exclude is_short_course / SHORT_COURSE structure).
+$longProgramPred = function_exists('sc_sql_programs_long_only_predicate')
+    ? sc_sql_programs_long_only_predicate($db, 'p')
+    : 'COALESCE(p.is_short_course, 0) = 0';
 
 $query_1 = "SELECT s.SID, s.Fname, s.Lname, s.email, s.mobile, s.profile_image, sp.startYear, sp.endYear,
                    sp.program_code, p.program_name, p.program_duration, p.period_mode,
@@ -44,8 +63,10 @@ $query_1 = "SELECT s.SID, s.Fname, s.Lname, s.email, s.mobile, s.profile_image, 
             INNER JOIN programs p ON sp.program_code = p.program_code
             LEFT JOIN program_courses pc ON pc.program_code = sp.program_code
             WHERE s.SID = ?
+              AND (CHAR_LENGTH(?) = 0 OR sp.program_code = ?)
               AND (sp.status IS NULL OR sp.status = '' OR LOWER(sp.status) = 'active')
               AND COALESCE(p.is_active, 1) = 1
+              AND ({$longProgramPred})
             GROUP BY s.SID, s.Fname, s.Lname, s.email, s.mobile, s.profile_image, sp.id, sp.startYear, sp.endYear,
                      sp.program_code, p.program_name, p.program_duration, p.period_mode, p.study_mode,
                      p.academic_structure, p.duration_value, p.duration_unit, p.uses_terms, p.uses_semesters, p.is_short_course, p.is_transport_exception, p.examination_type
@@ -54,7 +75,7 @@ $query_1 = "SELECT s.SID, s.Fname, s.Lname, s.email, s.mobile, s.profile_image, 
 
 $stmt_1 = $db->prepare($query_1);
 if ($stmt_1) {
-    $stmt_1->bind_param("s", $student_id);
+    $stmt_1->bind_param("sss", $student_id, $studentPortalProgramCode, $studentPortalProgramCode);
     $stmt_1->execute();
     $results_1 = $stmt_1->get_result();
     $studentRec = $results_1 ? $results_1->fetch_object() : null;
@@ -64,23 +85,21 @@ if ($stmt_1) {
     }
 }
 
-// Short-course-only students have no student_program row. Admit them using their
-// short course as the displayed "program" instead of blocking at the gate.
-if (!$studentRec) {
+// Short-course portal students (no long programme): admit via short_course_enrollments
+// or short-flagged programme assignments — never mix short catalogue into long path.
+if (!$studentRec && function_exists('isShortCourseStudent') && isShortCourseStudent($db, (string)$student_id)) {
     $scEnrolments = sc_student_enrolments($db, (string)$student_id);
 
-    if ($scEnrolments) {
-        $stmt_sc = $db->prepare(
-            "SELECT SID, Fname, Lname, email, mobile, profile_image
-             FROM students WHERE SID = ? LIMIT 1"
-        );
-        if ($stmt_sc) {
-            $stmt_sc->bind_param("s", $student_id);
-            $stmt_sc->execute();
-            $res_sc = $stmt_sc->get_result();
-            $studentRec = $res_sc ? $res_sc->fetch_object() : null;
-            $stmt_sc->close();
-        }
+    $stmt_sc = $db->prepare(
+        "SELECT SID, Fname, Lname, email, mobile, profile_image
+         FROM students WHERE SID = ? LIMIT 1"
+    );
+    if ($stmt_sc) {
+        $stmt_sc->bind_param("s", $student_id);
+        $stmt_sc->execute();
+        $res_sc = $stmt_sc->get_result();
+        $studentRec = $res_sc ? $res_sc->fetch_object() : null;
+        $stmt_sc->close();
     }
 
     if ($studentRec) {
@@ -88,17 +107,19 @@ if (!$studentRec) {
         $courseLabels = array_map(static function (array $e): string {
             return trim(($e['course_code'] ?? '') . ' - ' . ($e['course_name'] ?? ''), ' -');
         }, $scEnrolments);
-        $latestEnrolment = $scEnrolments[0];
+        $latestEnrolment = $scEnrolments[0] ?? null;
 
-        $studentRec->program_code     = '';
+        $studentRec->program_code     = (string)($latestEnrolment['course_code'] ?? $studentProgramPortal['program_code'] ?? '');
         $studentRec->program_name     = $courseLabels
             ? implode(', ', $courseLabels)
-            : 'Short Course Programme';
+            : (!empty($studentProgramPortal['program_name']) ? $studentProgramPortal['program_name'] : 'Short Course Programme');
         $studentRec->program_duration = null;
-        $studentRec->short_course_duration = sc_format_duration(
-            $latestEnrolment['duration_value'] ?? 0,
-            $latestEnrolment['duration_unit'] ?? ''
-        ) ?: null;
+        $studentRec->short_course_duration = $latestEnrolment
+            ? (sc_format_duration(
+                $latestEnrolment['duration_value'] ?? 0,
+                $latestEnrolment['duration_unit'] ?? ''
+            ) ?: null)
+            : null;
         $studentRec->period_mode      = 'short_course';
         $studentRec->startYear        = null;
         $studentRec->endYear          = null;
@@ -146,24 +167,12 @@ if ($programCode && $latestRegistrationForFees) {
     $feesAvailable = $scFees['has_fees'];
 }
 
-$outstanding        = $feesAvailable ? max(0, $totalFees - $totalPaid) : null;
+$outstanding = $feesAvailable
+    ? (!empty($isShortCourseStudent)
+        ? max(0, $totalFees - $totalPaid)
+        : (float)$currentFeeSummary['balance'])
+    : null;
 $stats['balance']   = $outstanding ?? 0.0;
-
-// Override with new Fees System account totals if present
-$newAccStmt = $db->prepare("SELECT balance, total_payable, amount_paid FROM student_fee_accounts WHERE student_id = ? AND status = 'active' ORDER BY id DESC LIMIT 1");
-if ($newAccStmt) {
-    $newAccStmt->bind_param('s', $student_id);
-    $newAccStmt->execute();
-    $newAccRes = $newAccStmt->get_result();
-    if ($newAccRow = $newAccRes->fetch_assoc()) {
-        $totalFees = (float)$newAccRow['total_payable'];
-        $totalPaid = (float)$newAccRow['amount_paid'];
-        $outstanding = (float)$newAccRow['balance'];
-        $feesAvailable = true;
-        $stats['balance'] = $outstanding;
-    }
-    $newAccStmt->close();
-}
 
 $Records = [];
 $annTableRes = $db->query("SHOW TABLES LIKE 'announcement'");
@@ -219,6 +228,47 @@ $registeredCourseCodes = array_values(array_unique(array_filter(array_map(static
 }, is_array($registeredCourseCodes) ? $registeredCourseCodes : []))));
 
 $stats['courses'] = count($registeredCourseCodes);
+
+// Published results preview (own Sid only).
+$recentResults = [];
+if (student_dashboard_table_exists($db, 'semester_assessment')) {
+    if ($resStmt = $db->prepare(
+        "SELECT Course_Code, Total_CA, status, published_at
+         FROM semester_assessment
+         WHERE Sid = ? AND LOWER(status) = 'published'
+         ORDER BY COALESCE(published_at, submitted_at) DESC, Course_Code ASC
+         LIMIT 5"
+    )) {
+        $resStmt->bind_param('s', $student_id);
+        $resStmt->execute();
+        $resRows = $resStmt->get_result();
+        while ($resRow = $resRows->fetch_assoc()) {
+            $recentResults[] = [
+                'course_code' => (string)($resRow['Course_Code'] ?? ''),
+                'total_ca' => (float)($resRow['Total_CA'] ?? 0),
+                'published_at' => (string)($resRow['published_at'] ?? ''),
+            ];
+        }
+        $resStmt->close();
+    }
+}
+
+// Career / placement bridge (own student record only) — omitted on certificate dashboard (enterprise lives in separate portal).
+$careerPlacement = null;
+if (!$isCertificateProgramPortal && student_dashboard_table_exists($db, 'employer_internships')) {
+    if ($careerStmt = $db->prepare(
+        "SELECT company_name, supervisor_name, status, start_date, end_date, feedback
+         FROM employer_internships
+         WHERE student_id = ?
+         ORDER BY start_date DESC
+         LIMIT 1"
+    )) {
+        $careerStmt->bind_param('s', $student_id);
+        $careerStmt->execute();
+        $careerPlacement = $careerStmt->get_result()->fetch_assoc() ?: null;
+        $careerStmt->close();
+    }
+}
 
 // Short-course students aren't in course_registration; count their short-course
 // enrolments so the dashboard "Courses" stat reflects what they're actually doing.
@@ -421,7 +471,11 @@ if ($isShortCourse) {
 
 $aiAcademicInsight = null;
 try {
-    $aiAcademicInsight = wuc_academic_risk_analyze_student($db, (string)$student_id, true);
+    // Prefer a fresh persisted summary (default 15 minutes) over recomputing
+    // ~8 metric queries on every dashboard hit.
+    $aiAcademicInsight = function_exists('wuc_academic_risk_for_dashboard')
+        ? wuc_academic_risk_for_dashboard($db, (string)$student_id, 900)
+        : wuc_academic_risk_analyze_student($db, (string)$student_id, true);
 } catch (Throwable $e) {
     error_log('students/index.php AI academic insight failed: ' . $e->getMessage());
 }
@@ -547,6 +601,11 @@ if (!function_exists('student_dashboard_persist_attention_alerts')) {
             if ($title === '' || $message === '') {
                 continue;
             }
+            if (strcasecmp($title, 'AI academic insight') === 0) {
+                // The risk engine already upserts the canonical academic_risk
+                // notification. Keep this live item only as a render fallback.
+                continue;
+            }
 
             $slug = student_dashboard_alert_slug($title);
             $severity = 'info';
@@ -574,6 +633,14 @@ student_dashboard_persist_attention_alerts($db, (string)$student_id, $attentionI
 require_once __DIR__ . '/../includes/notification_integrations.php';
 wuc_portal_alerts_sync_sources($db, (string)$student_id, 'student');
 wuc_portal_alerts_sync_student_documents($db, (string)$student_id);
+// Mark sync done so navbar's 45s throttle does not need another session write.
+$_SESSION['wuc_alerts_last_sync_student'] = time();
+// Release session lock before HTML/render so parallel tabs are not blocked.
+if (function_exists('wuc_session_release_lock')) {
+    wuc_session_release_lock();
+} elseif (session_status() === PHP_SESSION_ACTIVE) {
+    session_write_close();
+}
 $portalUnreadAlerts = wuc_portal_alerts_for_user($db, (string)$student_id, 5, true, 'student');
 $portalUnreadCount = wuc_portal_alerts_unread_count($db, (string)$student_id, 'student');
 $portalNotificationItems = array_map(static function (array $alert): array {
@@ -590,21 +657,24 @@ $portalNotificationItems = array_map(static function (array $alert): array {
 $attentionCount = $portalUnreadCount > 0 ? $portalUnreadCount : count($attentionItems);
 $notificationItems = $portalNotificationItems ?: ($attentionItems ?: $actionItems);
 
+require_once __DIR__ . '/../includes/test_timetable.php';
+$studentTestPeriod = (!$isShortCourseStudent && !$isCertificateProgramPortal)
+    ? tt_current_student_visible_period($db)
+    : null;
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - ITC</title>
+    <title><?= htmlspecialchars((string)$studentProgramPortal['dashboard_label']) ?> - ITC</title>
 <?php require_once __DIR__ . '/../includes/page_meta.php'; wuc_portal_favicon_links(); ?>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/wucportal/assets/vendor/bootstrap/5.3.2/bootstrap.min.css">
+    <link rel="stylesheet" href="/wucportal/assets/vendor/fontawesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/wucportal/assets/css/main.css">
     <link rel="stylesheet" href="/wucportal/css/portal-dashboard.css">
-    <link rel="stylesheet" href="css/dashboard.css?v=20260702-profile-square-v2">
+    <link rel="stylesheet" href="css/dashboard.css?v=20260712-dashboard-responsive-v1">
 </head>
 <body class="bg-light student-dashboard-page">
 
@@ -614,7 +684,7 @@ $notificationItems = $portalNotificationItems ?: ($attentionItems ?: $actionItem
 
     <section class="welcome-hero hero-branded" aria-label="Welcome summary">
         <div class="welcome-hero-text">
-            <span class="eyebrow">Student Dashboard</span>
+            <span class="eyebrow"><i class="fas <?= htmlspecialchars((string)$studentProgramPortal['icon']) ?>"></i> <?= htmlspecialchars((string)$studentProgramPortal['dashboard_label']) ?></span>
             <h1><?= htmlspecialchars($greeting) ?>, <?= htmlspecialchars($studentName) ?></h1>
             <p><?= htmlspecialchars($studentRec->program_name ?? 'Academic profile') ?></p>
             <div class="hero-chips" aria-label="Academic context">
@@ -675,12 +745,24 @@ $notificationItems = $portalNotificationItems ?: ($attentionItems ?: $actionItem
     <!-- Quick Navigation -->
     <div class="dash-quicknav-wrap">
         <nav class="dash-quicknav" aria-label="Quick navigation">
+            <?php if ($isShortCourse): ?>
+            <a href="short_courses.php" class="quicknav-item"><i class="fas fa-certificate"></i><span>My Short Courses</span></a>
+            <a href="registration.php" class="quicknav-item"><i class="fas fa-id-card"></i><span>Enrolment Status</span></a>
+            <a href="fees.php" class="quicknav-item"><i class="fas fa-file-invoice-dollar"></i><span>Fees</span></a>
+            <a href="/wucportal/notifications.php" class="quicknav-item"><i class="fas fa-bell"></i><span>Notifications</span></a>
+            <a href="continuousAssessment.php" class="quicknav-item"><i class="fas fa-chart-bar"></i><span>CA Results</span></a>
+            <a href="campus_services.php" class="quicknav-item"><i class="fas fa-concierge-bell"></i><span>Campus Services</span></a>
+            <?php else: ?>
             <a href="myCourses.php" class="quicknav-item"><i class="fas fa-book-open"></i><span>My Courses</span></a>
             <a href="registration.php" class="quicknav-item"><i class="fas fa-user-check"></i><span>Registration</span></a>
             <a href="fees.php" class="quicknav-item"><i class="fas fa-file-invoice-dollar"></i><span>Fees</span></a>
             <a href="/wucportal/notifications.php" class="quicknav-item"><i class="fas fa-bell"></i><span>Notifications</span></a>
             <a href="continuousAssessment.php" class="quicknav-item"><i class="fas fa-chart-bar"></i><span>Results</span></a>
+            <?php if (!$isCertificateProgramPortal): ?>
+            <a href="skill_discovery.php" class="quicknav-item"><i class="fas fa-wand-magic-sparkles"></i><span>Skills &amp; Career</span></a>
+            <?php endif; ?>
             <a href="timetable.php" class="quicknav-item"><i class="fas fa-calendar-week"></i><span>Timetable</span></a>
+            <?php endif; ?>
             <?php if ($hasElearningAccess): ?>
             <a href="materials.php" class="quicknav-item"><i class="fas fa-folder-open"></i><span>Materials</span></a>
             <a href="elearning/index.php" class="quicknav-item"><i class="fas fa-graduation-cap"></i><span>eLearning Hub</span></a>
@@ -706,8 +788,8 @@ $notificationItems = $portalNotificationItems ?: ($attentionItems ?: $actionItem
                 <div class="stat-sub"><?= htmlspecialchars($currentPeriodText) ?></div>
             </div>
         </a>
-        <a href="myCourses.php" class="stat-card">
-            <div class="stat-icon purple"><i class="fas fa-book-open"></i></div>
+        <a href="<?= $isShortCourse ? 'short_courses.php' : 'myCourses.php' ?>" class="stat-card">
+            <div class="stat-icon purple"><i class="fas <?= $isShortCourse ? 'fa-certificate' : 'fa-book-open' ?>"></i></div>
             <div>
                 <div class="stat-label">Enrolled Courses</div>
                 <div class="stat-value"><?= htmlspecialchars((string)$stats['courses']) ?></div>
@@ -715,6 +797,22 @@ $notificationItems = $portalNotificationItems ?: ($attentionItems ?: $actionItem
             </div>
         </a>
     </section>
+
+    <?php if ($studentTestPeriod): ?>
+    <section class="mb-3" aria-label="Test timetable">
+        <a href="test_timetable.php" class="stat-card text-decoration-none d-block" style="max-width:420px;">
+            <div class="stat-icon purple"><i class="fas fa-calendar-check"></i></div>
+            <div>
+                <div class="stat-label">TEST TIMETABLE</div>
+                <div class="stat-value" style="font-size:1.1rem;"><?= htmlspecialchars((string)$studentTestPeriod['term_label'], ENT_QUOTES, 'UTF-8') ?> Tests</div>
+                <div class="stat-sub">
+                    Tests begin: <?= htmlspecialchars(date('d F', strtotime((string)$studentTestPeriod['test_start_date'])), ENT_QUOTES, 'UTF-8') ?>
+                    · View Timetable
+                </div>
+            </div>
+        </a>
+    </section>
+    <?php endif; ?>
 
     <!-- Main dashboard: profile, schedule, deadlines, and announcements -->
     <section class="dash-grid" aria-label="Student dashboard layout">
@@ -964,6 +1062,104 @@ $notificationItems = $portalNotificationItems ?: ($attentionItems ?: $actionItem
                 </div>
             </article>
 
+            <!-- Recent Results -->
+            <article class="card card-collapsible">
+                <div class="card-hdr">
+                    <h3><i class="fas fa-chart-bar"></i> Recent Results</h3>
+                    <div class="card-hdr-actions">
+                        <a href="continuousAssessment.php" class="badge bg-primary text-decoration-none">All results</a>
+                        <button class="card-toggle"
+                                type="button"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#dashboardRecentResults"
+                                aria-expanded="true"
+                                aria-controls="dashboardRecentResults">
+                            <span class="card-toggle-label">Collapse</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                    </div>
+                </div>
+                <div id="dashboardRecentResults" class="collapse show">
+                <div class="card-body">
+                    <?php if (!empty($recentResults)): ?>
+                        <ul class="today-class-list">
+                            <?php foreach ($recentResults as $resultRow): ?>
+                                <li class="today-class-item">
+                                    <span class="today-class-time">
+                                        <strong><?= htmlspecialchars(number_format((float)$resultRow['total_ca'], 0)) ?>%</strong>
+                                        <small>CA total</small>
+                                    </span>
+                                    <span class="today-class-copy">
+                                        <strong><?= htmlspecialchars($resultRow['course_code']) ?></strong>
+                                        <small>
+                                            Published
+                                            <?php if ($resultRow['published_at'] !== ''): ?>
+                                                · <?= htmlspecialchars(date('d M Y', strtotime($resultRow['published_at']))) ?>
+                                            <?php endif; ?>
+                                        </small>
+                                    </span>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
+                    <?php else: ?>
+                        <div class="empty-state">
+                            <i class="fas fa-chart-line"></i>
+                            <p>No published results yet. Marks appear here after Registrar publication.</p>
+                        </div>
+                    <?php endif; ?>
+                </div>
+                </div>
+            </article>
+
+            <?php if (!$isCertificateProgramPortal): ?>
+            <!-- Skills and career -->
+            <article class="card card-collapsible">
+                <div class="card-hdr">
+                    <h3><i class="fas fa-wand-magic-sparkles"></i> Skills &amp; Career</h3>
+                    <div class="card-hdr-actions">
+                        <a href="skill_discovery.php" class="badge bg-primary text-decoration-none">Open</a>
+                        <button class="card-toggle collapsed"
+                                type="button"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#dashboardSkillsCareer"
+                                aria-expanded="false"
+                                aria-controls="dashboardSkillsCareer">
+                            <span class="card-toggle-label">Expand</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                    </div>
+                </div>
+                <div id="dashboardSkillsCareer" class="collapse">
+                <div class="card-body">
+                    <p class="mb-2">Evidence-backed skills are derived from your registered courses and published assessments.</p>
+                    <?php if (is_array($careerPlacement) && $careerPlacement !== []): ?>
+                        <div class="today-class-item mb-2">
+                            <span class="today-class-copy">
+                                <strong><?= htmlspecialchars((string)($careerPlacement['company_name'] ?? 'Placement')) ?></strong>
+                                <small>
+                                    <?= htmlspecialchars((string)($careerPlacement['status'] ?? 'Active')) ?>
+                                    internship
+                                    <?php if (!empty($careerPlacement['supervisor_name'])): ?>
+                                        · <?= htmlspecialchars((string)$careerPlacement['supervisor_name']) ?>
+                                    <?php endif; ?>
+                                </small>
+                            </span>
+                        </div>
+                        <?php if (!empty($careerPlacement['feedback'])): ?>
+                            <p class="text-muted small mb-2"><?= htmlspecialchars((string)$careerPlacement['feedback']) ?></p>
+                        <?php endif; ?>
+                    <?php else: ?>
+                        <div class="empty-state mb-2">
+                            <i class="fas fa-briefcase"></i>
+                            <p>No employer placement is linked yet. Skill Discovery still shows course-based career relevance.</p>
+                        </div>
+                    <?php endif; ?>
+                    <a href="skill_discovery.php" class="btn-profile btn-profile-fill d-inline-flex">View skill evidence</a>
+                </div>
+                </div>
+            </article>
+            <?php endif; ?>
+
             <article class="card announcement-card card-collapsible">
                 <div class="card-hdr">
                     <h3><i class="fas fa-bullhorn"></i> Announcements</h3>
@@ -1083,7 +1279,7 @@ $notificationItems = $portalNotificationItems ?: ($attentionItems ?: $actionItem
             </div>
           </div>
           <div class="id-qr">
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=<?= urlencode('ITCSTUDENT:' . ($studentRec->SID ?? '')) ?>"
+            <img src="<?= htmlspecialchars(wuc_qr_svg_data_uri('ITCSTUDENT:' . (string)($studentRec->SID ?? ''), 3)) ?>"
                  width="110" height="110" alt="Verification QR">
             <div class="id-qr-caption">SCAN FOR CAMPUS VERIFICATION</div>
           </div>
@@ -1093,7 +1289,7 @@ $notificationItems = $portalNotificationItems ?: ($attentionItems ?: $actionItem
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/wucportal/assets/vendor/bootstrap/5.3.2/bootstrap.bundle.min.js"></script>
 <script src="js/dashboard-ui.js?v=20260702"></script>
 </body>
 </html>

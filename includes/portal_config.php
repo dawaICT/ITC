@@ -33,7 +33,7 @@ if (!function_exists('wuc_portal_apply_env_file')) {
     {
         foreach ($values as $name => $value) {
             $name = (string)$name;
-            if (!preg_match('/^(?:APP_ENV|WUC_[A-Z0-9_]+)$/', $name)) {
+            if (!preg_match('/^(?:APP_ENV|WUC_[A-Z0-9_]+|OLLAMA_HOST|AI_CHAT_MODEL|AI_EMBED_MODEL|ENTERPRISE_[A-Z0-9_]+|AGRICULTURE_[A-Z0-9_]+)$/', $name)) {
                 continue;
             }
             $current = getenv($name);

@@ -195,6 +195,36 @@ final class TeachingPlannerService
         return $rows;
     }
 
+    public function complianceReport(?string $sectionId = null): array
+    {
+        $sql = "SELECT co.id AS course_offering_id, p.program_code, p.program_name, c.course_code, c.course_name,
+                       ay.academic_year_name, ap.period_name, ap.start_date, ap.end_date, cg.group_name,
+                       lca.staff_id AS lecturer_staff_id, CONCAT(s.Fname, ' ', s.Lname) AS lecturer_name,
+                       tp.id AS teaching_plan_id, tp.status AS plan_status, tp.coverage_percent, tp.planned_hours, tp.available_hours
+                FROM course_offerings co
+                INNER JOIN curriculum_courses cc ON cc.id = co.curriculum_course_id
+                INNER JOIN courses c ON c.course_code = cc.course_code
+                INNER JOIN programs p ON p.program_code = co.program_code
+                LEFT JOIN departments d ON d.id = p.department_id
+                LEFT JOIN academic_years ay ON ay.id = co.academic_year_id
+                LEFT JOIN academic_periods ap ON ap.id = co.academic_period_id
+                LEFT JOIN class_groups cg ON cg.id = co.class_group_id
+                LEFT JOIN lecturer_course_assignments lca ON lca.course_offering_id = co.id AND lca.status = 'active'
+                LEFT JOIN staff s ON s.staff_id = lca.staff_id
+                LEFT JOIN teaching_plans tp ON tp.course_offering_id = co.id AND tp.lecturer_staff_id = lca.staff_id AND tp.status <> 'archived'
+                WHERE co.status IN ('planned','active')";
+        if ($sectionId !== null && $sectionId !== '') $sql .= ' AND d.section_id = ?';
+        $sql .= ' ORDER BY (tp.id IS NULL) DESC, ap.start_date, p.program_name, c.course_code';
+        $stmt = $this->db->prepare($sql);
+        if ($sectionId !== null && $sectionId !== '') $stmt->bind_param('s', $sectionId);
+        $stmt->execute(); $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC); $stmt->close();
+        foreach ($rows as &$row) {
+            $row['is_overdue'] = empty($row['teaching_plan_id']) && !empty($row['start_date']) && $row['start_date'] < date('Y-m-d');
+        }
+        unset($row);
+        return $rows;
+    }
+
     public function plan(int $planId): ?array
     {
         $stmt = $this->db->prepare($this->planListSql() . ' WHERE tp.id = ? LIMIT 1');
@@ -253,9 +283,6 @@ final class TeachingPlannerService
             $stmt = $this->db->prepare("UPDATE teaching_plan_items SET {$set} WHERE id = ? AND teaching_plan_id = ?");
             $stmt->bind_param($types, ...$params);
             $stmt->execute();
-            if ($stmt->affected_rows < 1) {
-                throw new RuntimeException('The plan row was not found or did not change.');
-            }
             $stmt->close();
             $stmt = $this->db->prepare('UPDATE teaching_plans SET version_lock = version_lock + 1 WHERE id = ? AND version_lock = ?');
             $stmt->bind_param('ii', $planId, $expectedLock);
@@ -552,7 +579,7 @@ final class TeachingPlannerService
             $methods = (string)$item['teaching_methods']; $lecturer = (string)$item['lecturer_activities']; $learner = (string)$item['learner_activities'];
             $resources = (string)$item['resources']; $assessment = (string)$item['assessment_method']; $references = (string)$item['references_text'];
             $minutes = (int)$item['duration_minutes']; $remarks = (string)$item['remarks']; $status = (string)$item['status']; $locked = (int)$item['is_locked'];
-            $stmt->bind_param('iisiiisssssssssssissi', $planId, $topicId, $type, $sequence, $week, $date, $start, $end, $topic, $subtopics, $outcomes, $methods, $lecturer, $learner, $resources, $assessment, $references, $minutes, $remarks, $status, $locked);
+            $stmt->bind_param('iisiissssssssssssissi', $planId, $topicId, $type, $sequence, $week, $date, $start, $end, $topic, $subtopics, $outcomes, $methods, $lecturer, $learner, $resources, $assessment, $references, $minutes, $remarks, $status, $locked);
             $stmt->execute();
         }
         $stmt->close();

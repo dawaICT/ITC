@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/includes/guard.php'; // session, login enforcement, $db, csrf token
+require_once dirname(__DIR__) . '/includes/auth_helpers.php';
 
 $studentId = (string)($_SESSION['Sid'] ?? '');
 $error = '';
@@ -48,16 +49,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $upd->execute();
                 $upd->close();
             }
+            // studentLogin.php authenticates against users.password first. Keep
+            // both credential stores aligned so the old initial password stops
+            // working immediately after this change.
+            wuc_sync_student_password($db, $studentId, $newHash);
             unset($_SESSION['must_change_password']);
             $_SESSION['loginStudent'] = 'Your password has been updated successfully.';
             // Honour the destination the user was originally heading to (e.g. the
             // parallel eLearning login), falling back to the dashboard.
             $pcNext = (string) ($_SESSION['post_password_change_next'] ?? '');
             unset($_SESSION['post_password_change_next']);
-            if ($pcNext === 'students/elearning/index.php') {
-                header('Location: elearning/index.php');
+            if ($pcNext === 'students/elearning/index.php' || strpos($pcNext, 'students/elearning/') === 0) {
+                $_SESSION['current_portal'] = 'elearning';
+                header('Location: /wucportal/students/elearning/index.php');
             } else {
-                header('Location: index.php');
+                require_once dirname(__DIR__) . '/includes/student_program_portal.php';
+                header('Location: ' . wuc_student_program_portal_url($db, (string)$_SESSION['Sid']));
             }
             exit;
         }

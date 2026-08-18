@@ -363,17 +363,28 @@ class RegistrationDataService
         $idCol = $spCols['id'] ?? null;
         $hasProgramCourses = $this->tableExists('program_courses');
 
-        // Prefer the active assigned program that actually has curriculum
-        // mappings. A later administrative/test assignment with no courses must
-        // not hide the student's real intake/term registration.
+        // Prefer the active assigned *long-term* program that actually has curriculum
+        // mappings. Short-course catalogue rows (is_short_course / SHORT_COURSE) are
+        // excluded so short and long portals stay separate.
+        $programsJoin = $this->tableExists('programs')
+            ? " INNER JOIN programs p ON p.program_code = sp.`{$programCol}`"
+            : '';
+        $longOnlySql = '';
+        if ($programsJoin !== '' && function_exists('sc_sql_programs_long_only_predicate')) {
+            require_once dirname(__DIR__, 2) . '/includes/short_course_student.php';
+            $longOnlySql = ' AND (' . sc_sql_programs_long_only_predicate($this->db, 'p') . ')';
+        } elseif ($programsJoin !== '') {
+            $longOnlySql = ' AND COALESCE(p.is_short_course, 0) = 0';
+        }
+
         foreach ([true, false] as $activeOnly) {
             $mappedSelect = $hasProgramCourses ? 'COUNT(pc.course_code)' : '0';
-            $joinSql = $hasProgramCourses
+            $joinSql = $programsJoin . ($hasProgramCourses
                 ? " LEFT JOIN program_courses pc ON pc.program_code = sp.`{$programCol}`"
-                : '';
+                : '');
             $sql = "SELECT sp.`{$programCol}` AS program_code, {$mappedSelect} AS mapped_courses
                     FROM student_program sp{$joinSql}
-                    WHERE sp.`{$sidCol}` = ?";
+                    WHERE sp.`{$sidCol}` = ?{$longOnlySql}";
             if ($activeOnly && $statusCol) {
                 $sql .= " AND (sp.`{$statusCol}` IS NULL OR sp.`{$statusCol}` = '' OR LOWER(sp.`{$statusCol}`) = 'active')";
             }
@@ -765,11 +776,21 @@ class RegistrationDataService
             $data['period_type'] = $guard['period_type'];
         }
         
-        // Prepare columns and values
+        // Prepare columns and values. Live schema has both student_id and SID;
+        // write every student-id column so legacy SID-only readers still match.
         $columns = ["`{$sidCol}`", "`{$semCol}`", "`{$yearCol}`"];
         $placeholders = ["?", "?", "?"];
         $types = "sss";
         $params = [$studentId, (string)$semester, (string)$year];
+        foreach ($this->getExistingSemRegCols('student_id', 'Sid', 'SID', 'student') as $extraSidCol) {
+            if (strcasecmp((string)$extraSidCol, (string)$sidCol) === 0) {
+                continue;
+            }
+            $columns[] = "`{$extraSidCol}`";
+            $placeholders[] = '?';
+            $types .= 's';
+            $params[] = $studentId;
+        }
 
         if ($registrationDateCol) {
             $columns[] = "`{$registrationDateCol}`";
@@ -814,7 +835,8 @@ class RegistrationDataService
             $params[] = $registrationType;
         }
         
-        $sql = "INSERT INTO semester_registration (" . implode(", ", $columns) . ") VALUES (" . implode(", ", $placeholders) . ")";
+        $sql = "INSERT INTO semester_registration (" . implode(", ", $columns) . ") VALUES (" . implode(", ", $placeholders) . ")
+                ON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id)";
         
         $stmt = $this->db->prepare($sql);
         if (!$stmt) {

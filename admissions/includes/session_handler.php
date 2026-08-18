@@ -63,13 +63,46 @@ function regenerateSessionId() {
 }
 
 /**
- * Check if user is authenticated as admin
+ * Check if user is authenticated for Admissions staff actions.
+ * Presence of staff_id alone is NOT sufficient — require Admissions entitlement.
  */
 function isAdminAuthenticated() {
-    // Check for Admissions specific login (index=admin) OR Global Staff login (staff_id)
-    if (isset($_SESSION['index']) && $_SESSION['index'] === 'admin') return true;
-    if (isset($_SESSION['staff_id'])) return true;
-    return false;
+    if (session_status() === PHP_SESSION_NONE) {
+        return false;
+    }
+
+    $staffId = trim((string)($_SESSION['staff_id'] ?? $_SESSION['user_id'] ?? ''));
+    if ($staffId === '') {
+        return false;
+    }
+
+    // Legacy admissions marker is accepted only with a real staff identity.
+    $legacyAdmin = isset($_SESSION['index']) && $_SESSION['index'] === 'admin';
+    $staffSession = (string)($_SESSION['user_role'] ?? '') === 'staff' || isset($_SESSION['staff_id']);
+    if (!$legacyAdmin && !$staffSession) {
+        return false;
+    }
+
+    if (!function_exists('canAccessAdmissions')) {
+        require_once dirname(__DIR__, 2) . '/includes/role_helpers.php';
+    }
+    if (!function_exists('hydrateStaffRolesFromDatabase')) {
+        require_once dirname(__DIR__, 2) . '/config/auth_check.php';
+    }
+
+    if (function_exists('hydrateStaffRolesFromDatabase')) {
+        hydrateStaffRolesFromDatabase($staffId);
+    }
+
+    if (function_exists('canAccessAdmissions') && canAccessAdmissions()) {
+        return true;
+    }
+
+    return function_exists('hasAnyRole') && hasAnyRole([
+        defined('ROLE_SYSTEMS_ADMIN') ? ROLE_SYSTEMS_ADMIN : 'systems_admin',
+        defined('ROLE_ADMISSION_OFFICER') ? ROLE_ADMISSION_OFFICER : 'admission_officer',
+        defined('ROLE_REGISTRAR') ? ROLE_REGISTRAR : 'registrar',
+    ]);
 }
 
 /**

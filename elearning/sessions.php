@@ -9,10 +9,30 @@ require_once __DIR__ . '/../includes/elearning_ui.php';
 require_once __DIR__ . '/../includes/elearning_live_sessions.php';
 
 $staffId = $_SESSION['staff_id'] ?? null;
-$courseCode = $_GET['course_code'] ?? '';
-if (!$staffId) { die('Unauthorized'); }
-if (!$courseCode) {
-	wuc_safe_redirect('/wucportal/elearning/courses.php');
+$courseCode = trim((string) ($_GET['course_code'] ?? ''));
+if (!$staffId) {
+	header('Location: ../staff_login.php');
+	exit;
+}
+if ($courseCode === '') {
+	$availableCourses = getLecturerCourseDetails($db, (string) $staffId);
+	require_once __DIR__ . '/../lecturers/includes/nav.php';
+	?>
+	<div class="elearning-shell">
+		<div class="elearning-header">
+			<div>
+				<h1 class="elearning-title"><i class="fas fa-video"></i> Live Sessions</h1>
+				<p class="elearning-subtitle">Select one of your assigned courses to schedule or review live sessions.</p>
+			</div>
+		</div>
+		<?php elearningCourseSelection($availableCourses, 'sessions.php', 'View Live Sessions', 'fas fa-video'); ?>
+	</div>
+	</div>
+	</div>
+	</body>
+	</html>
+	<?php
+	exit;
 }
 
 // Allow assigned lecturers OR admin-permission holders to reach this course.
@@ -411,4 +431,3 @@ require_once __DIR__ . '/../lecturers/includes/nav.php';
 </script>
 </body>
 </html>
-

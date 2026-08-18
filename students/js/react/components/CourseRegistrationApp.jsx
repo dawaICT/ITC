@@ -198,6 +198,12 @@ const CourseRegistrationApp = ({
       addField('semester', semester);
       addField('Year', year);
       addField('react_submission', '1');
+      const csrfFromDom = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+        || document.querySelector('[data-csrf]')?.getAttribute('data-csrf')
+        || '';
+      if (csrfFromDom) {
+        addField('csrf_token', csrfFromDom);
+      }
       
       // Add selected courses
       selectedCourses.forEach(course => {
@@ -229,6 +235,12 @@ const CourseRegistrationApp = ({
       formData.append('Year', year);
       formData.append('direct_submission', '1');
       formData.append('react_submission', '1');
+      const csrfFromDom = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+        || document.querySelector('[data-csrf]')?.getAttribute('data-csrf')
+        || '';
+      if (csrfFromDom) {
+        formData.append('csrf_token', csrfFromDom);
+      }
       selectedCourses.forEach(course => {
         formData.append('course_code[]', course);
       });

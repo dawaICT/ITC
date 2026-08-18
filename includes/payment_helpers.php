@@ -190,95 +190,31 @@ if (!function_exists('payment_find_invoice_for_student_term')) {
 }
 
 if (!function_exists('payment_create_student_invoice')) {
-    function payment_create_student_invoice(mysqli $db, string $studentId, float $amount, string $academicYear, string $semester, string $description = '', ?string $invoiceNumber = null): array
+    function payment_create_student_invoice(
+        mysqli $db,
+        string $studentId,
+        float $amount,
+        string $academicYear,
+        string $semester,
+        string $description = '',
+        ?string $invoiceNumber = null,
+        ?int $yearOfStudy = null,
+        string $createdBy = 'system'
+    ): array
     {
-        if ($studentId === '' || $amount <= 0 || $academicYear === '' || $semester === '') {
-            return ['success' => false, 'message' => 'Missing invoice details.'];
-        }
+        require_once __DIR__ . '/invoice_helpers.php';
+        return invoice_create_for_student(
+            $db,
+            $studentId,
+            $amount,
+            $academicYear,
+            $semester,
+            $description,
+            $invoiceNumber,
+            $yearOfStudy,
+            $createdBy
+        );
 
-        if (payment_find_invoice_for_student_term($db, $studentId, $academicYear, $semester)) {
-            return ['success' => false, 'message' => 'Student is already invoiced for this period.', 'duplicate' => true];
-        }
-
-        $columns = payment_table_columns($db, 'invoices');
-        if (empty($columns)) {
-            return ['success' => false, 'message' => 'Invoice table is not available.'];
-        }
-
-        $invoiceNumber = $invoiceNumber ?: payment_generate_reference('INV');
-        $description = trim($description) !== '' ? trim($description) : 'Student invoice';
-        $statusValue = 'Pending';
-        $paymentStatusValue = 'pending';
-
-        $fields = [];
-        $placeholders = [];
-        $types = '';
-        $params = [];
-        $add = static function(string $column, string $type, $value, bool $raw = false) use (&$fields, &$placeholders, &$types, &$params, $columns): void {
-            if (!in_array($column, $columns, true)) {
-                return;
-            }
-            $fields[] = "`{$column}`";
-            if ($raw) {
-                $placeholders[] = (string)$value;
-                return;
-            }
-            $placeholders[] = '?';
-            $types .= $type;
-            $params[] = $value;
-        };
-
-        $add('invoice_number', 's', $invoiceNumber);
-        $add('invoice_no', 's', $invoiceNumber);
-        $add('invoice', 's', $invoiceNumber);
-        $add('student_id', 's', $studentId);
-        // SID may be a bigint column — only insert if the value is numeric
-        if (ctype_digit($studentId)) {
-            $add('SID', 's', $studentId);
-            $add('Sid', 's', $studentId);
-        }
-        $add('academic_year', 's', $academicYear);
-        $add('Year', 's', $academicYear);
-        $add('semester', 's', $semester);
-        $add('semester_term', 's', $semester);
-        $add('amount', 'd', $amount);
-        $add('total_amount', 'd', $amount);
-        $add('balance', 'd', $amount);
-        $add('amount_paid', 'd', 0.0);
-        $add('description', 's', $description);
-        $add('narration', 's', $description);
-        $add('status', 's', $statusValue);
-        $add('payment_status', 's', $paymentStatusValue);
-        $add('date_generated', '', 'NOW()', true);
-        $add('invoice_date', '', 'NOW()', true);
-        $add('created_at', '', 'NOW()', true);
-        $add('updated_at', '', 'NOW()', true);
-
-        if (empty($fields)) {
-            return ['success' => false, 'message' => 'No writable invoice columns found.'];
-        }
-
-        $stmt = $db->prepare("INSERT INTO invoices (" . implode(', ', $fields) . ") VALUES (" . implode(', ', $placeholders) . ")");
-        if (!$stmt) {
-            return ['success' => false, 'message' => 'Unable to prepare invoice insert.'];
-        }
-        if ($types !== '') {
-            $stmt->bind_param($types, ...$params);
-        }
-        if (!$stmt->execute()) {
-            $error = $stmt->error;
-            $stmt->close();
-            return ['success' => false, 'message' => $error];
-        }
-        $invoiceId = (int)$stmt->insert_id;
-        $stmt->close();
-
-        return [
-            'success' => true,
-            'message' => 'Invoice created successfully.',
-            'invoice_id' => $invoiceId,
-            'invoice_number' => $invoiceNumber,
-        ];
     }
 }
 
@@ -586,6 +522,45 @@ if (!function_exists('payment_find_gateway_transaction')) {
     }
 }
 
+if (!function_exists('payment_normalize_bank_reference')) {
+    function payment_normalize_bank_reference(string $reference): string
+    {
+        $reference = preg_replace('/\s+/', ' ', trim($reference)) ?? '';
+        return strtoupper($reference);
+    }
+}
+
+if (!function_exists('payment_find_bank_transaction_by_reference')) {
+    function payment_find_bank_transaction_by_reference(mysqli $db, string $bankReference): ?array
+    {
+        if (!payment_ensure_gateway_transactions_table($db)) {
+            return null;
+        }
+
+        $bankReference = payment_normalize_bank_reference($bankReference);
+        if ($bankReference === '') {
+            return null;
+        }
+
+        $stmt = $db->prepare(
+            "SELECT *
+               FROM payment_gateway_transactions
+              WHERE provider = 'BANK_TRANSFER'
+                AND provider_transaction_id = ?
+              ORDER BY id DESC
+              LIMIT 1"
+        );
+        if (!$stmt) {
+            return null;
+        }
+        $stmt->bind_param('s', $bankReference);
+        $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc() ?: null;
+        $stmt->close();
+        return $row;
+    }
+}
+
 if (!function_exists('payment_create_gateway_transaction')) {
     function payment_create_gateway_transaction(mysqli $db, array $tx): array
     {
@@ -686,10 +661,22 @@ if (!function_exists('payment_create_gateway_transaction')) {
             $createdBy
         );
 
-        if (!$stmt->execute()) {
-            $message = $stmt->error;
+        try {
+            $executed = $stmt->execute();
+        } catch (mysqli_sql_exception $e) {
+            $errorCode = (int)$e->getCode();
             $stmt->close();
-            return ['success' => false, 'message' => $message];
+            if ($errorCode === 1062) {
+                return ['success' => false, 'duplicate' => true, 'message' => 'This payment reference was already submitted.'];
+            }
+            error_log('Unable to create gateway transaction: ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Unable to record the payment transaction.'];
+        }
+
+        if (!$executed) {
+            error_log('Unable to create gateway transaction: ' . $stmt->error);
+            $stmt->close();
+            return ['success' => false, 'message' => 'Unable to record the payment transaction.'];
         }
 
         $insertId = (int)$stmt->insert_id;
@@ -709,6 +696,7 @@ if (!function_exists('payment_update_gateway_transaction')) {
     {
         payment_ensure_gateway_transactions_table($db);
         $allowed = [
+            'invoice_number',
             'provider_transaction_id',
             'provider_token',
             'status',
@@ -771,7 +759,7 @@ if (!function_exists('payment_count_pending_bank_transactions')) {
         $result = @$db->query("SELECT COUNT(*) AS total
                                FROM payment_gateway_transactions
                                WHERE provider = 'BANK_TRANSFER'
-                                 AND status = 'pending_verification'");
+                                 AND status IN ('pending_verification', 'needs_review')");
         if (!$result) {
             return 0;
         }
@@ -789,7 +777,7 @@ if (!function_exists('payment_list_pending_bank_transactions')) {
         $sql = "SELECT *
                 FROM payment_gateway_transactions
                 WHERE provider = 'BANK_TRANSFER'
-                  AND status = 'pending_verification'
+                  AND status IN ('pending_verification', 'needs_review')
                 ORDER BY created_at DESC, id DESC";
 
         if ($result = @$db->query($sql)) {
@@ -803,6 +791,56 @@ if (!function_exists('payment_list_pending_bank_transactions')) {
     }
 }
 
+if (!function_exists('payment_bank_reallocation_candidates')) {
+    /**
+     * Outstanding invoices owned by the transfer's student that can absorb the
+     * entire transfer amount. Allocation across multiple invoices is not guessed.
+     */
+    function payment_bank_reallocation_candidates(mysqli $db, array $transaction): array
+    {
+        if (
+            strtoupper((string)($transaction['provider'] ?? '')) !== 'BANK_TRANSFER'
+            || (string)($transaction['status'] ?? '') !== 'needs_review'
+        ) {
+            return [];
+        }
+
+        $studentId = trim((string)($transaction['student_id'] ?? ''));
+        $amount = payment_decimal($transaction['amount'] ?? 0);
+        if ($studentId === '' || $amount <= 0) {
+            return [];
+        }
+
+        return array_values(array_filter(
+            payment_fetch_student_outstanding_invoices($db, $studentId),
+            static function (array $invoice) use ($amount): bool {
+                return payment_invoice_outstanding($invoice) + 0.01 >= $amount;
+            }
+        ));
+    }
+}
+
+if (!function_exists('payment_send_confirmation_notification')) {
+    function payment_send_confirmation_notification(
+        mysqli $db,
+        string $studentId,
+        float $amount,
+        string $receiptNo,
+        float $newBalance
+    ): void {
+        try {
+            if (!function_exists('wuc_notify_payment_confirmed')) {
+                require_once __DIR__ . '/notification_integrations.php';
+            }
+            if (function_exists('wuc_notify_payment_confirmed') && $studentId !== '') {
+                wuc_notify_payment_confirmed($db, $studentId, $amount, $receiptNo, $newBalance);
+            }
+        } catch (Throwable $notificationError) {
+            error_log('Payment posted but confirmation notification failed for ' . $studentId . ': ' . $notificationError->getMessage());
+        }
+    }
+}
+
 if (!function_exists('payment_apply_completed_payment')) {
     function payment_apply_completed_payment(
         mysqli $db,
@@ -811,7 +849,8 @@ if (!function_exists('payment_apply_completed_payment')) {
         string $channel,
         string $referenceNumber,
         string $description,
-        array $meta = []
+        array $meta = [],
+        bool $manageTransaction = true
     ): array {
         $invoiceId = (int)($invoice['id'] ?? 0);
         if ($invoiceId <= 0) {
@@ -827,7 +866,9 @@ if (!function_exists('payment_apply_completed_payment')) {
         $description = trim($description) !== '' ? trim($description) : 'Student fee payment';
         $referenceNumber = trim($referenceNumber) !== '' ? trim($referenceNumber) : payment_generate_reference('PAY');
 
-        $db->begin_transaction();
+        if ($manageTransaction) {
+            $db->begin_transaction();
+        }
 
         try {
             $lockStmt = $db->prepare("SELECT " . payment_invoice_select_list($db) . " FROM invoices WHERE id = ? LIMIT 1 FOR UPDATE");
@@ -846,7 +887,9 @@ if (!function_exists('payment_apply_completed_payment')) {
 
             $outstanding = payment_invoice_outstanding($liveInvoice);
             if ($outstanding <= 0.0) {
-                $db->commit();
+                if ($manageTransaction) {
+                    $db->commit();
+                }
                 return ['success' => true, 'message' => 'Invoice is already fully paid.', 'already_paid' => true];
             }
 
@@ -876,7 +919,9 @@ if (!function_exists('payment_apply_completed_payment')) {
                 if ($dupResult && $dupResult->num_rows > 0) {
                     $dupRow = $dupResult->fetch_assoc();
                     $dupStmt->close();
-                    $db->commit();
+                    if ($manageTransaction) {
+                        $db->commit();
+                    }
                     return [
                         'success' => true,
                         'message' => 'This payment reference was already posted.',
@@ -1053,13 +1098,11 @@ if (!function_exists('payment_apply_completed_payment')) {
             }
             $updateStmt->close();
 
-            $db->commit();
-
-            if (!function_exists('wuc_notify_payment_confirmed')) {
-                require_once __DIR__ . '/notification_integrations.php';
-            }
-            if (function_exists('wuc_notify_payment_confirmed') && $studentId !== '') {
-                wuc_notify_payment_confirmed($db, $studentId, $amount, $receiptNo, $newBalance);
+            if ($manageTransaction) {
+                $db->commit();
+                // Notifications are best-effort and only run after the caller's
+                // financial transaction is durably committed.
+                payment_send_confirmation_notification($db, $studentId, $amount, $receiptNo, $newBalance);
             }
 
             return [
@@ -1070,10 +1113,257 @@ if (!function_exists('payment_apply_completed_payment')) {
                 'new_balance' => $newBalance,
                 'status' => $invoiceStatus,
                 'receipt_no' => $receiptNo,
+                'student_id' => $studentId,
+                'amount' => $amount,
+            ];
+        } catch (Throwable $e) {
+            if ($manageTransaction) {
+                $db->rollback();
+            }
+            return ['success' => false, 'message' => $e->getMessage()];
+        }
+    }
+}
+
+if (!function_exists('payment_review_bank_transfer')) {
+    /**
+     * Review a bank proof and post its ledger entry in one database transaction.
+     * The gateway row is locked first, so approve/reject races have one winner.
+     */
+    function payment_review_bank_transfer(
+        mysqli $db,
+        int $transactionId,
+        string $action,
+        string $staffId,
+        string $reviewNotes = '',
+        string $targetInvoiceReference = ''
+    ): array {
+        if ($transactionId <= 0 || !in_array($action, ['approve', 'reject', 'reallocate'], true)) {
+            return ['success' => false, 'message' => 'Invalid bank-transfer review request.'];
+        }
+
+        $staffId = trim($staffId) !== '' ? trim($staffId) : 'accounts';
+        $reviewNotes = trim(substr($reviewNotes, 0, 1000));
+        $transaction = null;
+
+        $db->begin_transaction();
+        try {
+            $lock = $db->prepare('SELECT * FROM payment_gateway_transactions WHERE id = ? LIMIT 1 FOR UPDATE');
+            if (!$lock) {
+                throw new RuntimeException('Unable to lock the bank-transfer submission.');
+            }
+            $lock->bind_param('i', $transactionId);
+            $lock->execute();
+            $transaction = $lock->get_result()->fetch_assoc() ?: null;
+            $lock->close();
+
+            if (!$transaction || strtoupper((string)($transaction['provider'] ?? '')) !== 'BANK_TRANSFER') {
+                $db->rollback();
+                return ['success' => false, 'message' => 'The selected payment proof could not be found.'];
+            }
+            $currentStatus = (string)($transaction['status'] ?? '');
+            $canReject = in_array($currentStatus, ['pending_verification', 'needs_review'], true);
+            $canApprove = $currentStatus === 'pending_verification';
+            $canReallocate = $currentStatus === 'needs_review';
+            if (
+                ($action === 'approve' && !$canApprove)
+                || ($action === 'reject' && !$canReject)
+                || ($action === 'reallocate' && !$canReallocate)
+            ) {
+                $db->rollback();
+                return ['success' => false, 'message' => 'This payment request has already been reviewed.'];
+            }
+
+            $noteParts = [];
+            $existingNotes = trim((string)($transaction['notes'] ?? ''));
+            if ($existingNotes !== '') {
+                $noteParts[] = $existingNotes;
+            }
+            if ($reviewNotes !== '') {
+                $noteParts[] = 'Review notes: ' . $reviewNotes;
+            } elseif ($action === 'reject') {
+                $noteParts[] = 'Review notes: Rejected by finance';
+            }
+            $notes = substr(implode(' | ', $noteParts), 0, 4000);
+            $reviewedAt = date('Y-m-d H:i:s');
+
+            if ($action === 'reject') {
+                if (!payment_update_gateway_transaction($db, $transactionId, [
+                    'status' => 'rejected',
+                    'verified_by' => $staffId,
+                    'verified_at' => $reviewedAt,
+                    'notes' => $notes,
+                ])) {
+                    throw new RuntimeException('Unable to save the rejection.');
+                }
+                $db->commit();
+                return ['success' => true, 'message' => 'Bank transfer proof rejected.', 'review_status' => 'rejected'];
+            }
+
+            $isReallocation = $action === 'reallocate';
+            $originalInvoiceReference = trim((string)($transaction['invoice_number'] ?? ''));
+            $invoiceReference = $isReallocation ? trim($targetInvoiceReference) : $originalInvoiceReference;
+            if ($invoiceReference === '') {
+                $db->rollback();
+                return ['success' => false, 'message' => 'Select an invoice for this bank transfer.'];
+            }
+
+            // Supplying the transaction student ID makes this lookup an
+            // ownership check as well as an invoice lookup.
+            $invoice = payment_fetch_invoice(
+                $db,
+                $invoiceReference,
+                (string)($transaction['student_id'] ?? '')
+            );
+            if (!$invoice) {
+                if ($isReallocation) {
+                    $db->rollback();
+                    return ['success' => false, 'message' => 'The selected invoice is not available for this student.'];
+                }
+                if (!payment_update_gateway_transaction($db, $transactionId, [
+                    'status' => 'needs_review',
+                    'result_code' => 'INVOICE_MISSING',
+                    'result_desc' => 'The linked invoice could not be found during finance review.',
+                    'verified_by' => $staffId,
+                    'verified_at' => $reviewedAt,
+                    'notes' => $notes,
+                ])) {
+                    throw new RuntimeException('Unable to flag the missing-invoice transfer for reconciliation.');
+                }
+                $db->commit();
+                return [
+                    'success' => false,
+                    'message' => 'The linked invoice could not be found. The transfer was moved to reconciliation.',
+                    'review_status' => 'needs_review',
+                ];
+            }
+
+            $targetInvoiceNumber = trim((string)($invoice['invoice_number'] ?? $invoiceReference));
+            if ($isReallocation) {
+                $outstanding = payment_invoice_outstanding($invoice);
+                $transferAmount = payment_decimal($transaction['amount'] ?? 0);
+                if ($outstanding <= 0 || $transferAmount > ($outstanding + 0.01)) {
+                    $db->rollback();
+                    return ['success' => false, 'message' => 'The selected invoice cannot absorb the full transfer amount.'];
+                }
+                $reallocationNote = 'Reallocated from invoice ' . ($originalInvoiceReference !== '' ? $originalInvoiceReference : 'unassigned')
+                    . ' to ' . $targetInvoiceNumber . '.';
+                $notes = substr(trim($notes . ($notes !== '' ? ' | ' : '') . $reallocationNote), 0, 4000);
+            }
+
+            // Keep the gateway row lock while allowing all ledger/invoice work
+            // to be rolled back independently if automatic posting fails.
+            $db->query('SAVEPOINT bank_transfer_posting');
+
+            $posted = payment_apply_completed_payment(
+                $db,
+                $invoice,
+                payment_decimal($transaction['amount'] ?? 0),
+                'Bank Transfer (Verified)',
+                (string)($transaction['reference_number'] ?? ''),
+                trim((string)($transaction['narration'] ?? 'Bank transfer payment')),
+                [
+                    'narration' => trim((string)($transaction['narration'] ?? 'Bank transfer payment')),
+                    'posted_by' => $staffId,
+                ],
+                false
+            );
+
+            if (!$posted['success'] || !empty($posted['already_paid'])) {
+                $db->query('ROLLBACK TO SAVEPOINT bank_transfer_posting');
+                $resultCode = !empty($posted['already_paid']) ? 'INVOICE_SETTLED' : 'POSTING_REVIEW';
+                $resultDesc = !empty($posted['already_paid'])
+                    ? 'Invoice was already settled before this bank transfer was reviewed.'
+                    : 'Automatic payment posting failed and requires manual reconciliation.';
+                if (empty($posted['already_paid'])) {
+                    error_log('Bank-transfer automatic posting failed for transaction ' . $transactionId . ': ' . (string)($posted['message'] ?? 'Unknown posting error'));
+                }
+                if (!payment_update_gateway_transaction($db, $transactionId, [
+                    'status' => 'needs_review',
+                    'result_code' => $resultCode,
+                    'result_desc' => $resultDesc,
+                    'verified_by' => $staffId,
+                    'verified_at' => $reviewedAt,
+                    'notes' => $notes,
+                ])) {
+                    throw new RuntimeException('Unable to flag the transfer for reconciliation.');
+                }
+                $db->commit();
+                $message = !empty($posted['already_paid'])
+                    ? 'The invoice is already settled. The transfer was not posted and was moved to finance reconciliation.'
+                    : 'The transfer could not be posted automatically and was moved to finance reconciliation.';
+                return ['success' => false, 'message' => $message, 'review_status' => 'needs_review'];
+            }
+
+            if ($isReallocation && !empty($posted['duplicate'])) {
+                $db->query('ROLLBACK TO SAVEPOINT bank_transfer_posting');
+                if (!payment_update_gateway_transaction($db, $transactionId, [
+                    'status' => 'needs_review',
+                    'result_code' => 'REFERENCE_POSTED',
+                    'result_desc' => 'This payment reference already exists in the ledger and requires manual allocation review.',
+                    'verified_by' => $staffId,
+                    'verified_at' => $reviewedAt,
+                    'notes' => $notes,
+                ])) {
+                    throw new RuntimeException('Unable to preserve the duplicate-reference reconciliation state.');
+                }
+                $db->commit();
+                return [
+                    'success' => false,
+                    'message' => 'This transfer reference was already posted. Verify its existing allocation before changing invoices.',
+                    'review_status' => 'needs_review',
+                ];
+            }
+
+            $completionFields = [
+                'status' => 'completed',
+                'verified_by' => $staffId,
+                'verified_at' => $reviewedAt,
+                'completed_at' => $reviewedAt,
+                'receipt_no' => (string)($posted['receipt_no'] ?? ''),
+                'notes' => $notes,
+            ];
+            if ($isReallocation) {
+                $completionFields['invoice_number'] = $targetInvoiceNumber;
+                $completionFields['result_code'] = 'REALLOCATED';
+                $completionFields['result_desc'] = substr(
+                    'Transfer allocated by finance from ' . ($originalInvoiceReference !== '' ? $originalInvoiceReference : 'an unassigned invoice')
+                    . ' to ' . $targetInvoiceNumber . '.',
+                    0,
+                    255
+                );
+            }
+
+            if (!payment_update_gateway_transaction($db, $transactionId, $completionFields)) {
+                throw new RuntimeException('Unable to finalize the bank-transfer review.');
+            }
+
+            $db->commit();
+            if (empty($posted['duplicate'])) {
+                payment_send_confirmation_notification(
+                    $db,
+                    (string)($posted['student_id'] ?? ''),
+                    (float)($posted['amount'] ?? 0),
+                    (string)($posted['receipt_no'] ?? ''),
+                    (float)($posted['new_balance'] ?? 0)
+                );
+            }
+
+            return [
+                'success' => true,
+                'message' => !empty($posted['duplicate'])
+                    ? 'This bank transfer was already posted; the review queue has been reconciled.'
+                    : ($isReallocation
+                        ? 'Bank transfer allocated to ' . $targetInvoiceNumber . ' and posted successfully.'
+                        : 'Bank transfer proof approved and posted to the student invoice.'),
+                'review_status' => 'completed',
+                'invoice_number' => $targetInvoiceNumber,
+                'payment' => $posted,
             ];
         } catch (Throwable $e) {
             $db->rollback();
-            return ['success' => false, 'message' => $e->getMessage()];
+            error_log('Bank-transfer review failed for transaction ' . $transactionId . ': ' . $e->getMessage());
+            return ['success' => false, 'message' => 'The bank-transfer review could not be completed safely. Please refresh and try again.'];
         }
     }
 }

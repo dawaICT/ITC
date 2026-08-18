@@ -125,10 +125,6 @@ function itc_audit_fetch(mysqli $db, array $filters): array
         $dataParams
     );
 
-    // #region agent log
-    @file_put_contents('C:\\Users\\THIS PC\\debug-4a673c.log', json_encode(['sessionId'=>'4a673c','runId'=>'run1','hypothesisId'=>'B','location'=>'itc_audit_log_helpers.php:127','message'=>'itc_audit_fetch sample rows (user_id vs resolved staff_name)','data'=>['total'=>$total,'sample'=>array_map(static fn($r)=>['user_id'=>$r['user_id']??null,'action'=>$r['action']??null,'staff_name'=>$r['staff_name']??null,'staff_name_empty'=>trim((string)($r['staff_name']??''))===''], array_slice($rows,0,5))],'timestamp'=>round(microtime(true)*1000)], JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE)."\n", FILE_APPEND);
-    // #endregion
-
     return [
         'rows' => $rows,
         'total' => $total,

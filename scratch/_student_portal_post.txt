@@ -1,0 +1,46 @@
+=== Student portal_selection POST probe ===
+Base: http://localhost/wucportal
+Student: CSE26456789
+Timestamp: 2026-07-20T06:06:54+02:00
+
+--- Scenario 1: portal=academic ---
+  GET http://localhost/wucportal/student_login.php
+    -> HTTP 200
+  POST student_login.php (attempt chain step 1)
+    -> HTTP 303 Location: /wucportal/portal_selection.php
+  GET http://localhost/wucportal/portal_selection.php
+    -> HTTP 200
+  GET http://localhost/wucportal/portal_selection.php (CSRF for POST portal=academic)
+    -> HTTP 200
+  POST portal_selection.php portal=academic
+    -> HTTP 303 Location: /wucportal/students/certificate_portal.php
+  RESULT Location: /wucportal/students/certificate_portal.php
+
+--- Scenario 2: portal=elearning ---
+  (fresh cookie jar)
+  GET http://localhost/wucportal/student_login.php
+    -> HTTP 200
+  POST student_login.php (attempt chain step 1)
+    -> HTTP 303 Location: /wucportal/portal_selection.php
+  GET http://localhost/wucportal/portal_selection.php
+    -> HTTP 200
+  GET http://localhost/wucportal/portal_selection.php (CSRF for POST portal=elearning)
+    -> HTTP 200
+  POST portal_selection.php portal=elearning
+    -> HTTP 303 Location: /wucportal/students/elearning/index.php
+  RESULT Location: /wucportal/students/elearning/index.php
+
+--- Scenario 3: portal=alumni ---
+  (fresh cookie jar)
+  GET http://localhost/wucportal/student_login.php
+    -> HTTP 200
+  POST student_login.php (attempt chain step 1)
+    -> HTTP 303 Location: /wucportal/portal_selection.php
+  GET http://localhost/wucportal/portal_selection.php
+    -> HTTP 200
+  GET http://localhost/wucportal/portal_selection.php (CSRF for POST portal=alumni)
+    -> HTTP 200
+  POST portal_selection.php portal=alumni
+    -> HTTP 303 Location: /wucportal/alumni/index.php
+  RESULT Location: /wucportal/alumni/index.php
+

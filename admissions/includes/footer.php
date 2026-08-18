@@ -5,8 +5,6 @@
 	</div><!-- End main-content -->
 </div><!-- End main-wrapper -->
 
-<!-- Sidebar Backdrop -->
-<div class="sidebar-backdrop"></div>
 <?php
 // Pages may set $admissions_footer_before_body_close to emit markup (e.g. modals)
 // outside the main-content/main-wrapper divs so Bootstrap stacking works correctly.

@@ -146,7 +146,7 @@ if (!$isShortCourse && !$hasNoProgram) {
         $selectedYearOfStudy,
         $periodNumbers
     );
-    $records = student_ca_build_annual_records($courses, $componentsMap, $periodNumbers, $selectedYearOfStudy);
+    $records = student_ca_build_annual_records($courses, $componentsMap, $periodNumbers, $selectedYearOfStudy, $db, $sid);
     $pendingPublicationCount = student_ca_count_pending_publication(
         $db,
         $sid,
@@ -158,8 +158,34 @@ if (!$isShortCourse && !$hasNoProgram) {
     $pendingPublicationCount = 0;
 }
 
-$shortCourseRecords = student_ca_load_short_course_records($db, $sid);
+// Keep short-course CA out of the long-programme report (and vice versa).
+// Dual-enrolled long students manage short courses on short_courses.php only.
+$shortCourseRecords = $isShortCourse
+    ? student_ca_load_short_course_records($db, $sid)
+    : [];
+if ($isShortCourse) {
+    // Annual term/semester CA is for long programmes only.
+    $records = [];
+    $pendingPublicationCount = 0;
+}
 $summary = student_ca_compute_annual_summary($records, $periodNumbers);
+if ($isShortCourse && $shortCourseRecords !== []) {
+    $scPublished = 0;
+    $scTotals = [];
+    foreach ($shortCourseRecords as $scRow) {
+        if ($scRow->Total_CA !== null && $scRow->Total_CA !== '') {
+            $scPublished++;
+            $scTotals[] = (float)$scRow->Total_CA;
+        }
+    }
+    $scCount = count($shortCourseRecords);
+    $summary = [
+        'course_count' => $scCount,
+        'published_count' => $scPublished,
+        'pending_count' => max(0, $scCount - $scPublished),
+        'average_total' => $scTotals !== [] ? round(array_sum($scTotals) / count($scTotals), 1) : null,
+    ];
+}
 $hasAnyResults = $records !== [] || $shortCourseRecords !== [];
 $studentFullName = trim(
     (string)($student['Fname'] ?? '') . ' ' . (string)($student['Lname'] ?? '')
@@ -195,159 +221,177 @@ $studentPeriodLabel = $isShortCourse ? $selectedAcademicYear : $periodLabelFull;
 <body class="bg-light student-dashboard-page no-auto-print ca-page">
 <?php require_once __DIR__ . '/includes/navbar.php'; ?>
 
-<main class="dash-content content-wrapper portal-dashboard ca-main">
-<div class="container-fluid ca-viewport">
+<main class="content-wrapper pt-3 pb-5 ca-main">
+<div class="container-fluid px-3 px-lg-4 portal-dashboard ca-viewport">
 
-    <div class="ca-header no-print">
-        <div class="ca-toolbar">
-            <div class="ca-toolbar-title-wrap">
-                <h1 class="ca-toolbar-title"><i class="fas fa-chart-line"></i> CA Results</h1>
-                <?php if (!$isShortCourse): ?>
-                <div class="ca-toolbar-stats">
-                    <span class="ca-stat-pill" title="Enrolled courses"><i class="fas fa-book-open"></i><?= (int)$summary['course_count'] ?></span>
-                    <span class="ca-stat-pill green" title="Published"><i class="fas fa-check"></i><?= (int)$summary['published_count'] ?></span>
-                    <span class="ca-stat-pill amber" title="Awaiting"><i class="fas fa-clock"></i><?= (int)$summary['pending_count'] ?></span>
-                    <?php if ($summary['average_total'] !== null): ?>
-                    <span class="ca-stat-pill" title="Average CA"><i class="fas fa-chart-bar"></i><?= student_ca_h(number_format($summary['average_total'], 1)) ?></span>
-                    <?php endif; ?>
-                </div>
-                <?php endif; ?>
+    <div class="dashboard-header student-section mb-4">
+        <div class="row align-items-center g-3">
+            <div class="col">
+                <h1 class="dashboard-title"><?= student_ca_h($isShortCourse ? 'Short Course Continuous Assessment' : 'Continuous Assessment') ?></h1>
+                <p class="text-muted mb-0">
+                    Published CA marks for <?= student_ca_h($selectedAcademicYear) ?>.
+                    Only marks released by your lecturers appear here.
+                </p>
             </div>
-            <form method="get" class="ca-toolbar-filters" id="caFilterForm" aria-label="Filter CA results">
-                <select class="form-select form-select-sm" id="academicYearFilter" name="academic_year" aria-label="Academic year">
-                    <?php foreach ($academicYearOptions as $yearOption): ?>
-                    <option value="<?= student_ca_h($yearOption) ?>" <?= (string)$yearOption === (string)$selectedAcademicYear ? 'selected' : '' ?>><?= student_ca_h($yearOption) ?></option>
-                    <?php endforeach; ?>
-                </select>
+            <div class="col-auto no-print">
                 <?php if ($hasAnyResults): ?>
-                <button type="button" class="btn btn-outline-secondary btn-sm ca-btn-icon" onclick="wucPrintSinglePage()" title="Print report"><i class="fas fa-print"></i></button>
+                <button type="button" class="btn btn-primary" onclick="wucPrintSinglePage()" title="Print report" aria-label="Print report">
+                    <i class="fas fa-print me-2"></i>Print Report
+                </button>
                 <?php endif; ?>
-            </form>
-        </div>
-        <div class="ca-identity-bar" aria-label="Report identity">
-            <div class="ca-letterhead">
-                <span class="ca-logo-frame">
-                    <img src="/wucportal/images/itc_logo.png" alt="<?= student_ca_h($institutionName) ?> logo" class="ca-logo-img">
-                </span>
-                <div class="ca-institution-name"><?= student_ca_h($institutionName) ?></div>
-                <div class="ca-report-subtitle"><?= student_ca_h($reportTitle) ?></div>
-                <div class="ca-letterhead-rule" aria-hidden="true"></div>
-            </div>
-            <div class="ca-student-fullname"><?= student_ca_h($studentFullName !== '' ? $studentFullName : 'N/A') ?></div>
-            <div class="ca-student-meta-grid">
-                <div class="ca-meta-item">
-                    <div class="ca-meta-key">Student ID</div>
-                    <div class="ca-meta-val"><?= student_ca_h($sid) ?></div>
-                </div>
-                <div class="ca-meta-item">
-                    <div class="ca-meta-key">Programme</div>
-                    <div class="ca-meta-val"><?= student_ca_h($programName) ?><?php if ($programCode !== '' && !$isShortCourse): ?> <span class="ca-student-code">(<?= student_ca_h($programCode) ?>)</span><?php endif; ?></div>
-                </div>
-                <?php if (!$isShortCourse): ?>
-                <div class="ca-meta-item">
-                    <div class="ca-meta-key">Year of Study</div>
-                    <div class="ca-meta-val">Year <?= student_ca_h($selectedYearOfStudy) ?></div>
-                </div>
-                <?php endif; ?>
-                <div class="ca-meta-item">
-                    <div class="ca-meta-key">Academic Year</div>
-                    <div class="ca-meta-val ca-student-period"><?= student_ca_h($studentPeriodLabel) ?></div>
-                </div>
             </div>
         </div>
     </div>
 
     <?php if (!empty($_SESSION['student_notice'])): ?>
-    <div class="alert alert-info alert-dismissible fade show no-print ca-alert-compact py-2" role="alert">
+    <div class="alert alert-info alert-dismissible fade show no-print ca-alert-compact py-2 mb-3" role="alert">
         <i class="fas fa-info-circle me-1"></i><?= student_ca_h($_SESSION['student_notice']); unset($_SESSION['student_notice']); ?>
         <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
     <?php endif; ?>
 
     <?php if ($hasNoProgram): ?>
-    <div class="alert alert-danger no-print ca-alert-compact py-2 mb-2" role="alert">
+    <div class="alert alert-danger no-print ca-alert-compact py-2 mb-3" role="alert">
         <i class="fas fa-triangle-exclamation me-1"></i>No programme is assigned to your account. Please contact the <strong>Admissions Office</strong> or <strong>Administration</strong> to have your programme assigned before you can view CA results.
     </div>
     <?php elseif (!$isShortCourse && $records === []): ?>
-    <div class="alert alert-warning no-print ca-alert-compact py-2 mb-2" role="status">
+    <div class="alert alert-warning no-print ca-alert-compact py-2 mb-3" role="status">
         <i class="fas fa-info-circle me-1"></i>No courses registered for <?= student_ca_h($selectedAcademicYear) ?> yet.
         <a href="registration.php" class="alert-link">Register</a>
     </div>
     <?php elseif (!$isShortCourse && !empty($pendingPublicationCount)): ?>
-    <div class="alert alert-info no-print ca-alert-compact py-2 mb-2" role="status">
+    <div class="alert alert-info no-print ca-alert-compact py-2 mb-3" role="status">
         <i class="fas fa-hourglass-half me-1"></i><?= (int)$pendingPublicationCount ?> CA record(s) for this year are awaiting publication. Only published marks appear on this report.
     </div>
     <?php endif; ?>
 
+    <section class="ca-header no-print mb-3" aria-label="Report filters and summary">
+        <div class="ca-toolbar">
+            <div class="ca-toolbar-title-wrap">
+                <h2 class="ca-toolbar-title">
+                    <i class="fas fa-chart-line" aria-hidden="true"></i>
+                    <?= student_ca_h($selectedAcademicYear) ?> CA Results
+                </h2>
+                <div class="ca-toolbar-stats">
+                    <span class="ca-stat-pill neutral">
+                        <i class="fas fa-book" aria-hidden="true"></i>
+                        <span class="ca-stat-label">Courses</span>
+                        <span class="ca-stat-value"><?= (int)($summary['course_count'] ?? count($records)) ?></span>
+                    </span>
+                    <span class="ca-stat-pill green">
+                        <i class="fas fa-check-circle" aria-hidden="true"></i>
+                        <span class="ca-stat-label">Published</span>
+                        <span class="ca-stat-value"><?= (int)($summary['published_count'] ?? 0) ?></span>
+                    </span>
+                    <span class="ca-stat-pill amber">
+                        <i class="fas fa-hourglass-half" aria-hidden="true"></i>
+                        <span class="ca-stat-label">Awaiting</span>
+                        <span class="ca-stat-value"><?= (int)($summary['pending_count'] ?? 0) ?></span>
+                    </span>
+                    <?php if (($summary['average_total'] ?? null) !== null): ?>
+                    <span class="ca-stat-pill neutral">
+                        <i class="fas fa-chart-simple" aria-hidden="true"></i>
+                        <span class="ca-stat-label">Avg CA</span>
+                        <span class="ca-stat-value"><?= student_ca_h((string)$summary['average_total']) ?>%</span>
+                    </span>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <form method="get" class="ca-toolbar-filters" id="caFilterForm">
+                <label class="form-label-inline" for="academicYearFilter">Academic year</label>
+                <select class="form-select form-select-sm" id="academicYearFilter" name="academic_year" aria-label="Academic year">
+                    <?php foreach ($academicYearOptions as $yearOption): ?>
+                    <option value="<?= student_ca_h($yearOption) ?>" <?= (string)$yearOption === (string)$selectedAcademicYear ? 'selected' : '' ?>><?= student_ca_h($yearOption) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </form>
+        </div>
+
+        <div class="ca-identity-bar">
+            <div class="ca-letterhead">
+                <div class="ca-logo-frame">
+                    <img src="images/itc_logo.png" alt="" class="ca-logo-img" width="48" height="48" onerror="this.style.display='none'">
+                </div>
+                <div class="ca-institution-name"><?= student_ca_h($institutionName) ?></div>
+                <div class="ca-report-subtitle"><?= student_ca_h($reportTitle) ?></div>
+            </div>
+            <div class="ca-student-identity">
+                <div class="ca-student-fullname"><?= student_ca_h($studentFullName !== '' ? $studentFullName : 'Student') ?></div>
+                <div class="ca-student-meta-grid">
+                    <div class="ca-meta-item">
+                        <span class="ca-meta-key">Student ID</span>
+                        <span class="ca-meta-val"><?= student_ca_h($sid) ?></span>
+                    </div>
+                    <div class="ca-meta-item">
+                        <span class="ca-meta-key">Programme</span>
+                        <span class="ca-meta-val"><?= student_ca_h($programName) ?></span>
+                    </div>
+                    <div class="ca-meta-item">
+                        <span class="ca-meta-key">Academic year</span>
+                        <span class="ca-meta-val ca-student-period"><?= student_ca_h($selectedAcademicYear) ?></span>
+                    </div>
+                    <?php if (!$isShortCourse): ?>
+                    <div class="ca-meta-item">
+                        <span class="ca-meta-key">Year of study</span>
+                        <span class="ca-meta-val">Year <?= student_ca_h($selectedYearOfStudy) ?></span>
+                    </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+
+        <div class="ca-legend">
+            <span class="ca-legend-title">How to read</span>
+            <span class="ca-legend-item">
+                <span class="ca-legend-swatch is-score">72</span>
+                Published mark
+            </span>
+            <span class="ca-legend-item">
+                <span class="ca-legend-swatch is-empty">—</span>
+                Not published yet
+            </span>
+            <span class="ca-legend-item">
+                <span class="ca-legend-swatch is-final">68</span>
+                Final CA (year average)
+            </span>
+        </div>
+    </section>
+
     <div class="ca-results-panel">
     <div class="ca-paper wuc-a4-sheet">
-        <div class="ca-watermark"><?= $isShortCourse ? 'SHORT COURSE' : 'CA REPORT' ?></div>
+        <div class="ca-watermark">CA RESULTS</div>
         <div class="ca-paper-inner">
-
-            <div class="text-center mb-4 pb-3 border-bottom ca-print-only">
-                <span class="wuc-logo-frame d-inline-block mb-2">
-                    <img src="/wucportal/images/itc_logo.png" alt="ITC Logo" class="wuc-logo-img report-logo">
-                </span>
-                <h2 class="h4 fw-bold mb-0 text-uppercase" style="color:#2d1e54;"><?= student_ca_h($institutionName) ?></h2>
-                <div class="text-purple fw-semibold small text-uppercase mt-1 letter-spacing-1"><?= student_ca_h($reportTitle) ?></div>
+            <div class="ca-print-only text-center mb-3">
+                <div class="fw-bold" style="color:#2d1e54;"><?= student_ca_h($institutionName) ?></div>
+                <div class="text-uppercase small fw-semibold" style="color:#6f42c1;"><?= student_ca_h($reportTitle) ?></div>
+                <div class="small text-muted mt-1"><?= student_ca_h($studentFullName) ?> · <?= student_ca_h($sid) ?> · <?= student_ca_h($selectedAcademicYear) ?></div>
             </div>
 
-            <div class="ca-meta-grid ca-print-only">
-                <div>
-                    <div class="ca-meta-label">Student</div>
-                    <div class="ca-meta-value"><?= student_ca_h($studentFullName !== '' ? $studentFullName : 'N/A') ?></div>
-                </div>
-                <div>
-                    <div class="ca-meta-label">Student ID</div>
-                    <div class="ca-meta-value"><?= student_ca_h($sid) ?></div>
-                </div>
-                <div>
-                    <div class="ca-meta-label">Academic Year</div>
-                    <div class="ca-meta-value"><?= student_ca_h($studentPeriodLabel) ?></div>
-                </div>
-                <div>
-                    <div class="ca-meta-label">Programme</div>
-                    <div class="ca-meta-value"><?= student_ca_h($programName) ?><?php if ($programCode !== '' && !$isShortCourse): ?> (<?= student_ca_h($programCode) ?>)<?php endif; ?></div>
-                </div>
-                <?php if (!$isShortCourse): ?>
-                <div>
-                    <div class="ca-meta-label">Year of Study</div>
-                    <div class="ca-meta-value">Year <?= student_ca_h($selectedYearOfStudy) ?></div>
-                </div>
-                <?php endif; ?>
-                <div>
-                    <div class="ca-meta-label">Date Issued</div>
-                    <div class="ca-meta-value"><?= date('d M Y') ?></div>
-                </div>
-            </div>
-
-            <?php if (!$isShortCourse): ?>
-            <?php if ($hasNoProgram): ?>
-            <div class="ca-empty">
-                <i class="fas fa-user-graduate fa-2x mb-2 d-block"></i>
-                <p class="mb-0">Your programme has not been assigned yet. Contact the Admissions Office or Administration for assistance.</p>
-            </div>
-            <?php else: ?>
-            <h3 class="ca-section-title ca-print-only"><i class="fas fa-list-check me-2 text-purple"></i><?= student_ca_h($selectedAcademicYear) ?> Results</h3>
-            <?php
-            $caTableRecords = $records;
-            $caPeriodHeaders = $periodHeaders;
-            $caPeriodNumbers = $periodNumbers;
-            $caPeriodComponents = $caPeriodComponents;
-            $caTableEmptyMessage = 'No CA records for this academic year yet.';
-            include __DIR__ . '/includes/ca_annual_results_table.php';
-            ?>
+            <?php if (!$isShortCourse && !$hasNoProgram): ?>
+                <?php
+                $caTableRecords = $records;
+                $caPeriodHeaders = $periodHeaders;
+                $caPeriodNumbers = $periodNumbers;
+                $caPeriodComponentLabels = $caPeriodComponents;
+                $caTableEmptyMessage = 'No CA records for this academic year yet.';
+                include __DIR__ . '/includes/ca_annual_results_table.php';
+                ?>
             <?php endif; ?>
-            <?php endif; ?>
+
+
 
             <?php if ($isShortCourse && $shortCourseRecords === []): ?>
             <div class="ca-empty">
-                <i class="fas fa-certificate fa-2x mb-2 d-block"></i>
+                <i class="fas fa-certificate fa-2x mb-2 d-block" aria-hidden="true"></i>
                 <p class="mb-0">No CA results have been posted for your short course yet.</p>
             </div>
             <?php endif; ?>
 
             <?php if ($shortCourseRecords !== []): ?>
+            <div class="ca-results-heading no-print">
+                <h2><i class="fas fa-certificate me-2 text-purple" aria-hidden="true"></i>Short Course Results</h2>
+                <p class="ca-results-hint mb-0">Assessment components for your enrolled short courses.</p>
+            </div>
             <h3 class="ca-section-title mt-2 ca-print-only"><i class="fas fa-certificate me-2 text-purple"></i>Short Course Results</h3>
             <div class="ca-table-wrap">
                 <table class="table ca-table align-middle mb-0">
@@ -416,11 +460,17 @@ $studentPeriodLabel = $isShortCourse ? $selectedAcademicYear : $periodLabelFull;
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-document.querySelectorAll('#caFilterForm select').forEach(function(el) {
-    el.addEventListener('change', function() {
-        document.getElementById('caFilterForm').submit();
+(function () {
+    var form = document.getElementById('caFilterForm');
+    if (!form) {
+        return;
+    }
+    form.querySelectorAll('select').forEach(function (el) {
+        el.addEventListener('change', function () {
+            form.submit();
+        });
     });
-});
+})();
 </script>
 </body>
 </html>

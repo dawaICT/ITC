@@ -2,7 +2,6 @@
 // ===== SECURITY & SETUP =====
 require_once __DIR__ . '/includes/guard.php';
 require_once __DIR__ . '/includes/DatabaseConnection.php';
-require_once __DIR__ . '/includes/StudentRegistrationSystem.php';
 require_once __DIR__ . '/includes/AcademicSessionService.php';
 require_once __DIR__ . '/includes/RegistrationDataService.php';
 require_once __DIR__ . '/includes/StudentDataService.php';
@@ -331,11 +330,10 @@ if (!$studentDetails) {
 }
 
 // ===== SHORT COURSE STUDENTS =====
-// Short-course-only students have no student_program row, so getStudentWithProgram()
-// returns them with an empty program_code ("Not Assigned"). They do not go through
-// semester/term registration; instead of the program workflow, show them their short
-// course enrolment status (and keep them out of the POST handler further below).
-$scEnrolments = empty($studentDetails['program_code'])
+// Short-course students do not go through semester/term registration;
+// show them their short course enrolment status and schedule.
+$isShortCourseStudentUser = isShortCourseStudent($mysqli, (string)$studentId);
+$scEnrolments = ($isShortCourseStudentUser || empty($studentDetails['program_code']))
     ? sc_student_enrolments($mysqli, (string)$studentId)
     : [];
 

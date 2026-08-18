@@ -7,6 +7,8 @@ require_once __DIR__ . '/../../includes/student_id_generator.php';
 require_once __DIR__ . '/../../includes/upload_validator.php';
 require_once __DIR__ . '/../../includes/short_course_db.php';
 require_once __DIR__ . '/../../includes/helpers/academic_structure_helpers.php';
+require_once __DIR__ . '/../../includes/invoice_helpers.php';
+require_once __DIR__ . '/../../includes/cse_progression.php';
 
 function admissionsIdentifier(string $identifier): string
 {
@@ -452,27 +454,42 @@ function admissionsEnrolmentSchedule(array $program, string $period, int $entryY
     ];
 }
 
-function admissionsCreateInvoice(mysqli $db, string $studentId, float $amount, string $description): void
+function admissionsCreateInvoice(
+    mysqli $db,
+    string $studentId,
+    float $amount,
+    string $description,
+    string $academicYear = '',
+    string $period = '1',
+    ?int $yearOfStudy = null,
+    string $createdBy = 'admissions'
+): void
 {
     if (!admissionsTableExists($db, 'invoices')) {
         return;
     }
 
-    $invoiceNo = generateUniqueInvoiceNumber($db, date('Y'));
-    // FIX: Removed duplicate 'invoice_number' key — the invoices table only has
-    // 'invoice_no'; admissionsInsert was silently filtering invoice_number out.
-    $data = [
-        'student_id' => $studentId,
-        'invoice_number' => $invoiceNo,
-        'description' => $description,
-        'amount' => number_format($amount, 2, '.', ''),
-        'invoice_date' => date('Y-m-d H:i:s'),
-        'status' => 'unpaid',
-        'created_at' => date('Y-m-d H:i:s'),
-        'updated_at' => date('Y-m-d H:i:s'),
-    ];
+    // A fully sponsored learner owes no invoice balance. Their sponsorship and
+    // fee-account records remain the evidence of the award; a zero-value charge
+    // would violate the normalized invoice service's business rules.
+    if ($amount <= 0.0) {
+        return;
+    }
 
-    admissionsInsert($db, 'invoices', $data);
+    $result = invoice_create_for_student(
+        $db,
+        $studentId,
+        $amount,
+        $academicYear,
+        $period,
+        mb_substr(trim($description), 0, 255),
+        null,
+        $yearOfStudy,
+        $createdBy
+    );
+    if (empty($result['success'])) {
+        throw new RuntimeException((string)($result['message'] ?? 'Unable to create the registration invoice.'));
+    }
 }
 
 function admissionsAssignCourses(mysqli $db, string $studentId, string $programCode, string $period, string $academicYear): float
@@ -522,7 +539,7 @@ function admissionsAssignCourses(mysqli $db, string $studentId, string $programC
             'academic_year' => $academicYear,
             'semester' => $period,
             'term' => $period,
-            'status' => 'active',
+            'status' => 'registered',
             'created_at' => date('Y-m-d H:i:s'),
         ]);
     }
@@ -584,6 +601,9 @@ function handleNewStudentRegistration(mysqli $db, array $input, array $files): a
         $programCode = trim((string)($input['program'] ?? ''));
         if ($programCode === '') {
             throw new RuntimeException('Program is required');
+        }
+        if ($stageError = wuc_cse_direct_assignment_error($programCode)) {
+            throw new RuntimeException($stageError);
         }
         $program = admissionsResolveProgram($db, $programCode);
         $isShortCourse = ($program['academic_structure'] ?? '') === 'short_course';
@@ -797,7 +817,7 @@ function handleNewStudentRegistration(mysqli $db, array $input, array $files): a
             $invoiceAmount = $totalFees * (1 - $bursary / 100);
             $invoiceDescription = $program['name'] . ' registration - ' . $intake
                 . ($bursary > 0 ? sprintf(' (%s bursary %.0f%%)', $sponsor, $bursary) : '');
-            admissionsCreateInvoice($db, $studentId, $invoiceAmount, $invoiceDescription);
+            admissionsCreateInvoice($db, $studentId, $invoiceAmount, $invoiceDescription, $academicYear, $period, 1, 'admissions');
         }
 
         $db->commit();
@@ -866,6 +886,9 @@ function handleBulkStudentRegistration(mysqli $db, array $input, array $files): 
                 }
 
                 $programCode = trim((string)$student['program']);
+                if ($stageError = wuc_cse_direct_assignment_error($programCode)) {
+                    throw new RuntimeException($stageError);
+                }
                 $period = (string)$student['semester'];
                 $entryYear = (int)($student['entry_year'] ?? date('Y'));
                 $academicYear = (string)$entryYear;
@@ -1034,7 +1057,16 @@ function handleBulkStudentRegistration(mysqli $db, array $input, array $files): 
                         $bursary = 100.0;
                     }
                     $invoiceAmount = $totalFees * (1 - $bursary / 100);
-                    admissionsCreateInvoice($db, $sid, $invoiceAmount, $program['name'] . ' registration - ' . $intake);
+                    admissionsCreateInvoice(
+                        $db,
+                        $sid,
+                        $invoiceAmount,
+                        $program['name'] . ' registration - ' . $intake,
+                        $academicYear,
+                        $period,
+                        1,
+                        'admissions_bulk'
+                    );
                 }
 
                 // FIX (B2 cont'd): record THIS row's identity so the next row in the

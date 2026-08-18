@@ -33,6 +33,7 @@ if (!function_exists('wuc_sync_alumni_portal_access')) {
             return;
         }
 
+        // Keep grant/revoke aligned with wuc_student_is_alumni_eligible().
         if (in_array($gradStatus, ['Approved', 'Graduated'], true)) {
             wuc_grant_user_portal_access($db, $userId, ['alumni'], 'graduation');
             return;

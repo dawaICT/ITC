@@ -11,9 +11,11 @@ $lecturerInElearningPortal = strpos($lecturerPortalContext, 'elearning') !== fal
 $lecturerSwitchKind = strpos($lecturerPortalContext, 'lecturer_') === 0 ? 'lecturer' : 'staff';
 
 $lecturerHasElearningPortal = false;
+$lecturerHasAcademicPortal = false;
 if (isset($db) && $db instanceof mysqli && function_exists('wuc_user_has_portal_access')) {
     $lecturerUserIdDb = (int)($_SESSION['user_id_db'] ?? 0);
     $lecturerHasElearningPortal = $lecturerUserIdDb > 0 && wuc_user_has_portal_access($db, $lecturerUserIdDb, 'elearning');
+    $lecturerHasAcademicPortal = $lecturerUserIdDb > 0 && wuc_user_has_portal_access($db, $lecturerUserIdDb, 'academic');
 }
 
 $academicMenuSections = [
@@ -23,8 +25,10 @@ $academicMenuSections = [
             ['href' => '/wucportal/lecturers/index.php', 'icon' => 'fas fa-home', 'label' => 'Dashboard', 'active_on' => 'index.php'],
             ['href' => '/wucportal/lecturers/myCourses.php', 'icon' => 'fas fa-book', 'label' => 'My Courses', 'active_on' => 'myCourses.php'],
             ['href' => '/wucportal/lecturers/timetable.php', 'icon' => 'fas fa-calendar-alt', 'label' => 'My Timetable', 'active_on' => 'timetable.php'],
+            ['href' => '/wucportal/lecturers/test_schedule.php', 'icon' => 'fas fa-clipboard-list', 'label' => 'My Test Schedule', 'active_on' => 'test_schedule.php'],
             ['href' => '/wucportal/lecturers/teaching_planner.php', 'icon' => 'fas fa-file-signature', 'label' => 'Teaching Planner', 'active_on' => 'teaching_planner.php'],
             ['href' => '/wucportal/lecturers/myStudent.php', 'icon' => 'fas fa-user-graduate', 'label' => 'My Students', 'active_on' => 'myStudent.php'],
+            ['href' => '/wucportal/lecturers/ai_teaching_assistant.php', 'icon' => 'fas fa-wand-magic-sparkles', 'label' => 'AI Teaching Assistant', 'active_on' => 'ai_teaching_assistant.php'],
         ],
     ],
     [
@@ -68,30 +72,31 @@ $elearningMenuSections = [
     [
         'title' => 'Learning',
         'items' => [
-            ['href' => '/wucportal/lecturers/elearning/index.php', 'icon' => 'fas fa-chalkboard', 'label' => 'eLearning Dashboard', 'active_on' => 'elearning/index.php'],
-            ['href' => '/wucportal/elearning/courses.php', 'icon' => 'fas fa-book-open', 'label' => 'Online Courses', 'active_on' => 'elearning/courses.php'],
-            ['href' => '/wucportal/elearning/sessions.php', 'icon' => 'fas fa-video', 'label' => 'Live Sessions', 'active_on' => 'elearning/sessions.php'],
-            ['href' => '/wucportal/elearning/analytics.php', 'icon' => 'fas fa-chart-line', 'label' => 'Learning Progress', 'active_on' => 'elearning/analytics.php'],
+            ['href' => '/wucportal/lecturers/elearning/index.php', 'icon' => 'fas fa-chalkboard', 'label' => 'eLearning Dashboard', 'active_on' => 'lecturers/elearning/index.php', 'module' => 'elearning'],
+            ['href' => '/wucportal/elearning/courses.php', 'icon' => 'fas fa-book-open', 'label' => 'Online Courses', 'active_on' => ['elearning/courses.php', 'elearning/manage.php', 'elearning/module.php', 'elearning/module_edit.php', 'elearning/quiz_edit.php', 'elearning/recordings.php', 'elearning/upload_content.php', 'elearning/upload_version.php', 'elearning/versions.php'], 'module' => 'elearning'],
+            ['href' => '/wucportal/elearning/sessions.php', 'icon' => 'fas fa-video', 'label' => 'Live Sessions', 'active_on' => ['elearning/sessions.php', 'elearning/live_room.php', 'elearning/join_session.php'], 'module' => 'elearning'],
+            ['href' => '/wucportal/elearning/analytics.php', 'icon' => 'fas fa-chart-line', 'label' => 'Learning Progress', 'active_on' => ['elearning/analytics.php', 'elearning/student_progress.php'], 'module' => 'elearning'],
         ],
     ],
     [
         'title' => 'Teaching Tools',
         'items' => [
-            ['href' => '/wucportal/lecturers/materials.php?portal=elearning', 'icon' => 'fas fa-file-alt', 'label' => 'Upload Materials', 'active_on' => 'lecturers/materials.php'],
-            ['href' => '/wucportal/lecturers/repository/index.php?portal=elearning', 'icon' => 'fas fa-folder-open', 'label' => 'Learning Repository', 'active_on' => 'lecturers/repository/index.php'],
-            ['href' => '/wucportal/lecturers/course_resources.php?portal=elearning', 'icon' => 'fas fa-book', 'label' => 'Course Resources', 'active_on' => 'lecturers/course_resources.php'],
-            ['href' => '/wucportal/lecturers/post_assign.php?portal=elearning', 'icon' => 'fas fa-clipboard', 'label' => 'Assignments', 'active_on' => 'lecturers/post_assign.php'],
-            ['href' => '/wucportal/lecturers/ai_question_bank.php?portal=elearning', 'icon' => 'fas fa-wand-magic-sparkles', 'label' => 'AI Question Bank', 'active_on' => 'lecturers/ai_question_bank.php'],
-            ['href' => '/wucportal/lecturers/assessments.php?portal=elearning', 'icon' => 'fas fa-tasks', 'label' => 'Submissions', 'active_on' => 'lecturers/assessments.php'],
-            ['href' => '/wucportal/elearning/forum.php', 'icon' => 'fas fa-comments', 'label' => 'Discussions', 'active_on' => ['elearning/forum.php', 'elearning/thread.php']],
-            ['href' => '/wucportal/lecturers/archive_submissions_drive.php?portal=elearning', 'icon' => 'fab fa-google-drive', 'label' => 'Drive Archive', 'active_on' => 'lecturers/archive_submissions_drive.php'],
+            ['href' => '/wucportal/lecturers/materials.php?portal=elearning', 'icon' => 'fas fa-file-alt', 'label' => 'Upload Materials', 'active_on' => 'lecturers/materials.php', 'module' => 'elearning'],
+            ['href' => '/wucportal/lecturers/repository/index.php?portal=elearning', 'icon' => 'fas fa-folder-open', 'label' => 'Learning Repository', 'active_on' => ['lecturers/repository/index.php', 'lecturers/repository/upload.php', 'lecturers/repository/my_uploads.php', 'lecturers/repository/view.php', 'lecturers/repository/edit_upload.php'], 'module' => 'elearning'],
+            ['href' => '/wucportal/lecturers/course_resources.php?portal=elearning', 'icon' => 'fas fa-book', 'label' => 'Course Resources', 'active_on' => 'lecturers/course_resources.php', 'module' => 'elearning'],
+            ['href' => '/wucportal/lecturers/post_assign.php?portal=elearning', 'icon' => 'fas fa-clipboard', 'label' => 'Assignments', 'active_on' => 'lecturers/post_assign.php', 'module' => 'elearning'],
+            ['href' => '/wucportal/lecturers/ai_question_bank.php?portal=elearning', 'icon' => 'fas fa-wand-magic-sparkles', 'label' => 'AI Question Bank', 'active_on' => 'lecturers/ai_question_bank.php', 'module' => 'elearning'],
+            ['href' => '/wucportal/lecturers/ai_teaching_assistant.php?portal=elearning', 'icon' => 'fas fa-user-check', 'label' => 'AI Review & Support', 'active_on' => 'lecturers/ai_teaching_assistant.php', 'module' => 'elearning'],
+            ['href' => '/wucportal/lecturers/assessments.php?portal=elearning', 'icon' => 'fas fa-tasks', 'label' => 'Submissions', 'active_on' => ['lecturers/assessments.php', 'lecturers/grade_assignment.php', 'elearning/assessments.php', 'elearning/assignment_edit.php', 'elearning/grade_submission.php'], 'module' => 'elearning'],
+            ['href' => '/wucportal/elearning/forum.php', 'icon' => 'fas fa-comments', 'label' => 'Discussions', 'active_on' => ['elearning/forum.php', 'elearning/thread.php', 'elearning/thread_edit.php'], 'module' => 'elearning'],
+            ['href' => '/wucportal/lecturers/archive_submissions_drive.php?portal=elearning', 'icon' => 'fab fa-google-drive', 'label' => 'Drive Archive', 'active_on' => 'lecturers/archive_submissions_drive.php', 'module' => 'elearning'],
         ],
     ],
     [
         'title' => 'Portal Switch',
-        'items' => [
-            ['href' => wuc_portal_switch_url('academic', $lecturerSwitchKind), 'icon' => 'fas fa-university', 'label' => 'Academic Portal', 'active_on' => 'lecturers/index.php'],
-        ],
+        'items' => $lecturerHasAcademicPortal ? [
+            ['href' => wuc_portal_switch_url('academic', $lecturerSwitchKind), 'icon' => 'fas fa-university', 'label' => 'Academic Portal', 'active_on' => 'lecturers/index.php', 'module' => 'elearning'],
+        ] : [],
     ],
 ];
 
@@ -104,6 +109,7 @@ $module_config = [
         'lecturers/css/lecturer-dashboard.css',
         'lecturers/css/module-reusable.css',
         'css/elearning-ui.css',
+        'css/enterprise-hub.css',
     ],
     'menu_sections' => $lecturerInElearningPortal ? $elearningMenuSections : $academicMenuSections,
 ];

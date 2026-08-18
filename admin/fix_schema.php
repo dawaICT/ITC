@@ -1,6 +1,9 @@
 <?php
 // Unified, idempotent migration to normalize DB schema
-// Usage: run via browser as an admin, or CLI: php admin/fix_schema.php
+// Usage (CLI only): php admin/fix_schema.php
+
+require_once __DIR__ . '/../includes/production_guards.php';
+wuc_require_cli_only();
 
 define('IS_SCRIPT', true);
 require_once __DIR__ . '/../db/connect.php';

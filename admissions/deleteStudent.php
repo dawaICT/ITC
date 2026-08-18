@@ -1,6 +1,7 @@
 <?php
 require "includes/nav.php";
 require_once dirname(__DIR__) . '/includes/auth_helpers.php';
+require_once dirname(__DIR__) . '/includes/exhibition_mode.php';
 $csrfToken = wuc_csrf_token();
 
 // Validate and sanitize input using prepared statements
@@ -14,7 +15,7 @@ if (empty($sid)) {
 }
 
 // Validate student ID format
-if (!preg_match('/^[A-Za-z0-9]+$/', $sid)) {
+if (!preg_match('/^[A-Za-z0-9-]+$/', $sid)) {
     $_SESSION['errorMessage'] = "Invalid student ID format.";
     header('Location:regOldStud.php');
     die();
@@ -44,6 +45,13 @@ if ($confirm == 1 && $_SERVER['REQUEST_METHOD'] == 'POST') {
     if (!wuc_validate_csrf($_POST['csrf_token'] ?? null)) {
         http_response_code(403);
         exit('Invalid request.');
+    }
+    try {
+        wuc_exhibition_assert_destructive_target($db, $sid);
+    } catch (DomainException $e) {
+        $_SESSION['errorMessage'] = $e->getMessage();
+        header('Location:regOldStud.php', true, 303);
+        exit;
     }
     // First delete from related tables
     $delete_program = $db->prepare("DELETE FROM student_program WHERE Sid = ?");

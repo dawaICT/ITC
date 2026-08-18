@@ -21,6 +21,10 @@ if (!function_exists('wuc_portal_context_from_request')) {
             || strpos($pathOnly, '/lecturers/') !== false
             || (defined('ROLE_LECTURER') && function_exists('hasRole') && hasRole(ROLE_LECTURER));
 
+        if (strpos($pathOnly, '/enterprise/') !== false || strpos($pathOnly, '/opportunities/') !== false) {
+            return 'enterprise';
+        }
+
         if ($isStudent) {
             $studentLearningPages = [
                 '/students/ai_study_assistant.php',
@@ -97,7 +101,13 @@ if (!function_exists('wuc_set_portal_context')) {
             $context = wuc_portal_context_from_request();
         }
 
-        $portalCode = strpos($context, 'elearning') !== false ? 'elearning' : 'academic';
+        if (strpos($context, 'elearning') !== false) {
+            $portalCode = 'elearning';
+        } elseif ($context === 'enterprise' || strpos($context, 'enterprise') !== false) {
+            $portalCode = 'enterprise';
+        } else {
+            $portalCode = 'academic';
+        }
         $_SESSION['portal_context'] = $context;
         $_SESSION['active_portal'] = $context;
         $_SESSION['active_module'] = $portalCode;
@@ -110,7 +120,14 @@ if (!function_exists('wuc_set_portal_context')) {
 if (!function_exists('wuc_portal_code_from_context')) {
     function wuc_portal_code_from_context(string $context): string
     {
-        return strpos(strtolower($context), 'elearning') !== false ? 'elearning' : 'academic';
+        $ctx = strtolower($context);
+        if (strpos($ctx, 'elearning') !== false) {
+            return 'elearning';
+        }
+        if (strpos($ctx, 'enterprise') !== false) {
+            return 'enterprise';
+        }
+        return 'academic';
     }
 }
 

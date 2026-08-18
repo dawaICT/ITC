@@ -12,53 +12,90 @@ $message = '';
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $csrfToken) {
-        $error = 'CSRF validation failed.';
+    $postedToken = (string)($_POST['csrf_token'] ?? '');
+    if ($postedToken === '' || !hash_equals((string)$csrfToken, $postedToken)) {
+        $error = 'Invalid request token. Please refresh and try again.';
     } else {
-        $action = $_POST['action'] ?? '';
-    
-    if ($action === 'create') {
-        $student_id = trim($_POST['student_id'] ?? '');
-        $course_id = (int)($_POST['course_id'] ?? 0);
-        $training_mode_id = (int)($_POST['training_mode_id'] ?? 0);
-        $academic_year = trim($_POST['academic_year'] ?? '2026');
-        $intake = trim($_POST['intake'] ?? 'January');
+        $action = (string)($_POST['action'] ?? '');
+        $staffId = (string)($_SESSION['staff_id'] ?? $_SESSION['user_id'] ?? 'accounts');
 
-        // Check if student exists in students table
-        $checkStu = $db->prepare("SELECT Fname, Lname FROM students WHERE SID = ? LIMIT 1");
-        $checkStu->bind_param('s', $student_id);
-        $checkStu->execute();
-        $studentExists = $checkStu->get_result()->fetch_assoc();
-        $checkStu->close();
+        if ($action === 'create') {
+            $student_id = trim((string)($_POST['student_id'] ?? ''));
+            $course_id = (int)($_POST['course_id'] ?? 0);
+            $training_mode_id = (int)($_POST['training_mode_id'] ?? 0);
+            $academic_year = trim((string)($_POST['academic_year'] ?? ''));
+            $intake = trim((string)($_POST['intake'] ?? ''));
 
-        if (!$studentExists) {
-            $error = "Student ID '$student_id' does not exist in the students database.";
-        } elseif ($course_id <= 0 || $training_mode_id <= 0 || $academic_year === '') {
-            $error = 'All fields are required to create a fee account.';
+            $checkIdentity = $db->prepare(
+                "SELECT
+                    EXISTS(SELECT 1 FROM students WHERE SID = ?) AS student_ok,
+                    EXISTS(SELECT 1 FROM courses WHERE id = ? AND status = 'active') AS course_ok,
+                    EXISTS(SELECT 1 FROM training_modes WHERE id = ? AND status = 'active') AS mode_ok"
+            );
+            $identity = [];
+            if ($checkIdentity) {
+                $checkIdentity->bind_param('sii', $student_id, $course_id, $training_mode_id);
+                $checkIdentity->execute();
+                $identity = $checkIdentity->get_result()->fetch_assoc() ?: [];
+                $checkIdentity->close();
+            }
+
+            if (empty($identity['student_ok'])) {
+                $error = 'Select a valid student.';
+            } elseif (empty($identity['course_ok']) || empty($identity['mode_ok'])) {
+                $error = 'Select an active course and training mode.';
+            } elseif (!preg_match('/^\d{4}(?:[\/-]\d{4})?$/', $academic_year)) {
+                $error = 'Academic year must be a four-digit year or year range.';
+            } elseif ($intake === '' || strlen($intake) > 50) {
+                $error = 'Intake is required and cannot exceed 50 characters.';
+            } else {
+                $existingStmt = $db->prepare(
+                    'SELECT id FROM student_fee_accounts
+                      WHERE student_id = ? AND course_id = ? AND training_mode_id = ? AND intake = ? AND academic_year = ?
+                      LIMIT 1'
+                );
+                $existingId = 0;
+                if ($existingStmt) {
+                    $existingStmt->bind_param('siiss', $student_id, $course_id, $training_mode_id, $intake, $academic_year);
+                    $existingStmt->execute();
+                    $existingId = (int)($existingStmt->get_result()->fetch_assoc()['id'] ?? 0);
+                    $existingStmt->close();
+                }
+
+                $accountId = fees_generate_student_account($db, $student_id, $course_id, $training_mode_id, $academic_year, $intake);
+                if ($accountId) {
+                    $message = $existingId > 0
+                        ? 'That student fee account already exists; the existing record was retained.'
+                        : 'Student fee account generated successfully.';
+                    if ($existingId === 0 && function_exists('log_audit')) {
+                        log_audit($db, $staffId, 'fee_account.create', json_encode([
+                            'account_id' => $accountId,
+                            'student_id' => $student_id,
+                            'course_id' => $course_id,
+                            'training_mode_id' => $training_mode_id,
+                            'academic_year' => $academic_year,
+                            'intake' => $intake,
+                        ]));
+                    }
+                } else {
+                    $error = 'The fee account could not be generated safely. Verify the selected fee configuration.';
+                }
+            }
+        } elseif ($action === 'update_status') {
+            $result = fees_update_student_account_status(
+                $db,
+                (int)($_POST['id'] ?? 0),
+                (string)($_POST['status'] ?? ''),
+                $staffId
+            );
+            if (!empty($result['success'])) {
+                $message = (string)$result['message'];
+            } else {
+                $error = (string)($result['message'] ?? 'The fee-account status could not be updated.');
+            }
         } else {
-            $accountId = fees_generate_student_account($db, $student_id, $course_id, $training_mode_id, $academic_year, $intake);
-            if ($accountId) {
-                $message = "Fee account generated successfully for student '$student_id'.";
-            } else {
-                $error = 'Failed to create fee account. It may already exist.';
-            }
+            $error = 'Invalid fee-account action.';
         }
-    } elseif ($action === 'update_status') {
-        $id = (int)($_POST['id'] ?? 0);
-        $status = $_POST['status'] ?? 'active';
-        
-        if ($id > 0) {
-            $stmt = $db->prepare("UPDATE student_fee_accounts SET status = ? WHERE id = ? LIMIT 1");
-            $stmt->bind_param('si', $status, $id);
-            if ($stmt->execute()) {
-                $message = "Student fee account status updated to '$status'.";
-            } else {
-                $error = 'A database error occurred. Please try again.';
-                error_log("Database error in accounts/fees_student_accounts.php: " . $db->error);
-            }
-            $stmt->close();
-        }
-    }
     }
 }
 
@@ -69,7 +106,7 @@ $filter_status = $_GET['status'] ?? '';
 $filter_payment = $_GET['payment_status'] ?? '';
 
 // Build Query
-$where = ["sfa.status != 'deleted'"];
+$where = ['1 = 1'];
 $params = [];
 $types = '';
 
@@ -401,7 +438,7 @@ if ($progRows = $db->query("SELECT program_code, program_name FROM programs")) {
                         <select class="form-select rounded-3" name="status" id="sfa_status">
                             <option value="active">Active</option>
                             <option value="withdrawn">Withdrawn (Preserves payment history)</option>
-                            <option value="cancelled">Cancelled (Closes / invalidates invoice)</option>
+                            <option value="cancelled">Cancelled (Stops this account; preserves history)</option>
                         </select>
                     </div>
                 </div>
