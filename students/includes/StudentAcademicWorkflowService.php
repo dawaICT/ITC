@@ -93,6 +93,10 @@ class StudentAcademicWorkflowService
         if ($periodNumber < 1) {
             return ['ok' => false, 'error' => 'No active term or semester is open for registration.'];
         }
+        if (in_array($calendarType, ['term', 'semester'], true)
+            && !in_array($periodNumber, getValidAcademicPeriods($this->db, $programCode), true)) {
+            return ['ok' => false, 'error' => 'The active academic period is invalid for your programme. Contact the registrar.'];
+        }
 
         $periodName = trim((string)($session['period_name'] ?? ''));
         if ($periodName === '') {
@@ -494,6 +498,23 @@ class StudentAcademicWorkflowService
 
         $this->db->begin_transaction();
         try {
+            // Serialize registration with annual progression and reject a stale
+            // calendar/request before it can rewind the student's position.
+            $position = $this->db->prepare(
+                "SELECT academic_year, COALESCE(NULLIF(year_of_study, 0), current_year_number, 1) AS year_of_study
+                   FROM student_program WHERE Sid = ? AND program_code = ?
+                    AND (status IS NULL OR status = '' OR LOWER(status) = 'active')
+                  ORDER BY id DESC LIMIT 1 FOR UPDATE"
+            );
+            $position->bind_param('ss', $studentId, $programCode);
+            $position->execute();
+            $currentPosition = $position->get_result()->fetch_assoc();
+            $position->close();
+            if (!$currentPosition
+                || (int)$currentPosition['academic_year'] > (int)$academicYear
+                || (int)$currentPosition['year_of_study'] !== $yearOfStudy) {
+                throw new RuntimeException('The student academic position has changed. Refresh registration or contact the registrar.');
+            }
             if ($claimPendingRegistration) {
                 $semRegId = (int)$existingRegistration['id'];
             } else {
@@ -510,7 +531,7 @@ class StudentAcademicWorkflowService
             }
 
             $this->updateRegistrationWorkflowColumns($semRegId, $period, $feeStatus);
-            $this->syncStudentProgramPosition($studentId, $programCode, $yearOfStudy, $periodNumber, $calendarType);
+            $this->syncStudentProgramPosition($studentId, $programCode, $yearOfStudy, $periodNumber, $calendarType, $academicYear);
 
             $courseCount = $this->autoEnrolCourses($studentId, $semRegId, $courses, $periodNumber, $yearOfStudy, $academicYear, $programCode);
 
@@ -881,7 +902,8 @@ class StudentAcademicWorkflowService
         string $programCode,
         int $yearOfStudy,
         int $periodNumber,
-        string $calendarType
+        string $calendarType,
+        string $academicYear
     ): void {
         try {
             $cols = [];
@@ -892,7 +914,7 @@ class StudentAcademicWorkflowService
                 $meta->free();
             }
             if ($cols === [] || !isset($cols['sid'])) {
-                return;
+                throw new RuntimeException('Student programme position columns are unavailable.');
             }
 
             $sets = [];
@@ -911,6 +933,9 @@ class StudentAcademicWorkflowService
             $addInt('current_year_number', $yearOfStudy);
             if (strtolower($calendarType) === 'term') {
                 $addInt('current_term_number', $periodNumber);
+                if (isset($cols['current_semester_number'])) {
+                    $sets[] = '`current_semester_number` = NULL';
+                }
                 // Legacy mirror observed on live rows: term and semester both
                 // carry the current period number for term-based programmes.
                 if (isset($cols['term'])) {
@@ -919,9 +944,17 @@ class StudentAcademicWorkflowService
                     $params[] = (string)$periodNumber;
                 }
                 $addInt('semester', $periodNumber);
-            } else {
+            } elseif (strtolower($calendarType) === 'semester') {
                 $addInt('current_semester_number', $periodNumber);
                 $addInt('semester', $periodNumber);
+                if (isset($cols['current_term_number'])) {
+                    $sets[] = '`current_term_number` = NULL';
+                }
+            }
+            if (isset($cols['academic_year'])) {
+                $sets[] = '`academic_year` = ?';
+                $types .= 's';
+                $params[] = $academicYear;
             }
             if (isset($cols['updated_at'])) {
                 $sets[] = '`updated_at` = CURRENT_TIMESTAMP';
@@ -948,14 +981,14 @@ class StudentAcademicWorkflowService
 
             $stmt = $this->db->prepare($sql);
             if (!$stmt) {
-                return;
+                throw new RuntimeException('Could not update the student programme position.');
             }
             $stmt->bind_param($types, ...$params);
             $stmt->execute();
             $stmt->close();
         } catch (Throwable $e) {
-            // Position sync is best-effort; it must not fail the registration.
             error_log('[StudentAcademicWorkflow] syncStudentProgramPosition: ' . $e->getMessage());
+            throw $e;
         }
     }
 

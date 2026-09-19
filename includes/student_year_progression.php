@@ -9,20 +9,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/cse_progression.php';
 require_once __DIR__ . '/audit.php';
-
-if (!function_exists('wuc_progression_next_academic_year')) {
-    function wuc_progression_next_academic_year(string $academicYear): string
-    {
-        $academicYear = trim($academicYear);
-        if (preg_match('/^(\d{4})$/', $academicYear, $match)) {
-            return (string)((int)$match[1] + 1);
-        }
-        if (preg_match('/^(\d{4})\D+(\d{4})$/', $academicYear, $match)) {
-            return ((int)$match[1] + 1) . '/' . ((int)$match[2] + 1);
-        }
-        return (string)((int)date('Y') + 1);
-    }
-}
+require_once __DIR__ . '/helpers/progression_helpers.php';
 
 if (!function_exists('wuc_progression_ca_evidence')) {
     /**
@@ -425,7 +412,6 @@ if (!function_exists('wuc_progress_student_year')) {
         if ($manageTransaction) {
             $db->begin_transaction();
         }
-        $cleanupPeriod = null;
         try {
             $stmt = $db->prepare(
                 "SELECT sp.id, sp.program_code,
@@ -447,6 +433,7 @@ if (!function_exists('wuc_progress_student_year')) {
             }
 
             $fromProgram = strtoupper(trim((string)$current['program_code']));
+            wuc_progression_period_type($db, $fromProgram);
             if ($allowedProgramCodes !== null && !in_array($fromProgram, $allowedProgramCodes, true)) {
                 throw new RuntimeException('This student is outside the Head of Section programme scope.');
             }
@@ -460,6 +447,9 @@ if (!function_exists('wuc_progress_student_year')) {
             $toYear = $target['year'];
             $fromAcademicYear = (string)$current['academic_year'];
             $toAcademicYear = wuc_progression_next_academic_year($fromAcademicYear);
+            if ($toAcademicYear === '') {
+                throw new RuntimeException('The current academic year is missing or invalid. Contact the registrar before progressing this student.');
+            }
             $evidence = wuc_progression_ca_evidence($db, $sid, $fromProgram, $fromYear);
             $evidenceJson = json_encode($evidence, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
@@ -500,16 +490,19 @@ if (!function_exists('wuc_progress_student_year')) {
                     throw new RuntimeException($result['message']);
                 }
             } else {
+                $periodType = wuc_progression_period_type($db, $toProgram);
+                $termNumber = $periodType === 'term' ? 1 : null;
+                $semesterNumber = $periodType === 'semester' ? 1 : null;
                 $enrolmentId = (int)$current['id'];
                 $stmt = $db->prepare(
                     "UPDATE student_program
                         SET year_of_study = ?, current_year_number = ?,
-                            academic_year = ?, term = '1', current_term_number = 1,
-                            semester = 1, current_semester_number = NULL,
+                            academic_year = ?, term = '1', current_term_number = ?,
+                            semester = 1, current_semester_number = ?,
                             current_level_number = NULL, updated_at = CURRENT_TIMESTAMP
                       WHERE id = ? AND Sid = ?"
                 );
-                $stmt->bind_param('iisis', $toYear, $toYear, $toAcademicYear, $enrolmentId, $sid);
+                $stmt->bind_param('iisiiis', $toYear, $toYear, $toAcademicYear, $termNumber, $semesterNumber, $enrolmentId, $sid);
                 $stmt->execute();
                 if ($stmt->affected_rows !== 1) {
                     throw new RuntimeException('The student academic year could not be updated.');
@@ -525,33 +518,13 @@ if (!function_exists('wuc_progress_student_year')) {
                     "UPDATE course_registration
                         SET is_active = 0,
                             status = CASE WHEN LOWER(COALESCE(status, '')) = 'dropped' THEN status ELSE 'completed' END
-                      WHERE Sid = ? AND COALESCE(is_active, 1) = 1"
+                      WHERE Sid = ? AND Year = ? AND COALESCE(is_active, 1) = 1"
                 );
-                $stmt->bind_param('s', $sid);
+                $stmt->bind_param('si', $sid, $fromYear);
                 $stmt->execute();
                 $stmt->close();
 
-                $periodType = 'term';
-                $modeStmt = $db->prepare('SELECT period_mode FROM programs WHERE program_code = ? LIMIT 1');
-                $modeStmt->bind_param('s', $toProgram);
-                $modeStmt->execute();
-                $periodType = strtolower((string)($modeStmt->get_result()->fetch_assoc()['period_mode'] ?? 'term')) === 'semester' ? 'semester' : 'term';
-                $modeStmt->close();
-
-                $stmt = $db->prepare(
-                    "INSERT INTO semester_registration
-                        (student_id, SID, program_code, semester, period_type,
-                         year_of_study, Year, academic_year, registration_status, fee_status)
-                     VALUES (?, ?, ?, '1', ?, ?, ?, ?, 'pending', 'unknown')
-                     ON DUPLICATE KEY UPDATE
-                        year_of_study = VALUES(year_of_study), Year = VALUES(Year),
-                        registration_status = 'pending', fee_status = 'unknown',
-                        updated_at = CURRENT_TIMESTAMP"
-                );
-                $stmt->bind_param('ssssiis', $sid, $sid, $toProgram, $periodType, $toYear, $toYear, $toAcademicYear);
-                $stmt->execute();
-                $stmt->close();
-                $cleanupPeriod = [$sid, $toProgram, $periodType, $toAcademicYear];
+                wuc_progression_prepare_registration($db, $sid, $toProgram, $periodType, $toYear, $toAcademicYear);
             }
 
             audit_log($db, $actorId, 'student.academic_year_progressed', [
@@ -576,18 +549,6 @@ if (!function_exists('wuc_progress_student_year')) {
         } catch (Throwable $e) {
             if ($manageTransaction) {
                 $db->rollback();
-            }
-            if ($cleanupPeriod) {
-                [$cleanupSid, $cleanupProgram, $cleanupType, $cleanupYear] = $cleanupPeriod;
-                $cleanup = $db->prepare(
-                    "DELETE FROM semester_registration
-                      WHERE (student_id = ? OR SID = ?) AND program_code = ?
-                        AND period_type = ? AND semester = '1' AND academic_year = ?
-                        AND registration_status = 'pending'"
-                );
-                $cleanup->bind_param('sssss', $cleanupSid, $cleanupSid, $cleanupProgram, $cleanupType, $cleanupYear);
-                $cleanup->execute();
-                $cleanup->close();
             }
             error_log('[Student progression] ' . $e->getMessage());
             return ['ok' => false, 'message' => $e->getMessage()];

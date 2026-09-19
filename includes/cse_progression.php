@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/grading_helpers.php';
 require_once __DIR__ . '/audit.php';
+require_once __DIR__ . '/helpers/progression_helpers.php';
 
 if (!defined('WUC_CSE_CERTIFICATE_PROGRAM')) {
     define('WUC_CSE_CERTIFICATE_PROGRAM', 'ICT-001');
@@ -179,11 +180,12 @@ if (!function_exists('wuc_cse_progress_student')) {
         }
         try {
             $stmt = $db->prepare(
-                "SELECT id, academic_year
-                   FROM student_program
-                  WHERE Sid = ? AND program_code = ?
-                    AND LOWER(COALESCE(status, 'active')) = 'active'
-                  ORDER BY id DESC LIMIT 1 FOR UPDATE"
+                "SELECT sp.id, COALESCE(NULLIF(sp.academic_year, ''), s.academic_year, '') AS academic_year
+                   FROM student_program sp
+                   INNER JOIN students s ON s.SID = sp.Sid
+                  WHERE sp.Sid = ? AND sp.program_code = ?
+                    AND LOWER(COALESCE(sp.status, 'active')) = 'active'
+                  ORDER BY sp.id DESC LIMIT 1 FOR UPDATE"
             );
             $certificate = WUC_CSE_CERTIFICATE_PROGRAM;
             $stmt->bind_param('ss', $sid, $certificate);
@@ -206,22 +208,15 @@ if (!function_exists('wuc_cse_progress_student')) {
             $curriculumVersionId = (int)($versionStmt->get_result()->fetch_assoc()['id'] ?? 0);
             $versionStmt->close();
 
-            $latestAcademicYear = trim((string)($enrolment['academic_year'] ?? ''));
-            $registrationYearStmt = $db->prepare(
-                'SELECT academic_year FROM semester_registration
-                  WHERE student_id = ? OR SID = ? ORDER BY id DESC LIMIT 1'
-            );
-            $registrationYearStmt->bind_param('ss', $sid, $sid);
-            $registrationYearStmt->execute();
-            $latestRegistrationYear = trim((string)($registrationYearStmt->get_result()->fetch_assoc()['academic_year'] ?? ''));
-            $registrationYearStmt->close();
-            if (preg_match('/^(\d{4})$/', $latestRegistrationYear, $yearMatch)) {
-                $nextAcademicYear = (string)((int)$yearMatch[1] + 1);
-            } elseif (preg_match('/^(\d{4})$/', $latestAcademicYear, $yearMatch)) {
-                $nextAcademicYear = (string)((int)$yearMatch[1] + 1);
-            } else {
-                $nextAcademicYear = (string)((int)date('Y') + 1);
+            // Use the same enrolment year as the audited general progression path.
+            // An unrelated or future registration must not move the target year.
+            $nextAcademicYear = wuc_progression_next_academic_year((string)($enrolment['academic_year'] ?? ''));
+            if ($nextAcademicYear === '') {
+                throw new RuntimeException('The current academic year is missing or invalid. Contact the registrar before progressing this student.');
             }
+            $periodType = wuc_progression_period_type($db, $diploma);
+            $termNumber = $periodType === 'term' ? 1 : null;
+            $semesterNumber = $periodType === 'semester' ? 1 : null;
 
             $stmt = $db->prepare(
                 "UPDATE student_program
@@ -230,15 +225,15 @@ if (!function_exists('wuc_cse_progress_student')) {
                         year_of_study = 2,
                         current_year_number = 2,
                         term = '1',
-                        current_term_number = 1,
+                        current_term_number = ?,
                         semester = 1,
-                        current_semester_number = NULL,
+                        current_semester_number = ?,
                         current_level_number = NULL,
                         academic_year = ?,
                         updated_at = CURRENT_TIMESTAMP
                   WHERE id = ? AND Sid = ?"
             );
-            $stmt->bind_param('sisis', $diploma, $curriculumVersionId, $nextAcademicYear, $enrolmentId, $sid);
+            $stmt->bind_param('siiisis', $diploma, $curriculumVersionId, $termNumber, $semesterNumber, $nextAcademicYear, $enrolmentId, $sid);
             $stmt->execute();
             if ($stmt->affected_rows !== 1) {
                 throw new RuntimeException('The student programme stage could not be updated.');
@@ -254,27 +249,13 @@ if (!function_exists('wuc_cse_progress_student')) {
                 "UPDATE course_registration
                     SET is_active = 0,
                         status = CASE WHEN LOWER(COALESCE(status, '')) = 'dropped' THEN status ELSE 'completed' END
-                  WHERE Sid = ? AND COALESCE(is_active, 1) = 1"
+                  WHERE Sid = ? AND Year = 1 AND COALESCE(is_active, 1) = 1"
             );
             $stmt->bind_param('s', $sid);
             $stmt->execute();
             $stmt->close();
 
-            $stmt = $db->prepare(
-                "INSERT INTO semester_registration
-                    (student_id, SID, program_code, semester, period_type,
-                     year_of_study, Year, academic_year, registration_status, fee_status)
-                 VALUES (?, ?, ?, '1', 'term', 2, 2, ?, 'pending', 'unknown')
-                 ON DUPLICATE KEY UPDATE
-                    year_of_study = 2,
-                    Year = 2,
-                    registration_status = 'pending',
-                    fee_status = 'unknown',
-                    updated_at = CURRENT_TIMESTAMP"
-            );
-            $stmt->bind_param('ssss', $sid, $sid, $diploma, $nextAcademicYear);
-            $stmt->execute();
-            $stmt->close();
+            wuc_progression_prepare_registration($db, $sid, $diploma, $periodType, 2, $nextAcademicYear);
 
             audit_log($db, $actorId, 'student.cse_progressed_to_diploma', [
                 'student_id' => $sid,
