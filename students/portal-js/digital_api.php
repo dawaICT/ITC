@@ -216,6 +216,100 @@ if (!function_exists('digital_student_tokens')) {
     }
 }
 
+if (!function_exists('digital_student_programme_codes')) {
+    /**
+     * Resolve the student's programme scope (codes + names) so book/reading
+     * resources can be recommended "according to the programme the student is
+     * doing", not just the registered course list.
+     *
+     * @return array<int,array{programme_code:string,programme_name:string,label:string}>
+     */
+    function digital_student_programme_codes(mysqli $db, string $sid): array
+    {
+        $programmes = [];
+        if ($sid === '' || !digital_student_table_exists($db, 'student_program')) {
+            return $programmes;
+        }
+
+        $spCols = digital_student_columns($db, 'student_program');
+        $sidCol = digital_student_first_column($spCols, ['Sid', 'student_id', 'SID', 'student']);
+        $codeCol = digital_student_first_column($spCols, ['program_code', 'programme_code', 'ProgramCode']);
+        if (!$sidCol || !$codeCol) {
+            return $programmes;
+        }
+
+        $sql = "SELECT DISTINCT `{$codeCol}` AS program_code
+                FROM student_program
+                WHERE `{$sidCol}` = ?
+                ORDER BY `{$codeCol}` ASC
+                LIMIT 20";
+        $codes = [];
+        if ($stmt = @$db->prepare($sql)) {
+            $stmt->bind_param('s', $sid);
+            $stmt->execute();
+            if ($res = $stmt->get_result()) {
+                while ($row = $res->fetch_assoc()) {
+                    $code = strtoupper(trim((string)($row['program_code'] ?? '')));
+                    if ($code !== '') {
+                        $codes[$code] = true;
+                    }
+                }
+            }
+            $stmt->close();
+        }
+        if (!$codes) {
+            return $programmes;
+        }
+
+        // Programme names where programmes/programs provides them (defensive).
+        $nameByCode = [];
+        foreach (['programmes', 'programs'] as $ptable) {
+            if (!digital_student_table_exists($db, $ptable)) {
+                continue;
+            }
+            $pCols = digital_student_columns($db, $ptable);
+            $pCodeCol = digital_student_first_column($pCols, ['program_code', 'programme_code', 'code', 'ProgramCode']);
+            $pNameCol = digital_student_first_column($pCols, ['program_name', 'programme_name', 'name', 'title']);
+            if (!$pCodeCol || !$pNameCol) {
+                continue;
+            }
+            $codesList = array_keys($codes);
+            $ph = implode(',', array_fill(0, count($codesList), '?'));
+            $nsql = "SELECT `{$pCodeCol}` AS program_code, `{$pNameCol}` AS program_name
+                     FROM `{$ptable}`
+                     WHERE `{$pCodeCol}` IN ({$ph})
+                     LIMIT 50";
+            if ($nstmt = @$db->prepare($nsql)) {
+                $nstmt->bind_param(str_repeat('s', count($codesList)), ...$codesList);
+                $nstmt->execute();
+                if ($nres = $nstmt->get_result()) {
+                    while ($nrow = $nres->fetch_assoc()) {
+                        $k = strtoupper(trim((string)($nrow['program_code'] ?? '')));
+                        $v = trim((string)($nrow['program_name'] ?? ''));
+                        if ($k !== '' && $v !== '') {
+                            $nameByCode[$k] = $v;
+                        }
+                    }
+                }
+                $nstmt->close();
+            }
+            if ($nameByCode) {
+                break;
+            }
+        }
+
+        foreach (array_keys($codes) as $code) {
+            $name = $nameByCode[$code] ?? '';
+            $programmes[] = [
+                'programme_code' => $code,
+                'programme_name' => $name,
+                'label' => trim($code . ($name !== '' ? ' - ' . $name : '')),
+            ];
+        }
+        return $programmes;
+    }
+}
+
 if (!function_exists('digital_student_course_context')) {
     function digital_student_course_context(mysqli $db, string $sid): array
     {
@@ -333,7 +427,7 @@ if (!function_exists('digital_student_course_context')) {
 }
 
 if (!function_exists('digital_student_score_resources')) {
-    function digital_student_score_resources(array $rows, array $courses): array
+    function digital_student_score_resources(array $rows, array $courses, array $programmes = []): array
     {
         $courseTokens = [];
         foreach ($courses as $course) {
@@ -347,10 +441,26 @@ if (!function_exists('digital_student_score_resources')) {
             ];
         }
 
+        // Programme scope: books/reading resources can be recommended "according
+        // to the programme the student is doing", so programme codes + names are
+        // matched the same way course codes are.
+        $programmeTokens = [];
+        foreach ($programmes as $programme) {
+            $code = strtoupper(trim((string)($programme['programme_code'] ?? '')));
+            $name = trim((string)($programme['programme_name'] ?? ''));
+            $programmeTokens[] = [
+                'code' => $code,
+                'name' => $name,
+                'label' => trim($code . ($name !== '' ? ' - ' . $name : '')),
+                'tokens' => digital_student_tokens($code . ' ' . $name),
+            ];
+        }
+
         foreach ($rows as &$row) {
             $title = (string)($row['title'] ?? '');
             $description = (string)($row['description'] ?? '');
             $subject = (string)($row['subject'] ?? '');
+            $rawUrl = (string)($row['url'] ?? '');
             $courseCode = strtoupper(trim((string)($row['course_code'] ?? $subject)));
             $type = strtolower((string)($row['resource_type'] ?? ''));
             $haystack = strtolower($title . ' ' . $description . ' ' . $subject . ' ' . $courseCode);
@@ -388,10 +498,54 @@ if (!function_exists('digital_student_score_resources')) {
                 }
             }
 
+            // Programme-aware boost: a book/reading resource that names the
+            // student's programme (code or name) is recommended to them.
+            foreach ($programmeTokens as $programme) {
+                $code = $programme['code'];
+                $label = $programme['label'];
+                if ($code === '') {
+                    continue;
+                }
+                if ($courseCode === $code) {
+                    $score += 90;
+                    $matched[] = $code;
+                    $reasons[] = "Programme: {$label}";
+                    continue;
+                }
+                if (strpos($haystack, strtolower($code)) !== false) {
+                    $score += 50;
+                    $matched[] = $code;
+                    $reasons[] = "Programme mentions {$code}";
+                    continue;
+                }
+                $overlap = 0;
+                foreach ($programme['tokens'] as $token) {
+                    if (strpos($haystack, $token) !== false) {
+                        $overlap++;
+                    }
+                }
+                if ($overlap >= 2) {
+                    $score += 20 + ($overlap * 5);
+                    $matched[] = $code;
+                    $reasons[] = "Related to programme {$label}";
+                } elseif ($overlap === 1) {
+                    $score += 6;
+                }
+            }
+
             if ($type === 'video' && $score > 0) {
                 $score += 18;
             }
-            if ($courseCode === '' && $score === 0) {
+
+            // Universal open-access *book* source (e.g. the seeded Z-Library):
+            // books are relevant to every student regardless of course, so give
+            // it a baseline that puts it in the "Recommended" surface.
+            if (strpos($rawUrl, 'z-library.biz') !== false || strpos($rawUrl, 'z-lib.io') !== false) {
+                if ($score < 38) {
+                    $score = 38;
+                }
+                $reasons[] = 'Free eBook & textbook source for your studies';
+            } elseif ($courseCode === '' && $score === 0) {
                 $score = 4;
                 $reasons[] = 'General study resource';
             }
@@ -527,10 +681,16 @@ if (!function_exists('digital_student_short_course_material_cards')) {
 }
 
 if (!function_exists('digital_student_suggestion_cards')) {
-    function digital_student_suggestion_cards(array $courses, string $type = ''): array
+    function digital_student_suggestion_cards(array $courses, string $type = '', array $programmes = []): array
     {
         $cards = [];
         $limit = 10;
+        $bookSource = 'https://z-library.biz/';
+
+        // Per-course "get books" suggestion so reading resources are recommended
+        // according to the courses the student is doing (links to the Z-Library
+        // book source). Shown for the default & ebook/document/journal views.
+        $showBooks = $type === '' || in_array($type, ['ebook', 'document', 'journal'], true);
         foreach ($courses as $course) {
             if (count($cards) >= $limit) {
                 break;
@@ -564,6 +724,27 @@ if (!function_exists('digital_student_suggestion_cards')) {
                 ];
             }
 
+            if ($showBooks) {
+                $cards[] = [
+                    'id' => 'suggest-book-' . preg_replace('/[^A-Z0-9_-]/', '', $code),
+                    'title' => 'Get books for ' . ($name !== '' ? $name : $code),
+                    'resource_type' => 'ebook',
+                    'subject' => $code,
+                    'course_code' => $code,
+                    'access_level' => 'students',
+                    'url' => $bookSource,
+                    'description' => 'Find eBooks and textbooks for this course on Z-Library.',
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'views' => 0,
+                    'recommendation_score' => 56,
+                    'recommended' => 1,
+                    'match_reason' => 'Books matched to your course',
+                    'matched_courses' => [$code],
+                    'source' => 'suggested_book',
+                    'synthetic' => 1,
+                ];
+            }
+
             if (count($cards) >= $limit) {
                 break;
             }
@@ -588,6 +769,42 @@ if (!function_exists('digital_student_suggestion_cards')) {
                 ];
             }
         }
+
+        // Programme-level "get books" card so a reading resource is recommended
+        // for the programme the student is doing even before course overlaps.
+        if ($showBooks) {
+            foreach ($programmes as $programme) {
+                if (count($cards) >= $limit + 2) {
+                    break;
+                }
+                $code = strtoupper(trim((string)($programme['programme_code'] ?? '')));
+                $name = trim((string)($programme['programme_name'] ?? ''));
+                if ($code === '') {
+                    continue;
+                }
+                $pid = preg_replace('/[^A-Z0-9_-]/', '', $code);
+                $cards[] = [
+                    'id' => 'suggest-book-prog-' . $pid,
+                    'title' => 'Get books for ' . ($name !== '' ? $name : $code),
+                    'resource_type' => 'ebook',
+                    'subject' => $code,
+                    'course_code' => '',
+                    'programme_code' => $code,
+                    'access_level' => 'students',
+                    'url' => $bookSource,
+                    'description' => 'Find eBooks and textbooks for your programme on Z-Library.',
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'views' => 0,
+                    'recommendation_score' => 54,
+                    'recommended' => 1,
+                    'match_reason' => 'Books matched to your programme',
+                    'matched_courses' => [$code],
+                    'source' => 'suggested_book',
+                    'synthetic' => 1,
+                ];
+            }
+        }
+
         return $cards;
     }
 }
@@ -611,6 +828,9 @@ try {
     $select = "r.`id`, {$titleExpr}, {$typeExpr}, {$subjectExpr}, {$courseCodeExpr}, {$accessExpr}, {$urlExpr}, {$descExpr}, {$createdExpr}, {$viewsExpr}";
     $visibility = digital_student_visibility_clause($resourceCols);
     $learningContext = digital_student_course_context($db, $sid);
+    // Programme scope so books/reading resources are recommended according to
+    // the programme the student is doing, not just their registered courses.
+    $programmeContext = digital_student_programme_codes($db, $sid);
 
     switch ($action) {
         case 'list':
@@ -654,13 +874,13 @@ try {
                 digital_student_log_event($db, null, $sid, 'search', ['q' => $rawQ]);
             }
 
-            $rows = digital_student_score_resources($rows, $learningContext);
+            $rows = digital_student_score_resources($rows, $learningContext, $programmeContext);
             $addonRows = [];
             if ($rawQ === '') {
                 $addonRows = array_merge(
                     digital_student_short_course_material_cards($db, $learningContext),
                     digital_student_el_module_cards($db, $learningContext),
-                    digital_student_suggestion_cards($learningContext, $type)
+                    digital_student_suggestion_cards($learningContext, $type, $programmeContext)
                 );
             }
 
@@ -675,6 +895,7 @@ try {
 
             $response['results'] = array_slice($mergedRows, 0, 120);
             $response['learning_context'] = $learningContext;
+            $response['programme_context'] = $programmeContext;
             break;
 
         case 'view':

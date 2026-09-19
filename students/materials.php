@@ -8,6 +8,7 @@ if (session_status() === PHP_SESSION_NONE) { session_start(); }
 require_once __DIR__ . '/includes/guard.php'; // Guard handles auth
 require_once dirname(__DIR__) . '/db/connect.php';
 require_once dirname(__DIR__) . '/includes/elearning_access.php';
+require_once dirname(__DIR__) . '/includes/short_course_student.php';
 if (function_exists('wuc_should_show_error_details') && wuc_should_show_error_details()) {
     ini_set('display_errors', '0');
 }
@@ -25,13 +26,17 @@ if (!$studentId) {
 // content). If the requested course is a short course this student is enrolled
 // in, send them to the short-course content view rather than the academic one.
 if ($courseCode !== '') {
-    require_once dirname(__DIR__) . '/includes/short_course_student.php';
     foreach (sc_student_enrolments($db, (string)$studentId) as $scEnrolment) {
         if (strcasecmp((string)($scEnrolment['course_code'] ?? ''), $courseCode) === 0) {
-            header('Location: short_courses.php?id=' . urlencode((string)$scEnrolment['short_course_id']));
+            $scId = (int)($scEnrolment['short_course_id'] ?? 0);
+            $targetUrl = $scId > 0 ? ('short_courses.php?id=' . urlencode((string)$scId)) : 'short_courses.php';
+            header('Location: ' . $targetUrl);
             exit;
         }
     }
+} elseif (isShortCourseStudent($db, (string)$studentId)) {
+    header('Location: short_courses.php');
+    exit;
 }
 
 // Get all enrolled courses for this student
@@ -185,6 +190,10 @@ if (empty($enrolledCodes) && !$selectedCourse) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?php echo $page_title; ?></title>
 <?php require_once __DIR__ . '/../includes/page_meta.php'; wuc_portal_favicon_links(); ?>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="/wucportal/css/admin-style.css">
+<link rel="stylesheet" href="/wucportal/css/portal-dashboard.css">
 </head>
 <body class="bg-light">
     <?php require_once __DIR__ . '/includes/navbar.php'; ?>
@@ -382,6 +391,7 @@ if (empty($enrolledCodes) && !$selectedCourse) {
     
     <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
     <script>

@@ -68,8 +68,12 @@ if ($action === 'search') {
 if ($action === 'reserve') {
   $item_id = (int)($_POST['item_id'] ?? 0); if ($item_id <= 0) json_err('invalid');
   // ensure no available copies
-  $res=$db->query("SELECT COUNT(*) c FROM library_copies WHERE item_id=$item_id AND status='available'");
+  $stmt = $db->prepare("SELECT COUNT(*) c FROM library_copies WHERE item_id=? AND status='available'");
+  $stmt->bind_param('i', $item_id);
+  $stmt->execute();
+  $res = $stmt->get_result();
   $available = $res ? (int)$res->fetch_assoc()['c'] : 0;
+  $stmt->close();
   if ($available>0) json_err('Item currently available; please check shelves');
   $stmt=$db->prepare("INSERT INTO library_reservations (item_id, borrower_type, borrower_id, reserved_at, status) VALUES (?,?,?,NOW(),'active')");
   $type='student'; $stmt->bind_param('iss',$item_id,$type,$Sid);
@@ -80,9 +84,13 @@ if ($action === 'reserve') {
 if ($action === 'borrow') {
   $item_id = (int)($_POST['item_id'] ?? 0); if ($item_id <= 0) json_err('invalid');
   // find an available copy
-  $res=$db->query("SELECT id FROM library_copies WHERE item_id=$item_id AND status='available' LIMIT 1");
+  $stmt = $db->prepare("SELECT id FROM library_copies WHERE item_id=? AND status='available' LIMIT 1");
+  $stmt->bind_param('i', $item_id);
+  $stmt->execute();
+  $res = $stmt->get_result();
   if (!$res || !$res->num_rows) json_err('No available copies');
-  $copy = $res->fetch_assoc()['id'];
+  $copy = (int)$res->fetch_assoc()['id'];
+  $stmt->close();
   // calculate due date: 14 days from now
   $due = date('Y-m-d H:i:s', strtotime('+14 days'));
   $loanCols = table_columns($db, 'library_loans');
@@ -104,6 +112,7 @@ if ($action === 'borrow') {
   $add('student_id', 's', $Sid);
   $add('due_date', 's', $due);
   $add('due_at', 's', $due);
+  $add('loaned_at', 's', date('Y-m-d H:i:s'));
   $add('borrowed_at', 's', date('Y-m-d H:i:s'));
   $add('status', 's', 'active');
   if (empty($fields)) json_err('Loan table is not configured');
@@ -111,8 +120,12 @@ if ($action === 'borrow') {
   if (!$stmt) json_err('Failed to prepare loan');
   $stmt->bind_param($types, ...$params);
   if ($stmt->execute()) {
+    $stmt->close();
     // update copy status
-    $db->query("UPDATE library_copies SET status='loaned' WHERE id=$copy");
+    $stmt_up = $db->prepare("UPDATE library_copies SET status='loaned' WHERE id=?");
+    $stmt_up->bind_param('i', $copy);
+    $stmt_up->execute();
+    $stmt_up->close();
     json_ok(['message'=>'Item borrowed successfully']);
   }
   json_err('Failed to borrow');
@@ -138,9 +151,14 @@ if ($action === 'renew') {
   if ($dueCol === null || $sidCol === null) json_err('Loan table is not configured');
   $typeWhere = has_col($db, 'library_loans', 'borrower_type') ? "AND borrower_type='student'" : '';
   $returnSelect = $returnCol ? "`$returnCol` AS returned_at" : "NULL AS returned_at";
-  $res=$db->query("SELECT `$dueCol` AS due_date, $returnSelect FROM library_loans WHERE id=$loan_id $typeWhere AND `$sidCol`='".$db->real_escape_string($Sid)."' LIMIT 1");
+  $stmt = $db->prepare("SELECT `$dueCol` AS due_date, $returnSelect FROM library_loans WHERE id=? $typeWhere AND `$sidCol`=? LIMIT 1");
+  $stmt->bind_param('is', $loan_id, $Sid);
+  $stmt->execute();
+  $res = $stmt->get_result();
   if (!$res || !$res->num_rows) json_err('not found');
-  $row=$res->fetch_assoc(); if ($row['returned_at']) json_err('already returned');
+  $row=$res->fetch_assoc();
+  $stmt->close();
+  if ($row['returned_at']) json_err('already returned');
   if (time() > strtotime($row['due_date'])) json_err('Cannot renew overdue item');
   $stmt=$db->prepare("UPDATE library_loans SET `$dueCol`=DATE_ADD(`$dueCol`, INTERVAL 7 DAY) WHERE id=?");
   $stmt->bind_param('i',$loan_id); if ($stmt->execute()) json_ok(['message'=>'Renewed for 7 days']);

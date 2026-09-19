@@ -40,7 +40,7 @@ function ca_results_total(object $row): ?float
     ]);
 }
 
-function ca_results_load(mysqli $db, string $courseCode, string $year, string $term, string $program = ''): array
+function ca_results_load(mysqli $db, string $courseCode, string $year, string $term, string $program = '', bool &$usedFallback = false): array
 {
     $records = [];
     $sql = "SELECT sa.*, COALESCE(st.Fname, '') AS Fname, COALESCE(st.Lname, '') AS Lname,
@@ -53,10 +53,12 @@ function ca_results_load(mysqli $db, string $courseCode, string $year, string $t
               AND sa.semester = ?";
     $types = 'sss';
     $params = [$courseCode, $year, $term];
+    $programApplied = false;
     if ($program !== '') {
         $sql .= " AND st.program = ?";
         $types .= 's';
         $params[] = $program;
+        $programApplied = true;
     }
     $sql .= " ORDER BY COALESCE(st.program, ''), sa.Sid";
     if ($stmt = $db->prepare($sql)) {
@@ -70,6 +72,36 @@ function ca_results_load(mysqli $db, string $courseCode, string $year, string $t
         $stmt->close();
     } else {
         error_log('lecturers/viewCaRes.php: result query prepare failed: ' . $db->error);
+    }
+
+    // Graceful fallback: a requested program may have no students with marks for
+    // this course (e.g. course_lecturer assigns the course under a program whose
+    // enrolled students actually belong to another program). Rather than showing
+    // an empty sheet, retry without the program filter for a course the lecturer
+    // is assigned to, so the uploaded CAs remain visible.
+    if ($programApplied && $records === [] && $usedFallback === false) {
+        $sqlNoProg = "SELECT sa.*, COALESCE(st.Fname, '') AS Fname, COALESCE(st.Lname, '') AS Lname,
+                             COALESCE(st.program, '') AS Program, COALESCE(p.program_name, '') AS ProgramName
+                      FROM semester_assessment sa
+                      LEFT JOIN students st ON st.SID = sa.Sid
+                      LEFT JOIN programs p ON p.program_code = st.program
+                      WHERE sa.Course_Code = ?
+                        AND sa.Year = ?
+                        AND sa.semester = ?
+                      ORDER BY COALESCE(st.program, ''), sa.Sid";
+        if ($stmt = $db->prepare($sqlNoProg)) {
+            $stmt->bind_param('sss', $courseCode, $year, $term);
+            $stmt->execute();
+            if ($res = $stmt->get_result()) {
+                while ($row = $res->fetch_object()) {
+                    $records[] = $row;
+                }
+            }
+            $stmt->close();
+            $usedFallback = true;
+        } else {
+            error_log('lecturers/viewCaRes.php: fallback result query prepare failed: ' . $db->error);
+        }
     }
 
     return $records;
@@ -295,7 +327,7 @@ function ca_results_course_catalog(mysqli $db, array $courseMap, string $staffId
         }
         foreach ($pcodes as $code) {
             if (!isset($periodTypeByProgram[$code])) {
-                $periodTypeByProgram[$code] = 'period';
+                $periodTypeByProgram[$code] = 'term';
             }
         }
     }
@@ -394,7 +426,7 @@ $programCourses = ($selectedProgram !== '' && isset($coursesByProgram[$selectedP
 // Detected period type + selectable periods for the chosen program.
 $selectedPeriodType = ($selectedProgram !== '' && isset($periodTypeByProgram[$selectedProgram]))
     ? $periodTypeByProgram[$selectedProgram]
-    : 'period';
+    : 'term';
 $periodLabel = ca_results_period_label($selectedPeriodType);
 $periodOptions = ca_results_period_options($selectedPeriodType);
 $records = [];
@@ -418,8 +450,15 @@ if ($isRequested) {
     } elseif (!array_key_exists($selectedTerm, $periodOptions)) {
         $errors[] = $periodLabel . ' is invalid for this program.';
     } else {
-        $records = ca_results_load($db, $selectedCourse, $selectedYear, $selectedTerm, $selectedProgram);
-        if (!$records) {
+        $usedFallback = false;
+        $records = ca_results_load($db, $selectedCourse, $selectedYear, $selectedTerm, $selectedProgram, $usedFallback);
+        if ($records) {
+            if ($usedFallback) {
+                $notice = 'No CA marks were found for students in the selected program (' . $selectedProgram
+                    . ') for ' . $selectedCourse . ' · ' . $selectedYear . ' · ' . $periodLabel . ' ' . $selectedTerm
+                    . '. Showing all students with uploads for this course/period instead.';
+            }
+        } else {
             $notice = 'No records found for the selected criteria.';
         }
     }
@@ -743,7 +782,7 @@ require_once __DIR__ . '/includes/nav.php';
     function periodLabelFor(type) {
         if (type === 'term') { return 'Term'; }
         if (type === 'semester') { return 'Semester'; }
-        return 'Term / Semester';
+        return 'Term';
     }
     function periodOptionsFor(type) {
         var word = type === 'semester' ? 'Semester' : (type === 'term' ? 'Term' : 'Period');
@@ -787,7 +826,7 @@ require_once __DIR__ . '/includes/nav.php';
     function populatePeriods(preserve) {
         if (!programSelect || !termSelect) { return; }
         var program = programSelect.value;
-        var type = periodTypeByProgram[program] || 'period';
+        var type = periodTypeByProgram[program] || 'term';
         var label = periodLabelFor(type);
         var previous = preserve ? termSelect.value : '';
         termSelect.innerHTML = '';

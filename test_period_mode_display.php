@@ -11,7 +11,7 @@ echo "=== Testing Period Mode Display for Students ===\n\n";
 // Test query (same as in students/index.php)
 $query = "SELECT s.SID, s.Fname, s.Lname, s.email, s.mobile, s.profile_image, sp.startYear, sp.endYear,
                    sp.program_code, sp.Sid as sp_sid,
-                   p.program_name, p.duration_months as program_duration,
+                   p.program_name, p.program_duration,
                    p.period_mode
             FROM students s
             INNER JOIN student_program sp ON s.SID = sp.Sid

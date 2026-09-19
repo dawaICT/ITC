@@ -189,6 +189,231 @@ $accidental = $db->query(
 )->fetch_assoc();
 $assert((int)($accidental['c'] ?? 0) === 0, 'data.no_e2e_short_enrolment_on_long_student');
 
+// ── Assignment-side hardening: short courses must never enter student_program ──
+
+// Live DB invariant: no student_program row points at a short-flagged program.
+$contaminated = $db->query(
+    "SELECT COUNT(*) AS c
+       FROM student_program sp
+       INNER JOIN programs p ON p.program_code = sp.program_code
+      WHERE COALESCE(p.is_short_course, 0) = 1
+         OR UPPER(COALESCE(p.structure_type, '')) = 'SHORT_COURSE'"
+)->fetch_assoc();
+$assert((int)($contaminated['c'] ?? 0) === 0, 'data.no_short_program_in_student_program');
+
+// Write-path guard: admissionsEnrollExistingStudent must reject a short course.
+require_once $root . '/includes/applicant_admission.php';
+$assert(function_exists('admissionsEnrollExistingStudent'), 'fn.admissions_enroll');
+$assert(function_exists('admissionsShortCourseAssignmentError'), 'fn.short_course_assignment_error');
+
+if ($longSid !== null && $longSid !== '') {
+    $before = $db->query(
+        "SELECT COUNT(*) AS c FROM student_program WHERE program_code = 'TRANS-001'"
+    )->fetch_assoc();
+    $reject = admissionsEnrollExistingStudent($db, $longSid, 'TRANS-001', 'January ' . date('Y'), 'Full-time');
+    $assert(
+        ($reject['success'] ?? true) === false && stripos((string)($reject['message'] ?? ''), 'short course') !== false,
+        'guard.enroll_rejects_short_course',
+        (string)($reject['message'] ?? '')
+    );
+    $after = $db->query(
+        "SELECT COUNT(*) AS c FROM student_program WHERE program_code = 'TRANS-001'"
+    )->fetch_assoc();
+    $assert(
+        (int)($after['c'] ?? -1) === (int)($before['c'] ?? -2),
+        'guard.no_student_program_row_written'
+    );
+}
+
+// Structural: every programme-assignment UI filters/guards short courses.
+foreach ([
+    'registrar/admitStudent.php',
+    'admin/update_student_program.php',
+    'admin/get_programs.php',
+] as $assignUi) {
+    $src = (string)file_get_contents($root . '/' . $assignUi);
+    $assert(
+        str_contains($src, 'sc_sql_programs_long_only_predicate') || str_contains($src, 'sc_program_is_short_course'),
+        'struct.' . str_replace(['/', '.php'], ['_', ''], $assignUi) . '_filters_short'
+    );
+}
+$applicantAdmissionSrc = (string)file_get_contents($root . '/includes/applicant_admission.php');
+$assert(
+    substr_count($applicantAdmissionSrc, 'admissionsShortCourseAssignmentError($db') >= 2,
+    'struct.admission_helper_guard_both_paths'
+);
+
+// ── Dual-enrolled portal switcher (portal_view.php session override) ──
+
+$pv = (string)file_get_contents($root . '/students/portal_view.php');
+$assert(str_contains($pv, 'sc_student_has_long_program') && str_contains($pv, 'sc_student_enrolments'), 'struct.portal_view_dual_guard');
+$assert(str_contains($pv, "student_portal_view"), 'struct.portal_view_session_key');
+
+$idxSrc = (string)file_get_contents($root . '/students/index.php');
+$assert(str_contains($idxSrc, 'studentPortalViewOverride'), 'struct.index_override_gate');
+
+$navSrc = (string)file_get_contents($root . '/students/includes/navbar.php');
+$assert(str_contains($navSrc, 'portal_view.php?view=short_course'), 'struct.nav_switch_to_short');
+$assert(str_contains($navSrc, 'portal_view.php?view=academic'), 'struct.nav_switch_back');
+
+// HTTP behaviour via the dev impersonation hook (APP_ENV=development).
+if (function_exists('curl_init')) {
+    $base = 'http://localhost/wucportal';
+    $http = static function (string $url, string $jar): array {
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_COOKIEJAR => $jar,
+            CURLOPT_COOKIEFILE => $jar,
+            CURLOPT_HEADER => true,
+            CURLOPT_TIMEOUT => 20,
+        ]);
+        $raw = (string)curl_exec($ch);
+        $code = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+        $headerSize = (int)curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+        curl_close($ch);
+        preg_match('/^Location:\\s*(.+)$/mi', substr($raw, 0, $headerSize), $m);
+        return ['code' => $code, 'location' => trim((string)($m[1] ?? '')), 'body' => substr($raw, $headerSize)];
+    };
+
+    // Dual-enrolled student: switch into the short-course portal and back.
+    $dual = 'CSE26456789';
+    $chk = $db->prepare('SELECT 1 FROM students WHERE SID = ?');
+    $chk->bind_param('s', $dual);
+    $chk->execute();
+    $chk->store_result();
+    $dualExists = $chk->num_rows > 0;
+    $chk->close();
+
+    if ($dualExists) {
+        $jar = (string)tempnam(sys_get_temp_dir(), 'pv_dual_');
+        $http("{$base}/students/index.php?dev=1&dev_as={$dual}", $jar); // impersonate
+
+        // Gate still holds without the override.
+        $noOverride = $http("{$base}/students/short_course_portal.php", $jar);
+        $assert(
+            in_array($noOverride['code'], [302, 303], true) && !str_contains($noOverride['location'], 'short_course_portal'),
+            'http.dual_gate_holds_without_override',
+            $noOverride['location']
+        );
+
+        // Long-portal navbar exposes the switcher link.
+        $longHome = $http("{$base}/students/index.php", $jar);
+        $assert(str_contains($longHome['body'], 'portal_view.php?view=short_course'), 'http.dual_long_nav_has_switcher');
+
+        // Switch into the short-course portal.
+        $switch = $http("{$base}/students/portal_view.php?view=short_course", $jar);
+        $assert(
+            in_array($switch['code'], [302, 303], true) && str_contains($switch['location'], 'short_course_portal.php'),
+            'http.dual_switch_redirects_short_portal',
+            $switch['location']
+        );
+        $scPortal = $http("{$base}/students/short_course_portal.php", $jar);
+        $assert($scPortal['code'] === 200, 'http.dual_short_portal_200', (string)$scPortal['code']);
+        $assert(str_contains($scPortal['body'], 'Short Course Dashboard'), 'http.dual_short_dashboard_rendered');
+        $assert(str_contains($scPortal['body'], 'portal_view.php?view=academic'), 'http.dual_short_nav_has_back_link');
+
+        // Switch back to the academic portal.
+        $back = $http("{$base}/students/portal_view.php?view=academic", $jar);
+        $assert(
+            in_array($back['code'], [302, 303], true) && str_contains($back['location'], '/students/index.php'),
+            'http.dual_switch_back_redirects_index',
+            $back['location']
+        );
+        $gatedAgain = $http("{$base}/students/short_course_portal.php", $jar);
+        $assert(
+            in_array($gatedAgain['code'], [302, 303], true) && !str_contains($gatedAgain['location'], 'short_course_portal'),
+            'http.dual_gate_restored_after_switch_back',
+            $gatedAgain['location']
+        );
+        @unlink($jar);
+    }
+
+    // Short-only student: override is never granted; portal stays short-course.
+    $shortOnly = 'SCONLYTEST01';
+    $chk = $db->prepare('SELECT 1 FROM students WHERE SID = ?');
+    $chk->bind_param('s', $shortOnly);
+    $chk->execute();
+    $chk->store_result();
+    $shortExists = $chk->num_rows > 0;
+    $chk->close();
+
+    if ($shortExists) {
+        $jar = (string)tempnam(sys_get_temp_dir(), 'pv_short_');
+        $http("{$base}/students/index.php?dev=1&dev_as={$shortOnly}", $jar);
+        $attempt = $http("{$base}/students/portal_view.php?view=short_course", $jar);
+        $assert(
+            in_array($attempt['code'], [302, 303], true) && str_contains($attempt['location'], '/students/index.php'),
+            'http.short_only_no_override_granted',
+            $attempt['location']
+        );
+        $home = $http("{$base}/students/short_course_portal.php", $jar);
+        $assert($home['code'] === 200, 'http.short_only_portal_200', (string)$home['code']);
+        $assert(!str_contains($home['body'], 'Back to Academic Portal'), 'http.short_only_no_back_link');
+        @unlink($jar);
+    }
+}
+
+// ── CA report course list: dropped courses must not leak via the marks merge ──
+
+$caSrc = (string)file_get_contents($root . '/students/continuousAssessment.php');
+$assert(str_contains($caSrc, 'droppedCodes'), 'struct.ca_merge_excludes_dropped');
+
+if (function_exists('curl_init')) {
+    // Dual student: CA list = 8 enrolled DCSE courses, dropped COM101/DCSE-102 hidden.
+    if ($dualExists) {
+        $jar = (string)tempnam(sys_get_temp_dir(), 'ca_dual_');
+        $http("{$base}/students/index.php?dev=1&dev_as=CSE26456789", $jar);
+        $caPage = $http("{$base}/students/continuousAssessment.php", $jar);
+        $assert($caPage['code'] === 200, 'http.ca_dual_200', (string)$caPage['code']);
+        preg_match_all('/ca-cell-code[^>]*>\s*([^<]+?)\s*<\/td>/', $caPage['body'], $codeMatches);
+        $listed = array_map('trim', $codeMatches[1] ?? []);
+        sort($listed);
+        $assert(
+            $listed === ['DCSE-101', 'DCSE-103', 'DCSE-104', 'DCSE-105', 'DCSE-106', 'DCSE-107', 'DCSE-108', 'DCSE-109'],
+            'http.ca_dual_lists_enrolled_only',
+            implode(',', $listed)
+        );
+        @unlink($jar);
+    }
+
+    // Long-only student: all 7 registered CCAM courses listed (unchanged).
+    $cvm = 'CVM26567121';
+    $chk = $db->prepare('SELECT 1 FROM students WHERE SID = ?');
+    $chk->bind_param('s', $cvm);
+    $chk->execute();
+    $chk->store_result();
+    $cvmExists = $chk->num_rows > 0;
+    $chk->close();
+    if ($cvmExists) {
+        $jar = (string)tempnam(sys_get_temp_dir(), 'ca_cvm_');
+        $http("{$base}/students/index.php?dev=1&dev_as={$cvm}", $jar);
+        $caPage = $http("{$base}/students/continuousAssessment.php", $jar);
+        preg_match_all('/ca-cell-code[^>]*>\s*([^<]+?)\s*<\/td>/', $caPage['body'], $codeMatches);
+        $listed = array_map('trim', $codeMatches[1] ?? []);
+        sort($listed);
+        $assert(
+            $listed === ['CCAM-101', 'CCAM-102', 'CCAM-103', 'CCAM-104', 'CCAM-105', 'CCAM-106', 'CCAM-107'],
+            'http.ca_cvm_lists_all_registered',
+            implode(',', $listed)
+        );
+        @unlink($jar);
+    }
+
+    // Short-only student: short-course report unaffected (PRN1130 still listed).
+    if ($shortExists) {
+        $jar = (string)tempnam(sys_get_temp_dir(), 'ca_short_');
+        $http("{$base}/students/index.php?dev=1&dev_as=SCONLYTEST01", $jar);
+        $caPage = $http("{$base}/students/continuousAssessment.php", $jar);
+        $assert(
+            str_contains($caPage['body'], 'Short Course Continuous Assessment') && str_contains($caPage['body'], 'PRN1130'),
+            'http.ca_short_only_report_unchanged'
+        );
+        @unlink($jar);
+    }
+}
+
 echo "\n=== SUMMARY ===\n";
 if ($failures > 0) {
     echo "RESULT=FAIL failures=$failures\n";

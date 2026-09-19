@@ -155,6 +155,28 @@ function getStudentBalanceStatement(mysqli $db, string $studentId): array
  */
 function getTotalFees(mysqli $db, string $studentId): ?float
 {
+    // Check student_fee_accounts table first (canonical fees ledger)
+    if (paymentRecordsTableExists($db, 'student_fee_accounts')) {
+        try {
+            $stmt = $db->prepare("SELECT total_payable FROM student_fee_accounts WHERE student_id = ? AND status = 'active' ORDER BY id DESC LIMIT 1");
+            if ($stmt) {
+                $stmt->bind_param('s', $studentId);
+                $stmt->execute();
+                $res = $stmt->get_result();
+                if ($row = $res->fetch_assoc()) {
+                    $stmt->close();
+                    if ($row['total_payable'] !== null) {
+                        return (float)$row['total_payable'];
+                    }
+                } else {
+                    $stmt->close();
+                }
+            }
+        } catch (Throwable $e) {
+            // Fall through to other sources
+        }
+    }
+
     // Try fees table with common column variations
     $feeQueries = [
         "SELECT TotalFees FROM fees WHERE StudentID = ? LIMIT 1",
@@ -427,7 +449,7 @@ if ($currentAction === 'statement') {
                 </div>
                 <div class="card-body">
                     <div class="text-center mb-3 d-print-none">
-                        <h4 class="mb-1"><strong>Woodlands University</strong></h4>
+                        <h4 class="mb-1"><strong>Industrial Training Centre</strong></h4>
                         <img src="images/LOGO2.jpeg" alt="ITC Logo" style="height:72px;width:auto;max-width:100%">
                         <div class="text-muted small mt-1">Generated on <?= date('Y-m-d H:i') ?></div>
                     </div>
@@ -581,7 +603,7 @@ if ($currentAction === 'statement') {
                 </div>
                 <div class="card-body">
                     <div class="text-center mb-3">
-                        <h4><strong>Woodlands University</strong></h4>
+                        <h4><strong>Industrial Training Centre</strong></h4>
                         <img src="images/LOGO2.jpeg" alt="ITC Logo" style="height:72px;width:auto;max-width:100%">
                     </div>
                     <?php if (!empty($records)): ?>

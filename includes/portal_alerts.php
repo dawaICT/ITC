@@ -238,7 +238,7 @@ if (!function_exists('wuc_portal_alert_create')) {
                 $sql = "SELECT COUNT(*) AS total FROM portal_alerts
                         WHERE user_id = ? AND alert_type = ?
                           AND COALESCE(entity_id, '') = COALESCE(?, '')
-                          AND status IN ('unread', 'read')
+                          AND status IN ('unread', 'read', 'dismissed')
                           AND (expires_at IS NULL OR expires_at > NOW())
                           AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)";
                 if ($stmt = $db->prepare($sql)) {
@@ -279,7 +279,7 @@ if (!function_exists('wuc_portal_alert_upsert_current')) {
      * Required keys: user_id, user_role, alert_type, title, message.
      * Optional: severity, entity_type, entity_id, action_url.
      */
-    function wuc_portal_alert_upsert_current(mysqli $db, array $alert): bool
+        function wuc_portal_alert_upsert_current(mysqli $db, array $alert): bool
     {
         if (!wuc_portal_alerts_ready($db)) {
             return false;
@@ -308,10 +308,13 @@ if (!function_exists('wuc_portal_alert_upsert_current')) {
 
         try {
             $existingId = 0;
-            $sql = "SELECT id FROM portal_alerts
+            $existingStatus = '';
+            $contentChanged = true;
+            $sql = "SELECT id, status, severity, title, message, action_url
+                    FROM portal_alerts
                     WHERE user_id = ? AND alert_type = ?
                       AND COALESCE(entity_id, '') = COALESCE(?, '')
-                      AND status IN ('unread', 'read')
+                      AND status IN ('unread', 'read', 'dismissed')
                       AND (expires_at IS NULL OR expires_at > NOW())
                     ORDER BY id DESC
                     LIMIT 1";
@@ -320,21 +323,30 @@ if (!function_exists('wuc_portal_alert_upsert_current')) {
                 $stmt->execute();
                 $row = $stmt->get_result()->fetch_assoc() ?: [];
                 $existingId = (int)($row['id'] ?? 0);
+                $existingStatus = (string)($row['status'] ?? '');
+                $contentChanged =
+                    (string)($row['severity'] ?? '') !== $severity
+                    || (string)($row['title'] ?? '') !== $title
+                    || (string)($row['message'] ?? '') !== $message
+                    || (string)($row['action_url'] ?? '') !== (string)$actionUrl;
                 $stmt->close();
             }
 
             if ($existingId > 0) {
+                $nextStatus = $existingStatus;
+                if ($existingStatus === 'dismissed' && $contentChanged) {
+                    $nextStatus = 'unread';
+                }
                 $stmt = $db->prepare(
                     "UPDATE portal_alerts
-                     SET user_role = ?, source_portal = ?, target_portal = ?, severity = ?, title = ?, message = ?, entity_type = ?, action_url = ?, target_page = ?, expires_at = ?,
-                         status = IF(status = 'dismissed', 'unread', status)
+                     SET user_role = ?, source_portal = ?, target_portal = ?, severity = ?, title = ?, message = ?, entity_type = ?, action_url = ?, target_page = ?, expires_at = ?, status = ?
                      WHERE id = ? AND user_id = ?"
                 );
                 if (!$stmt) {
                     return false;
                 }
-                $updateTypes = str_repeat('s', 10) . 'is';
-                $stmt->bind_param($updateTypes, $userRole, $sourcePortal, $targetPortal, $severity, $title, $message, $entityType, $actionUrl, $targetPage, $expiresAt, $existingId, $userId);
+                $updateTypes = str_repeat('s', 11) . 'is';
+                $stmt->bind_param($updateTypes, $userRole, $sourcePortal, $targetPortal, $severity, $title, $message, $entityType, $actionUrl, $targetPage, $expiresAt, $nextStatus, $existingId, $userId);
                 $ok = $stmt->execute();
                 $stmt->close();
                 return $ok;

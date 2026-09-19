@@ -22,6 +22,7 @@ require_once __DIR__ . '/../includes/role_helpers.php'; // hasAnyRole(), require
 require_once __DIR__ . '/../includes/audit.php';        // audit_log_current_user()
 require_once __DIR__ . '/../includes/helpers/academic_structure_helpers.php';
 require_once __DIR__ . '/../includes/cse_progression.php';
+require_once __DIR__ . '/../includes/short_course_student.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -116,6 +117,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($stageError = wuc_cse_direct_assignment_error($newProgramId)) {
         $_SESSION['flash'] = ['type' => 'warning', 'message' => $stageError];
+        header('Location: ' . SELF_URL);
+        exit;
+    }
+
+    // Short courses belong to the short-course portal, never student_program.
+    if (function_exists('sc_program_is_short_course') && sc_program_is_short_course($db, $newProgramId)) {
+        $_SESSION['flash'] = [
+            'type'    => 'danger',
+            'message' => '"' . htmlspecialchars($newProgramId, ENT_QUOTES, 'UTF-8') . '" is a short course and cannot be assigned as a long-term programme. Enrol the student via the Short Course portal instead.',
+        ];
         header('Location: ' . SELF_URL);
         exit;
     }
@@ -238,12 +249,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // ── GET: load programs list for dropdown ─────────────────────────────────────
+// Long-term programmes only — short courses are enrolled via the short-course
+// portal and must never appear as assignment targets for student_program.
+$longOnlyPred = function_exists('sc_sql_programs_long_only_predicate')
+    ? sc_sql_programs_long_only_predicate($db, 'programs')
+    : 'COALESCE(is_short_course, 0) = 0';
 $programs = [];
 $programsResult = $db->query(
     "SELECT program_code, program_name
        FROM programs
       WHERE COALESCE(is_active, 1) = 1
         AND program_code NOT IN ('CSE', 'ICT-002')
+        AND ({$longOnlyPred})
       ORDER BY program_name ASC"
 );
 if ($programsResult) {

@@ -180,24 +180,31 @@ if (!function_exists('wuc_student_program_portal_profile')) {
             $portalMode = sc_student_portal_mode($db, $sid);
             if ($portalMode === 'short_course') {
                 $type = 'short_course';
-                // Populate program code/name from short course enrolments or short program row if empty
-                if ($programCode === '' || $programName === '') {
-                    $scEnrolments = sc_student_enrolments($db, $sid);
-                    if ($scEnrolments !== []) {
-                        $firstSc = $scEnrolments[0];
-                        $programCode = (string)($firstSc['course_code'] ?? '');
+                // Populate program code/name from short course enrolments
+                $scEnrolments = sc_student_enrolments($db, $sid);
+                if ($scEnrolments !== []) {
+                    $firstSc = $scEnrolments[0];
+                    $programCode = (string)($firstSc['course_code'] ?? '');
+                    if (count($scEnrolments) === 1) {
                         $programName = (string)($firstSc['course_name'] ?? 'Short Course Programme');
-                    } elseif (sc_table_exists($db, 'student_program') && sc_table_exists($db, 'programs')) {
-                        $scProgStmt = @$db->prepare("SELECT sp.program_code, p.program_name FROM student_program sp JOIN programs p ON p.program_code = sp.program_code WHERE sp.Sid = ? LIMIT 1");
-                        if ($scProgStmt) {
-                            $scProgStmt->bind_param('s', $sid);
-                            $scProgStmt->execute();
-                            if ($scProgRow = $scProgStmt->get_result()->fetch_assoc()) {
-                                $programCode = trim((string)($scProgRow['program_code'] ?? ''));
-                                $programName = trim((string)($scProgRow['program_name'] ?? ''));
+                    } else {
+                        $names = array_filter(array_map(static fn($e): string => (string)($e['course_name'] ?? ''), $scEnrolments));
+                        $programName = $names ? implode(', ', $names) : 'Short Course Programme';
+                    }
+                } elseif (sc_table_exists($db, 'students')) {
+                    $scProgStmt = @$db->prepare("SELECT program FROM students WHERE SID = ? LIMIT 1");
+                    if ($scProgStmt) {
+                        $scProgStmt->bind_param('s', $sid);
+                        $scProgStmt->execute();
+                        if ($scProgRow = $scProgStmt->get_result()->fetch_assoc()) {
+                            $rawCode = trim((string)($scProgRow['program'] ?? ''));
+                            if ($rawCode !== '' && sc_program_is_short_course($db, $rawCode)) {
+                                $meta = sc_resolve_course_meta($db, $rawCode);
+                                $programCode = $rawCode;
+                                $programName = $meta['name'];
                             }
-                            $scProgStmt->close();
                         }
+                        $scProgStmt->close();
                     }
                 }
             }

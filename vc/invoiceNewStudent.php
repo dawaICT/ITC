@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 include "includes/admin.php";
 $erros = array();
@@ -97,31 +97,36 @@ if(!empty($_POST)){
                   <?php
                   if(isset($_POST['search'])){
                   $Sid = $_POST['Sid'];
-                   if($results = $db->query("SELECT * FROM student_program INNER JOIN students
+                   if($stmt = $db->prepare("SELECT * FROM student_program INNER JOIN students
                    ON student_program.Sid =  students.SID
-                   WHERE student_program.Sid = '$Sid'")) {
-                      if($count = $results->num_rows) {
+                   WHERE student_program.Sid = ?")) {
+                      $stmt->bind_param("s", $Sid);
+                      $stmt->execute();
+                      if($results = $stmt->get_result()) {
+                        if($count = $results->num_rows) {
 
-                        while($row = $results->fetch_object()){
+                          while($row = $results->fetch_object()){
 
-                            $records[] = $row;
+                              $records[] = $row;
+                            }
+
+                              $results->free();
+                            }
+                            else {
+                          echo "<script>alert('Invalid student ID! Please register and admit student to continue.')</script>";
+                          echo"<script>window.open('invoiceNewStudent.php','_self')</script>";
+
                           }
+                      }
+                      $stmt->close();
+                    }
+                  } 
+                  else {
 
-                            $results->free();
-                          }
-                          else {
-                        echo "<script>alert('Invalid student ID! Please register and admit student to continue.')</script>";
-                        echo"<script>window.open('invoiceNewStudent.php','_self')</script>";
+                    die();
+                  }
 
-                        }
-                          }
-                        } 
-                        else {
-
-                          die();
-                        }
-
-                        ?>
+                  ?>
 
                       <?php
                       foreach($records as $r) {

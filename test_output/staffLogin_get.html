@@ -1,0 +1,119 @@
+
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html><head>  
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>Rockview University</title>  
+ <link rel="stylesheet" type="text/css" href="stylesheets/public.css" media="screen">
+ <link rel="stylesheet" type="text/css" media="print" href="stylesheets/print.css">  
+<link rel="stylesheet" type="text/css" href="stylesheets/Global.css" media="screen">
+   <!-- <link rel="stylesheet" type="text/css" media="print" href="stylesheets/print.css">  --> 
+<script type="text/javascript" src="Scripts/slideshow.js"></script>
+
+<script type="text/javascript">
+function validateForm1()
+{
+var x=document.forms["form1"]["name"].value
+if (x==null || x=="")
+  {
+  alert("The name must be filled out");
+  return false;
+  }
+var x=document.forms["form1"]["email"].value
+var atpos=x.indexOf("@");
+var dotpos=x.lastIndexOf(".");
+if (atpos<1 || dotpos<atpos+2 || dotpos+2>=x.length)
+  {
+  alert("Not a valid e-mail address or empty fields");
+  return false;
+  }
+var x=document.forms["form1"]["subject"].value
+if (x==null || x=="")
+  {
+  alert("Subject must be filled out");
+  return false;
+  }
+var x=document.forms["form1"]["message"].value
+if (x==null || x=="")
+  {
+  alert("Message must be filled out");
+  return false;
+  }
+}
+</script>
+</head>
+<body onload="startBanner(1)">
+<script>
+function printFunction()
+{
+window.print();
+}
+</script>
+					
+	<a href='staffLogin.php'>Staff Portal</a><div id="topBand">
+<h3>My Rockview</h3></div>
+<div id="pageHolder">
+<div id="page">
+
+<div class="row-fluid second-row">
+		<!-- <div class="second-row-div"> -->
+		<nav><ul>
+		
+					<li><a href='index.php'>Home</a></li>
+					<li><a href='studentLogin.php'>My Rockview</a></li>		
+			</ul></nav>
+	
+	</div><div id="contents"><h>Staff LogIn</h><br>
+
+<form method="post" action="staffLogin.php" name="loginForm1" id="LogInForm" onSubmit="return validateForm1();">
+<table style="width:100%">
+<tbody>
+<tr>
+<td>
+</td>
+<td><br>
+</td>
+</tr>
+<tr>
+<td style="text-align: right; width:40%">Staff ID:</td>
+<td><input name="StaffNumber" type="text" id="StaffNumber">
+</td>
+</tr>
+<tr>
+<td style="text-align: right;">Password:</td>
+<td><input name="Password" type="password" id="password">
+</td>
+</tr>
+<tr>
+<td><br>
+</td>
+<td><input name="StaffLogin" value="LogIn" type="submit">
+</td>
+
+</tr>
+<tr>
+<td><br>
+</td>
+<td><br>
+</td>
+</tr>
+</tbody>
+</table>
+</form>
+
+</div>
+</div>
+</div>
+
+</div></div>
+<div id="footer">
+Rockview University<br>P.O. Box 31108, Lusaka-Zambia<br>Off Mungule Road, 10 Miles. Lusaka<br>Street<br>+260 967 967 961<br>apply@rockview.ac.zm<br>http://www.rockview.ac.zm<br>
+
+<br><br><br>
+System developed by:<br>
+Zeducation Limited<br>
+Email : <a href="mailto:emmanuel@zeducation.ac.zm">emmanuel@zeducation.ac.zm</a><br>
+Cell : +260 966 151 673 / +260 955 151 673<br>
+</div>
+
+</body></html>

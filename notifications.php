@@ -234,7 +234,7 @@ if ($isStudentViewer) {
     require __DIR__ . '/includes/notifications_page_styles.php';
 }
 ?>
-<main class="notification-shell portal-dashboard<?= $isStudentViewer ? ' content-wrapper' : '' ?>">
+<main class="<?= $isStudentViewer ? 'dash-content content-wrapper portal-dashboard pt-3' : 'notification-shell portal-dashboard' ?>">
     <section class="notification-hero mb-3">
         <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
             <div>

@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/includes/admin.php';
 require_once __DIR__ . '/../includes/applicant_admission.php';
+require_once __DIR__ . '/../includes/short_course_student.php';
 
 if (!empty($_POST) && isset($_POST['Sid'], $_POST['program_code'], $_POST['intake'], $_POST['mode'], $_POST['startYear'])) {
     $Sid = trim((string)$_POST['Sid']);
@@ -8,6 +9,16 @@ if (!empty($_POST) && isset($_POST['Sid'], $_POST['program_code'], $_POST['intak
     $intake = trim((string)$_POST['intake']);
     $mode = trim((string)$_POST['mode']);
     $entryYear = (int)substr(trim((string)$_POST['startYear']), 0, 4) ?: (int)date('Y');
+
+    // Short courses belong to the short-course portal (short_course_enrollments),
+    // never to student_program. Belt-and-braces early exit before the shared
+    // enrolment helper's own guard.
+    if (function_exists('sc_program_is_short_course') && sc_program_is_short_course($db, $programCode)) {
+        $shortMsg = '"' . $programCode . '" is a short course and cannot be assigned as a long-term programme. '
+            . 'Enrol the student via the Short Course portal instead.';
+        echo '<script>alert(' . json_encode($shortMsg) . ");window.location.href='admitStudent.php';</script>";
+        exit;
+    }
 
     $result = admissionsEnrollExistingStudent($db, $Sid, $programCode, $intake, $mode, $entryYear);
     $dest = $result['success'] ? 'students_by_admin.php' : 'admitStudent.php';
@@ -21,8 +32,13 @@ if ($res = $db->query('SELECT SID, Fname, Lname FROM students ORDER BY dte_adm D
     $res->free();
 }
 
+// Long-term programmes only — short courses are enrolled via the short-course
+// portal, never assigned here into student_program.
+$longOnlyPred = function_exists('sc_sql_programs_long_only_predicate')
+    ? sc_sql_programs_long_only_predicate($db, 'p')
+    : 'COALESCE(p.is_short_course, 0) = 0';
 $programs = [];
-if ($res = $db->query("SELECT program_code, program_name FROM programs WHERE COALESCE(is_active, 1) = 1 ORDER BY program_name")) {
+if ($res = $db->query("SELECT p.program_code, p.program_name FROM programs p WHERE COALESCE(p.is_active, 1) = 1 AND ({$longOnlyPred}) ORDER BY p.program_name")) {
     while ($row = $res->fetch_object()) {
         $programs[] = $row;
     }

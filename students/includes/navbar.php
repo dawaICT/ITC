@@ -123,6 +123,22 @@ if ($navStudentId !== '' && isset($db) && $db instanceof mysqli) {
         $_SESSION['nav_flags']['hasShortCourses'] = $navHasShortCourses;
     }
 
+    // Session-scoped short-course portal view (dual-enrolled students who
+    // switched via portal_view.php): force short-course nav mode regardless of
+    // the cached flags, and send the Dashboard link to the short-course home.
+    $navPortalViewShort = (($_SESSION['student_portal_view'] ?? '') === 'short_course')
+        && function_exists('sc_student_has_long_program')
+        && sc_student_has_long_program($db, $navStudentId)
+        && function_exists('sc_student_enrolments')
+        && sc_student_enrolments($db, $navStudentId) !== [];
+    if ($navPortalViewShort) {
+        $navIsShortCourse = true;
+        $navHasShortCourses = false;
+        $navAcademicSectionTitle = 'Short courses';
+        $studentDashboardHref = '/wucportal/students/short_course_portal.php';
+        $studentDashboardLabel = 'Short Course Dashboard';
+    }
+
     if (function_exists('cg_student_has_access')) {
         $navHasCityGuilds = cg_student_has_access($db, $navStudentId);
         $_SESSION['nav_flags']['hasCityGuilds'] = $navHasCityGuilds;
@@ -278,7 +294,7 @@ try {
             <?php if ($navIsShortCourse): ?>
             <?php // Short-course portal — do not expose long-term term registration / annual CA. ?>
             <a href="/wucportal/students/short_courses.php" class="nav-item <?php echo student_nav_active('short_courses.php', $navScript, $navPath); ?>"><i class="fas fa-certificate"></i><span>My Short Courses</span></a>
-            <a href="/wucportal/students/registration.php" class="nav-item <?php echo student_nav_active('registration.php', $navScript, $navPath); ?>"><i class="fas fa-id-card"></i><span>Enrolment status</span></a>
+            <a href="/wucportal/students/registration.php" class="nav-item <?php echo student_nav_active('registration.php', $navScript, $navPath); ?>"><i class="fas fa-id-card"></i><span>Enrolment Status</span></a>
             <a href="/wucportal/students/continuousAssessment.php" class="nav-item <?php echo student_nav_active('continuousAssessment.php', $navScript, $navPath); ?>"><i class="fas fa-chart-line"></i><span>Short Course CA</span></a>
             <?php else: ?>
             <?php // Long-term academic portal. ?>
@@ -289,9 +305,6 @@ try {
             <a href="/wucportal/students/myCourses.php" class="nav-item <?php echo student_nav_active('myCourses.php', $navScript, $navPath); ?>"><i class="fas fa-book-open"></i><span>My Courses</span></a>
             <a href="/wucportal/students/continuousAssessment.php" class="nav-item <?php echo student_nav_active('continuousAssessment.php', $navScript, $navPath); ?>"><i class="fas fa-chart-line"></i><span>Continuous Assessment</span></a>
             <a href="/wucportal/students/examTranscript.php" class="nav-item <?php echo student_nav_active('examTranscript.php', $navScript, $navPath); ?>"><i class="fas fa-file-alt"></i><span><?php echo htmlspecialchars($navReportLabel, ENT_QUOTES, 'UTF-8'); ?></span></a>
-            <?php if ($navHasShortCourses): ?>
-            <a href="/wucportal/students/short_courses.php" class="nav-item <?php echo student_nav_active('short_courses.php', $navScript, $navPath); ?>"><i class="fas fa-certificate"></i><span>Short Courses</span></a>
-            <?php endif; ?>
             <a href="/wucportal/students/timetable.php" class="nav-item <?php echo student_nav_active('timetable.php', $navScript, $navPath); ?>"><i class="fas fa-calendar-alt"></i><span>My Timetable</span></a>
             <?php
             $navShowTestTimetable = false;
@@ -345,15 +358,26 @@ try {
         </div>
         <?php endif; ?>
 
-        <?php if ($studentInElearningPortal): ?>
-        <div class="nav-section">
+        <?php
+        $hasDualShortSwitch = ($navHasShortCourses && !$navIsShortCourse);
+        $hasDualAcademicSwitch = ($navIsShortCourse && (!empty($navPortalViewShort) || (function_exists('sc_student_has_long_program') && sc_student_has_long_program($db, $navStudentId))));
+        $hasElearningSwitch = $studentInElearningPortal || $navHasElearning;
+        $showPortalSwitchSection = $hasDualShortSwitch || $hasDualAcademicSwitch || $hasElearningSwitch;
+        ?>
+        <?php if ($showPortalSwitchSection): ?>
+        <div class="nav-section nav-section-switchers">
             <div class="nav-section-title">Portal Switch</div>
+            <?php if ($hasDualShortSwitch): ?>
+            <a href="/wucportal/students/portal_view.php?view=short_course" class="nav-item"><i class="fas fa-arrow-right-arrow-left"></i><span>Short Course Portal</span></a>
+            <?php endif; ?>
+            <?php if ($hasDualAcademicSwitch): ?>
+            <a href="/wucportal/students/portal_view.php?view=academic" class="nav-item"><i class="fas fa-building-columns"></i><span>Academic Portal</span></a>
+            <?php endif; ?>
+            <?php if ($studentInElearningPortal): ?>
             <a href="<?php echo htmlspecialchars(wuc_portal_switch_url('academic', 'student'), ENT_QUOTES, 'UTF-8'); ?>" class="nav-item"><i class="fas fa-university"></i><span>Academic Portal</span></a>
-        </div>
-        <?php elseif ($navHasElearning): ?>
-        <div class="nav-section nav-section-elearning">
-            <div class="nav-section-title">Portal Switch</div>
+            <?php elseif ($navHasElearning): ?>
             <a href="<?php echo htmlspecialchars(wuc_portal_switch_url('elearning', 'student'), ENT_QUOTES, 'UTF-8'); ?>" class="nav-item"><i class="fas fa-laptop"></i><span>Go to eLearning</span></a>
+            <?php endif; ?>
         </div>
         <?php endif; ?>
     </div>

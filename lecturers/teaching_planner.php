@@ -114,3 +114,4 @@ $lessonTemplates = $plan ? $service->activeTemplates('lesson_plan') : [];
   <script>document.querySelectorAll('#generationForm label').forEach((label,index)=>{const control=label.parentElement?.querySelector('select,input,textarea');if(!control)return;if(!control.id)control.id='tp-generation-'+index;label.htmlFor=control.id;});</script>
  <?php endif; ?>
 </div>
+<?php require_once __DIR__ . '/includes/footer.php'; ?>

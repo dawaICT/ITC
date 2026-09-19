@@ -1577,8 +1577,10 @@ function ca_save_component(mysqli $db, string $sid, string $courseCode, string $
             $stmt->execute();
             $res = $stmt->get_result();
             if ($row = $res->fetch_assoc()) {
-                if (in_array(strtolower(trim((string)$row['status'])), ['approved','published'], true)) {
-                    throw new DomainException('Approved or published CA marks are locked. Return the result for correction before editing.');
+                // Auto-published rows remain editable by staff; only externally
+                // approved (signed-off) results are immutable.
+                if (strtolower(trim((string)$row['status'])) === 'approved') {
+                    throw new DomainException('Approved CA marks are locked. Return the result for correction before editing.');
                 }
                 foreach ($components as $key => $_) {
                     $components[$key] = $row[$key] === null ? null : (float)$row[$key];
@@ -1599,9 +1601,10 @@ function ca_save_component(mysqli $db, string $sid, string $courseCode, string $
         if (!$annualCheck['ok']) {
             throw new DomainException($annualCheck['message']);
         }
-        // Workflow: new/draft-like rows become Submitted. Never demote Approved
-        // or Published (or other advanced statuses) on lecturer re-save.
-        $entryStatus = 'Submitted';
+        // Auto-publish: marks become Published immediately on save so students
+        // see them as soon as a lecturer enters them. Never demote Approved
+        // (or other advanced statuses) on lecturer re-save.
+        $entryStatus = 'Published';
         $statusSql = ca_assessment_status_on_save_sql();
 
         if ($exists) {
@@ -1687,8 +1690,10 @@ function ca_save_components(mysqli $db, string $sid, string $courseCode, string 
             $stmt->execute();
             $row = $stmt->get_result()->fetch_assoc();
             if ($row) {
-                if (in_array(strtolower(trim((string)$row['status'])), ['approved','published'], true)) {
-                    throw new DomainException('Approved or published CA marks are locked. Return the result for correction before editing.');
+                // Auto-published rows remain editable by staff; only externally
+                // approved (signed-off) results are immutable.
+                if (strtolower(trim((string)$row['status'])) === 'approved') {
+                    throw new DomainException('Approved CA marks are locked. Return the result for correction before editing.');
                 }
                 foreach ($components as $key => $_) {
                     $components[$key] = $row[$key] === null ? null : (float)$row[$key];
@@ -1715,7 +1720,10 @@ function ca_save_components(mysqli $db, string $sid, string $courseCode, string 
             throw new DomainException($annualCheck['message']);
         }
 
-        $entryStatus = 'Submitted';
+        // Auto-publish: marks become Published immediately on save so students
+        // see them as soon as a lecturer enters them. Never demote Approved
+        // (or other advanced statuses) on lecturer re-save.
+        $entryStatus = 'Published';
         $statusSql = ca_assessment_status_on_save_sql();
         if ($exists) {
             $stmt = $db->prepare("UPDATE semester_assessment SET A1=?, A2=?, A3=?, T1=?, T2=?, Exam=?, Total_CA=?, program_type=?, posted_by=?, status={$statusSql} WHERE Sid=? AND Course_Code=? AND semester=? AND Year=?");
@@ -1755,9 +1763,9 @@ function ca_save_components(mysqli $db, string $sid, string $courseCode, string 
 }
 
 /**
- * SQL expression for status on UPDATE (expects one bound string param = 'Submitted').
+ * SQL expression for status on UPDATE (expects one bound string param = 'Published').
  * Preserves Approved/Published (and any other non-draft status); only promotes
- * blank/Pending/Draft/Rejected/Submitted → Submitted.
+ * blank/Pending/Draft/Rejected/Submitted → Published.
  */
 function ca_assessment_status_on_save_sql(): string
 {

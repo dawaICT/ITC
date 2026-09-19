@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 include "includes/admin.php";
 $erros = array();
@@ -82,9 +82,12 @@ if(!empty($_POST)){
                   <?php
                   if(isset($_POST['search'])){
                   $Sid = $_POST['Sid'];
-                   if($results = $db->query("SELECT * FROM students INNER JOIN student_payments
+                   if($stmt = $db->prepare("SELECT * FROM students INNER JOIN student_payments
                    ON students.SID = student_payments.Sid
-                   WHERE students.SID = '$Sid' AND student_payments.id = (SELECT MAX(id) FROM student_payments WHERE Sid = '$Sid')")) {
+                   WHERE students.SID = ? AND student_payments.payment_id = (SELECT MAX(payment_id) FROM student_payments WHERE Sid = ?)")) {
+                      $stmt->bind_param("ss", $Sid, $Sid);
+                      $stmt->execute();
+                      $results = $stmt->get_result();
                       if($count = $results->num_rows) {
 
                         while($row = $results->fetch_object()){
@@ -95,10 +98,11 @@ if(!empty($_POST)){
                             $results->free();
                           }
                           else {
-                        echo "<script>alert('Please select new stundent to invoice')</script>";
+                        echo "<script>alert('Please select new student to invoice')</script>";
                         echo"<script>window.open('invoiceStudent.php','_self')</script>";
 
                         }
+                        $stmt->close();
                           }
                         } 
                         else {
@@ -111,14 +115,14 @@ if(!empty($_POST)){
                       <?php
                       foreach($records as $r) {
                         ?>
-                          <div class="w3-container w3-blue"><p><strong><?php echo ($r->title); ?> <?php echo ($r->Fname); ?></strong> <strong><?php echo ($r->Lname); ?> -</strong> <strong><?php echo ($r->nrc_pass); ?></strong></p><br>
-                            <p><strong><u><?php echo ($r->program); ?></u></strong></p>
+                          <div class="w3-container w3-blue"><p><strong><?php echo htmlspecialchars((string)($r->title ?? ''), ENT_QUOTES, 'UTF-8'); ?> <?php echo htmlspecialchars((string)($r->Fname ?? ''), ENT_QUOTES, 'UTF-8'); ?></strong> <strong><?php echo htmlspecialchars((string)($r->Lname ?? ''), ENT_QUOTES, 'UTF-8'); ?> -</strong> <strong><?php echo htmlspecialchars((string)($r->nrc_pass ?? ''), ENT_QUOTES, 'UTF-8'); ?></strong></p><br>
+                            <p><strong><u><?php echo htmlspecialchars((string)($r->program ?? ''), ENT_QUOTES, 'UTF-8'); ?></u></strong></p>
                           </div>
                             <form action="invoiceStudent.php" method="post" class="form-horizontal w3-container" role="form">
                                   <div class="form-group">
                                     <lable for="Sid">Student ID*:</lable>
                                         <input type="text" class="form-control w3-input w3-border w3-sand" name="Sid" autofocus id="Sid" 
-                                        value="<?php echo ($r->SID); ?>" autocomplete="off" readonly>
+                                        value="<?php echo htmlspecialchars((string)($r->SID ?? ''), ENT_QUOTES, 'UTF-8'); ?>" autocomplete="off" readonly>
 
                                   </div>
 
@@ -127,7 +131,7 @@ if(!empty($_POST)){
                                         value="0.00">
                                   </div>
                                   <div class="form-group">
-                                        <input type="hidden" step="any" class="form-control w3-input w3-border w3-sand" name="balance" id="balance" value="<?php echo ($r->balance); ?>" >
+                                        <input type="hidden" step="any" class="form-control w3-input w3-border w3-sand" name="balance" id="balance" value="<?php echo htmlspecialchars((string)($r->balance ?? ''), ENT_QUOTES, 'UTF-8'); ?>" >
                                   </div>
                                   <div class="form-group">
                                   <lable for="invoice">Invoice Amount (ZMW)*:</lable>

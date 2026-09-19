@@ -106,7 +106,7 @@ if ($bootstrap_error === '') {
                                     'program' => $r['program_name'] ?? '',
                                     'mode' => $r['mode'] ?? $r['study_mode'] ?? '',
                                     'academic_year' => $r['academic_year'] ?? '',
-                                    'status' => $r['enrollment_status'] ?? $r['record_status'] ?? ''
+                                    'status' => $r['admission_status'] ?? $r['status'] ?? $r['enrollment_status'] ?? $r['record_status'] ?? ''
                                 ];
                             }
                             $context = [

@@ -144,6 +144,22 @@ else:
         $announcements[] = ['icon' => 'fas fa-check-double', 'color' => 'success', 'title' => 'Library Operations Normal', 'content' => 'No overdue items or unsettled fines. Catalog and circulation are up to date.', 'badge' => 'Normal', 'badge_color' => 'success', 'date' => 'Now'];
     }
 
+    $extra_dashboard_content = '
+      <div class="card shadow-sm border-0">
+        <div class="card-body d-flex flex-wrap align-items-center justify-content-between gap-3">
+          <div class="d-flex align-items-center gap-3">
+            <div class="rounded-3 p-3 bg-warning text-white d-flex align-items-center justify-content-center" style="width:50px;height:50px;"><i class="fas fa-book-open fa-lg"></i></div>
+            <div>
+              <h6 class="mb-1 fw-bold">Get Books &mdash; Z-Library</h6>
+              <p class="small text-muted mb-0">Free eBooks, textbooks and academic reading material for study and research.</p>
+            </div>
+          </div>
+          <a href="https://z-library.biz/" target="_blank" rel="noopener noreferrer" class="btn btn-warning rounded-pill px-4">
+            <i class="fas fa-external-link-alt me-1"></i> Open Z-Library
+          </a>
+        </div>
+      </div>';
+
     require_once dirname(__DIR__) . '/includes/dashboard_template.php';
 endif;
 

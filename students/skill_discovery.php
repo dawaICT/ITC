@@ -2,6 +2,8 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/includes/guard.php';
+require_once dirname(__DIR__) . '/db/connect.php';
+$studentId = (string)($_SESSION['Sid'] ?? $_SESSION['student_id'] ?? '');
 $skillDiscoveryFormAction = 'skill_discovery.php';
 $skillDiscoveryEyebrow = 'Student Services';
 require_once __DIR__ . '/includes/skill_discovery_run.php';

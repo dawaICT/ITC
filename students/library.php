@@ -27,6 +27,9 @@ require_once __DIR__ . '/../db/connect.php';
       <p class="page-subtitle mb-0 text-muted">Search library resources and manage your loans</p>
     </div>
     <div class="d-flex gap-2">
+      <a href="https://z-library.biz/" target="_blank" rel="noopener noreferrer" class="btn btn-warning btn-sm rounded-pill px-3" title="Get books from the Z-Library eBooks collection">
+        <i class="fas fa-book-open me-1"></i> Get Books
+      </a>
       <a href="digital_library.php" class="btn btn-outline-primary btn-sm rounded-pill px-3">
         <i class="fas fa-laptop me-1"></i>Digital Library
       </a>

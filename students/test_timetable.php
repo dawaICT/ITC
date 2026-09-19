@@ -52,6 +52,7 @@ require_once __DIR__ . '/includes/navbar.php';
 }
 </style>
 
+<main class="content-wrapper">
 <div class="container-fluid px-3 px-md-4 tt-stu-page">
     <div class="hero">
         <h1 class="h4 fw-bold mb-1"><i class="fas fa-calendar-check me-2 text-primary"></i><?= htmlspecialchars($page_title, ENT_QUOTES, 'UTF-8') ?></h1>
@@ -109,5 +110,6 @@ require_once __DIR__ . '/includes/navbar.php';
         </a>
     </div>
 </div>
+</main>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

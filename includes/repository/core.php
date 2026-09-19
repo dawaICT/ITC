@@ -281,7 +281,7 @@ function repo_fetch_material(mysqli $db, int $id): ?array
     }
     $stmt = $db->prepare("SELECT m.*, CONCAT(COALESCE(s.Fname,''),' ',COALESCE(s.Lname,'')) AS uploader_name
                             FROM repository_materials m
-                            LEFT JOIN staff s ON s.staff_id = m.uploader_staff_id
+                            LEFT JOIN staff s ON s.staff_id = m.uploader_staff_id COLLATE utf8mb4_unicode_ci
                            WHERE m.id = ? LIMIT 1");
     if (!$stmt) {
         return null;
@@ -504,7 +504,7 @@ function repo_accessible_materials(mysqli $db, array $filters = [], int $limit =
     $aiSelect = $hasAiMetadata ? 'ai.summary, ai.keywords' : 'NULL AS summary, NULL AS keywords';
     $aiJoin = $hasAiMetadata ? 'LEFT JOIN repository_ai_metadata ai ON ai.material_id = m.id' : '';
     $staffSelect = $hasStaff ? "CONCAT(COALESCE(s.Fname,''),' ',COALESCE(s.Lname,'')) AS uploader_name" : "m.uploader_staff_id AS uploader_name";
-    $staffJoin = $hasStaff ? 'LEFT JOIN staff s ON s.staff_id = m.uploader_staff_id' : '';
+    $staffJoin = $hasStaff ? 'LEFT JOIN staff s ON s.staff_id = m.uploader_staff_id COLLATE utf8mb4_unicode_ci' : '';
     $sql = "SELECT m.*, {$aiSelect}, {$staffSelect}
               FROM repository_materials m
               {$aiJoin}

@@ -9,14 +9,18 @@ require_once dirname(__DIR__) . '/includes/grading_helpers.php';
 require_once __DIR__ . '/includes/student_fee_records.php';
 require_once dirname(__DIR__) . '/includes/academic_risk_engine.php';
 
-$student_id = $_SESSION['Sid'];
+$student_id = (string)($_SESSION['Sid'] ?? '');
+if ($student_id === '') {
+    header('Location: /wucportal/studentLogin.php');
+    exit;
+}
 
 // Fetch student profile details
 $studentRec = null;
 $query_student = "SELECT s.SID, s.Fname, s.Lname, s.email, sp.program_code, p.program_name 
                   FROM students s
-                  INNER JOIN student_program sp ON s.SID = sp.Sid
-                  INNER JOIN programs p ON sp.program_code = p.program_code
+                  LEFT JOIN student_program sp ON s.SID = sp.Sid
+                  LEFT JOIN programs p ON sp.program_code = p.program_code
                   WHERE s.SID = ? LIMIT 1";
 $stmt = $db->prepare($query_student);
 if ($stmt) {
@@ -28,6 +32,20 @@ if ($stmt) {
 
 if (!$studentRec) {
     die("Student record not found.");
+}
+
+// Fallback program name for short course students without student_program row
+if (empty($studentRec->program_name)) {
+    if (function_exists('sc_student_enrolments')) {
+        $scs = sc_student_enrolments($db, $student_id);
+        if (!empty($scs)) {
+            $studentRec->program_code = $scs[0]['course_code'] ?? 'SHORT_COURSE';
+            $studentRec->program_name = $scs[0]['course_name'] ?? 'Short Course Programme';
+        }
+    }
+    if (empty($studentRec->program_name)) {
+        $studentRec->program_name = 'General Programme';
+    }
 }
 
 // Handle service requests POST

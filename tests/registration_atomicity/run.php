@@ -12,12 +12,24 @@ $fixtureCourse = 'ATM-' . substr($suffix, 0, 8);
 $fixtureYear = '2098';
 $sessionId = 'codexatomic' . strtolower(bin2hex(random_bytes(8)));
 
+if (is_dir('C:/xampp/tmp')) {
+    session_save_path('C:/xampp/tmp');
+}
 ini_set('session.use_cookies', '0');
 ini_set('session.cache_limiter', '');
 session_id($sessionId);
 session_start();
+$uRow = $db->query("SELECT user_id FROM users WHERE student_id = 'CSE26456789' OR username = 'CSE26456789' LIMIT 1")->fetch_assoc();
+$userId = (int)($uRow['user_id'] ?? 1);
+require_once dirname(__DIR__, 2) . '/includes/portal_access.php';
+wuc_grant_user_portal_access($db, $userId, ['academic', 'elearning'], 'test');
 $_SESSION['Sid'] = 'CSE26456789';
+$_SESSION['student_id'] = 'CSE26456789';
+$_SESSION['user_id'] = $userId;
+$_SESSION['id'] = $userId;
 $_SESSION['user_role'] = 'student';
+$_SESSION['role'] = 'student';
+$_SESSION['logged_in'] = true;
 $_SESSION['last_activity'] = time();
 $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 session_write_close();
@@ -137,8 +149,8 @@ try {
 
     $courseInsert = $db->prepare(
         "INSERT INTO course_registration
-            (Sid, course_code, semester, Year, academic_year, semester_registration_id, status, is_active)
-         VALUES (?, ?, 4, 9, ?, ?, 'registered', 1)"
+            (Sid, course_code, semester, Year, academic_year, semester_registration_id, is_active)
+         VALUES (?, ?, 4, 9, ?, ?, 1)"
     );
     $courseInsert->bind_param('sssi', $fixtureSid, $fixtureCourse, $fixtureYear, $semesterRegistrationId);
     $courseInsert->execute();
@@ -167,8 +179,8 @@ $duplicateBlocked = false;
 try {
     $db->begin_transaction();
     $stmt = $db->prepare(
-        "INSERT INTO course_registration (Sid, course_code, semester, Year, academic_year, status, is_active)
-         VALUES (?, ?, 1, 9, ?, 'registered', 1)"
+        "INSERT INTO course_registration (Sid, course_code, semester, Year, academic_year, is_active)
+         VALUES (?, ?, 1, 9, ?, 1)"
     );
     $stmt->bind_param('sss', $fixtureSid, $fixtureCourse, $fixtureYear);
     $stmt->execute();

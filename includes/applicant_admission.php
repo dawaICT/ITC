@@ -23,7 +23,30 @@
 require_once __DIR__ . '/student_id_generator.php';
 require_once __DIR__ . '/applicant_program_helpers.php';
 require_once __DIR__ . '/cse_progression.php';
+// Short-course catalogue separation: a short-flagged program must never be
+// written into student_program (long-term enrolment) — it lives exclusively
+// in short_courses + short_course_enrollments.
+require_once __DIR__ . '/short_course_student.php';
 require_once __DIR__ . '/../admissions/includes/registration_handlers.php';
+
+if (!function_exists('admissionsShortCourseAssignmentError')) {
+    /**
+     * Rejection message when a short-course program code is submitted to a
+     * long-term enrolment path. Returns null for legitimate long programmes.
+     */
+    function admissionsShortCourseAssignmentError(mysqli $db, string $programCode): ?string
+    {
+        $programCode = trim($programCode);
+        if ($programCode === '' || !function_exists('sc_program_is_short_course')) {
+            return null;
+        }
+        if (sc_program_is_short_course($db, $programCode)) {
+            return '"' . $programCode . '" is a short course and cannot be assigned as a '
+                . 'long-term programme. Enrol the student via the Short Course portal instead.';
+        }
+        return null;
+    }
+}
 
 if (!function_exists('admissionsPeriodFromIntake')) {
     /**
@@ -168,6 +191,9 @@ if (!function_exists('admitProcessedApplicant')) {
             $programCode = $resolvedProgram['valid'] ? $resolvedProgram['code'] : $rawProgram;
             if ($stageError = wuc_cse_direct_assignment_error($programCode)) {
                 return ['success' => false, 'message' => $stageError];
+            }
+            if ($shortError = admissionsShortCourseAssignmentError($db, $programCode)) {
+                return ['success' => false, 'message' => $shortError];
             }
             $entryYear    = (int)($app['year'] ?? 0) ?: (int)date('Y');
             $academicYear = (string)$entryYear;
@@ -433,6 +459,9 @@ if (!function_exists('admissionsEnrollExistingStudent')) {
         }
         if ($stageError = wuc_cse_direct_assignment_error($programCode)) {
             return ['success' => false, 'message' => $stageError];
+        }
+        if ($shortError = admissionsShortCourseAssignmentError($db, $programCode)) {
+            return ['success' => false, 'message' => $shortError];
         }
 
         // Student must exist; pull the fields we need for login + invoice.

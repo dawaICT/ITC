@@ -94,7 +94,10 @@ if(!empty($_POST)){
 				                    <?php
 				                  if(isset($_POST['search'])){
 				                  $Sid = $_POST['Sid'];
-				                   if($results = $db->query("SELECT * FROM students WHERE Sid = '$Sid'")) {
+				                  if($stmt = $db->prepare("SELECT * FROM students WHERE Sid = ?")) {
+				                      $stmt->bind_param('s', $Sid);
+				                      $stmt->execute();
+				                      $results = $stmt->get_result();
 				                      if($count = $results->num_rows) {
 
 				                        while($row = $results->fetch_object()){
@@ -109,6 +112,7 @@ if(!empty($_POST)){
 				                        echo"<script>window.open('invoiceStudent.php','_self')</script>";
 
 				                        }
+				                        $stmt->close();
 				                          }
 				                        } 
 				                        else {

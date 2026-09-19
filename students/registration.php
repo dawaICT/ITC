@@ -333,11 +333,26 @@ if (!$studentDetails) {
 // Short-course students do not go through semester/term registration;
 // show them their short course enrolment status and schedule.
 $isShortCourseStudentUser = isShortCourseStudent($mysqli, (string)$studentId);
-$scEnrolments = ($isShortCourseStudentUser || empty($studentDetails['program_code']))
-    ? sc_student_enrolments($mysqli, (string)$studentId)
-    : [];
+$allScEnrolments = function_exists('sc_student_enrolments') ? sc_student_enrolments($mysqli, (string)$studentId) : [];
+$hasShortCourseEnrolments = ($allScEnrolments !== []);
+$hasLongProgram = function_exists('sc_student_has_long_program') ? sc_student_has_long_program($mysqli, (string)$studentId) : false;
+$isDualEnrolled = $hasLongProgram && $hasShortCourseEnrolments;
+$portalViewShort = (($_SESSION['student_portal_view'] ?? '') === 'short_course') && $hasShortCourseEnrolments;
 
-if ($scEnrolments) {
+$requestedView = strtolower(trim((string)($_GET['view'] ?? ($_GET['type'] ?? ''))));
+if ($requestedView === 'short_course' || $requestedView === 'short') {
+    $isShortCourseMode = $hasShortCourseEnrolments || $isShortCourseStudentUser;
+} elseif ($requestedView === 'academic' || $requestedView === 'long' || $requestedView === 'certificate') {
+    $isShortCourseMode = false;
+} elseif ($portalViewShort) {
+    $isShortCourseMode = true;
+} else {
+    $isShortCourseMode = $isShortCourseStudentUser || (empty($studentDetails['program_code']) && $hasShortCourseEnrolments);
+}
+
+$scEnrolments = $isShortCourseMode ? $allScEnrolments : [];
+
+if ($isShortCourseMode) {
     $scFullName = trim((string)($studentDetails['full_name'] ?? ''));
     $scStatusBadge = static function (string $status): string {
         $map = [
@@ -388,6 +403,29 @@ if ($scEnrolments) {
             <div class="container">
                 <div class="row">
                     <div class="col-12">
+                        <?php if ($isDualEnrolled): ?>
+                        <!-- Dual-Enrolled Programme Switcher -->
+                        <div class="card border-0 shadow-sm mb-4 no-print" style="border-radius: 12px; background: #fff;">
+                            <div class="card-body p-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="fas fa-layer-group text-primary fs-5"></i>
+                                    <div>
+                                        <strong class="d-block text-dark small">Multiple Enrolments Detected</strong>
+                                        <span class="text-muted small">Switch between your long-term academic registration and short course enrolment status.</span>
+                                    </div>
+                                </div>
+                                <div class="btn-group btn-group-sm" role="group" aria-label="Registration view switcher">
+                                    <a href="registration.php?view=academic" class="btn btn-outline-primary">
+                                        <i class="fas fa-user-graduate me-1"></i> Academic / Certificate Registration
+                                    </a>
+                                    <a href="registration.php?view=short_course" class="btn btn-primary active">
+                                        <i class="fas fa-certificate me-1"></i> Short Course Enrolment
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <?php endif; ?>
+
                         <div class="page-header d-flex justify-content-between align-items-center">
                             <div>
                                 <h2 class="page-title"><i class="fas fa-certificate text-warning me-2"></i>My Short Course</h2>
@@ -1021,6 +1059,29 @@ if ($studentId !== '') {
     <div class="content-wrapper">
         <div class="container">
         <main class="registration-page-shell">
+            <?php if (!empty($isDualEnrolled)): ?>
+            <!-- Dual-Enrolled Programme Switcher -->
+            <div class="card border-0 shadow-sm mb-4 no-print" style="border-radius: 12px; background: #fff;">
+                <div class="card-body p-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fas fa-layer-group text-primary fs-5"></i>
+                        <div>
+                            <strong class="d-block text-dark small">Multiple Enrolments Detected</strong>
+                            <span class="text-muted small">Switch between your long-term academic registration and short course enrolment status.</span>
+                        </div>
+                    </div>
+                    <div class="btn-group btn-group-sm" role="group" aria-label="Registration view switcher">
+                        <a href="registration.php?view=academic" class="btn btn-primary active">
+                            <i class="fas fa-user-graduate me-1"></i> Academic / Certificate Registration
+                        </a>
+                        <a href="registration.php?view=short_course" class="btn btn-outline-primary">
+                            <i class="fas fa-certificate me-1"></i> Short Course Enrolment
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <?php endif; ?>
+
             <div class="page-header d-flex justify-content-between align-items-center">
                 <h2 class="page-title"><i class="fas fa-user-check"></i> <?= htmlspecialchars($periodLabel, ENT_QUOTES, 'UTF-8') ?> Registration</h2>
                 <div class="stat-badges">

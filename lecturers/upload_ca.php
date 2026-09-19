@@ -156,9 +156,16 @@ if (isset($db) && $db instanceof mysqli) {
                         } else {
                             $posted_by = $_SESSION['staff_id'] ?? '';
                             $save = ca_save_component($db, $sid, $course_code, $period, $year, $program_type, (string)$normalized['component'], (float)$normalized['value'], $posted_by);
-                            $manualMessage = $save['ok']
-                                ? '<div class="alert alert-success">'.htmlspecialchars($save['message']).' Total CA: '.htmlspecialchars((string)$save['total_ca']).'%</div>'
-                                : '<div class="alert alert-danger">'.htmlspecialchars($save['message']).'</div>';
+                            if ($save['ok']) {
+                                $msg = 'CA mark saved for ' . htmlspecialchars($sid, ENT_QUOTES, 'UTF-8')
+                                    . ' in ' . htmlspecialchars($course_code, ENT_QUOTES, 'UTF-8')
+                                    . ' (' . htmlspecialchars((string)$normalized['component'], ENT_QUOTES, 'UTF-8') . ').'
+                                    . ' Total CA: ' . htmlspecialchars((string)$save['total_ca'], ENT_QUOTES, 'UTF-8') . '%.';
+                                wuc_flash('success', $msg);
+                                wuc_safe_redirect('upload_ca.php?tab=manual&course_code=' . urlencode($course_code) . '&Year=' . urlencode($year));
+                            } else {
+                                $manualMessage = '<div class="alert alert-danger">'.htmlspecialchars($save['message']).'</div>';
+                            }
                         }
                         }
                         }
@@ -541,6 +548,8 @@ if ($preselectCourse !== '' && $assignedCourses !== []) {
 		</div>
 	</div>
 </div><!-- /.container-fluid upload-ca-page -->
+
+
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {

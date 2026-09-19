@@ -16,6 +16,7 @@ if (!(canManageLibrary($_SESSION['staff_id']) || canCirculate($_SESSION['staff_i
   <div class="d-flex align-items-center justify-content-between mb-3">
     <h2 class="mb-0">Library & Resource Management</h2>
     <div>
+      <a href="https://z-library.biz/" target="_blank" rel="noopener noreferrer" class="btn btn-warning btn-sm"><i class="bi bi-book me-1"></i> Get Books</a>
       <a href="library_catalog.php" class="btn btn-outline-primary btn-sm"><i class="bi bi-journal-text me-1"></i> Catalog</a>
       <a href="library_circulation.php" class="btn btn-outline-primary btn-sm"><i class="bi bi-upc-scan me-1"></i> Circulation</a>
       <a href="library_fines.php" class="btn btn-outline-primary btn-sm"><i class="bi bi-cash-coin me-1"></i> Fines</a>
@@ -30,7 +31,7 @@ if (!(canManageLibrary($_SESSION['staff_id']) || canCirculate($_SESSION['staff_i
           <div class="d-flex align-items-center">
             <div class="flex-grow-1">
               <h6 class="text-muted">Items</h6>
-              <h3 id="stat_items">—</h3>
+              <h3 id="stat_items">â€”</h3>
             </div>
             <i class="bi bi-bookshelf fs-2 text-primary"></i>
           </div>
@@ -43,7 +44,7 @@ if (!(canManageLibrary($_SESSION['staff_id']) || canCirculate($_SESSION['staff_i
           <div class="d-flex align-items-center">
             <div class="flex-grow-1">
               <h6 class="text-muted">Copies Available</h6>
-              <h3 id="stat_copies">—</h3>
+              <h3 id="stat_copies">â€”</h3>
             </div>
             <i class="bi bi-box-seam fs-2 text-success"></i>
           </div>
@@ -56,7 +57,7 @@ if (!(canManageLibrary($_SESSION['staff_id']) || canCirculate($_SESSION['staff_i
           <div class="d-flex align-items-center">
             <div class="flex-grow-1">
               <h6 class="text-muted">Active Loans</h6>
-              <h3 id="stat_loans">—</h3>
+              <h3 id="stat_loans">â€”</h3>
             </div>
             <i class="bi bi-arrow-left-right fs-2 text-warning"></i>
           </div>
@@ -69,7 +70,7 @@ if (!(canManageLibrary($_SESSION['staff_id']) || canCirculate($_SESSION['staff_i
           <div class="d-flex align-items-center">
             <div class="flex-grow-1">
               <h6 class="text-muted">Outstanding Fines</h6>
-              <h3 id="stat_fines">—</h3>
+              <h3 id="stat_fines">â€”</h3>
 				</div>
             <i class="bi bi-currency-dollar fs-2 text-danger"></i>
 					</div>

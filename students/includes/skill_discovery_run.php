@@ -17,7 +17,10 @@ if (!defined('SKILL_MAX_ENTRY_LENGTH')) {
     define('SKILL_MAX_ENTRY_LENGTH', 1200);
 }
 
-$studentId = trim((string)$studentId);
+$studentId = trim((string)($studentId ?? $_SESSION['Sid'] ?? $_SESSION['student_id'] ?? ''));
+if (!isset($db) || !($db instanceof mysqli)) {
+    require_once dirname(__DIR__, 2) . '/db/connect.php';
+}
 $skillService = new StudentSkillDiscoveryService($db);
 $studentProfile = $skillService->buildStudentProfile($studentId);
 $academicSkills = $studentProfile['valid'] ? $skillService->discoverAcademicSkills($studentId) : [];

@@ -632,6 +632,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         <p class="subtitle mb-0">Resources, modules and video suggestions matched to your assigned courses.</p>
       </div>
       <div class="d-flex gap-2">
+        <a href="https://z-library.biz/" target="_blank" rel="noopener noreferrer" class="btn btn-warning btn-sm rounded-pill px-3" title="Get books from the Z-Library eBooks collection">
+          <i class="fas fa-book-open me-1"></i> Get Books
+        </a>
         <button id="toggleAiBtn" type="button" class="btn btn-light btn-sm rounded-pill px-3 active" style="border: 1px solid rgba(111,66,193,0.3); color: #5a32a3;">
           <i class="fas fa-robot me-1"></i> Close AI
         </button>

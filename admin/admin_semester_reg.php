@@ -23,7 +23,7 @@ if (isset($_GET['action'])) {
 
             $student_query = "SELECT s.*, sp.program_code, p.program_name 
                              FROM students s
-                             INNER JOIN student_program sp ON s.SID = sp.SID
+                             INNER JOIN student_program sp ON s.SID = sp.Sid
                              INNER JOIN programs p ON sp.program_code = p.program_code
                              WHERE s.SID = ? AND s.status = 'Active'";
 
@@ -59,33 +59,27 @@ if (isset($_GET['action'])) {
                 exit;
             }
 
-            $student_data = $check_result->fetch_assoc();
-            echo json_encode([
-                'success' => true,
-                'program_code' => $student_data['program_code'],
-                'program_name' => $student_data['program_name'],
-                'student_info' => [
-                    'id' => $student_data['SID'],
-                    'name' => $student_data['Fname'] . ' ' . $student_data['Lname']
-                ]
-            ]);
+            $student = $check_result->fetch_assoc();
+            echo json_encode($student);
             exit;
-
         } catch (Exception $e) {
-            error_log("Error in student program lookup: " . $e->getMessage());
-            http_response_code(500);
-            echo json_encode([
-                'error' => $e->getMessage(),
-                'details' => 'Failed to fetch student program'
-            ]);
+            http_response_code(400);
+            echo json_encode(['error' => $e->getMessage()]);
             exit;
         }
     }
 }
 
-// Handle form submission
-if (isset($_POST['submit'])) {
+// Handle Form Submission
+if ($_SERVER["REQUEST_METHOD"] === "POST" && !isset($_FILES['file'])) {
+    header('Content-Type: application/json');
+
     try {
+        // Validate CSRF token
+        if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+            throw new Exception("Invalid CSRF token");
+        }
+
         // Validate required fields
         $required_fields = ['Sid', 'program_code', 'semester', 'Year', 'status'];
         foreach ($required_fields as $field) {
@@ -100,13 +94,13 @@ if (isset($_POST['submit'])) {
         $Year = trim($_POST["Year"]);
         $status = trim($_POST["status"]);
 
-        // Validate Student ID format
-        if (!ctype_digit($Sid) || strlen($Sid) !== 9) {
+        // Validate Student ID format (alphanumeric, 3 to 50 chars)
+        if (!preg_match('/^[A-Za-z0-9_.@-]{3,50}$/', $Sid)) {
             throw new Exception("Invalid Student ID format");
         }
 
         // Check if student exists
-        $student_check = "SELECT * FROM students WHERE Sid = ?";
+        $student_check = "SELECT * FROM students WHERE SID = ?";
         if ($check_stmt = $db->prepare($student_check)) {
             $check_stmt->bind_param("s", $Sid);
             $check_stmt->execute();
@@ -190,10 +184,15 @@ if (isset($_FILES['file'])) {
                 }
 
                 list($Sid, $program_code, $semester, $Year, $status) = $data;
+                $Sid = trim((string)$Sid);
+                $program_code = trim((string)$program_code);
+                $semester = trim((string)$semester);
+                $Year = trim((string)$Year);
+                $status = trim((string)$status);
 
                 // Validate data
-                if (!ctype_digit($Sid) || strlen($Sid) !== 9) {
-                    throw new Exception("Invalid Student ID in row $row");
+                if (!preg_match('/^[A-Za-z0-9_.@-]{3,50}$/', $Sid)) {
+                    throw new Exception("Invalid Student ID format in row $row");
                 }
 
                 // Insert registration using the live schema.
@@ -384,8 +383,8 @@ if (isset($_FILES['file'])) {
                                class="form-control" 
                                id="searchStudentId" 
                                placeholder="Enter student ID to check registration status"
-                               pattern="\d{9}"
-                               maxlength="9">
+                               pattern="[A-Za-z0-9_.@\-]{3,50}"
+                               maxlength="50">
                         <div class="input-group-append">
                             <button class="btn btn-secondary" type="button" id="searchButton">
                                 Search
@@ -407,9 +406,9 @@ if (isset($_FILES['file'])) {
                            id="Sid" 
                            name="Sid" 
                            required 
-                           pattern="\d{9}"
-                           maxlength="9"
-                           placeholder="Enter 9-digit student ID"
+                           pattern="[A-Za-z0-9_.@\-]{3,50}"
+                           maxlength="50"
+                           placeholder="Enter student ID (e.g. CSE26456789)"
                            aria-describedby="sidHelp">
                     <div class="invalid-feedback" id="sidHelp"></div>
                     <div class="valid-feedback">Student ID format is valid</div>
@@ -430,16 +429,16 @@ if (isset($_FILES['file'])) {
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label for="semester">Semester</label>
+                            <label for="semester">Semester / Term</label>
                             <select class="form-control" 
                                     id="semester" 
                                     name="semester" 
                                     required
                                     aria-describedby="semesterHelp">
-                                <option value="" disabled selected>Select Semester</option>
-                                <option value="Spring">Spring</option>
-                                <option value="Summer">Summer</option>
-                                <option value="Fall">Fall</option>
+                                <option value="" disabled selected>Select Period</option>
+                                <option value="1">Semester 1 / Term 1</option>
+                                <option value="2">Semester 2 / Term 2</option>
+                                <option value="3">Semester 3 / Term 3</option>
                             </select>
                             <div class="invalid-feedback" id="semesterHelp">Please select a semester</div>
                         </div>
@@ -527,10 +526,9 @@ if (isset($_FILES['file'])) {
     $(document).ready(function() {
         // Constants for validation
         const STUDENT_ID = {
-            LENGTH: 9,
-            PATTERN: /^\d{9}$/,
-            MIN_LENGTH: 9,
-            MAX_LENGTH: 9
+            PATTERN: /^[A-Za-z0-9_.@-]{3,50}$/,
+            MIN_LENGTH: 3,
+            MAX_LENGTH: 50
         };
 
         // Variables for typing timer
@@ -626,9 +624,7 @@ if (isset($_FILES['file'])) {
         $('#Sid').on('input', function() {
             const input = this;
 
-            if (!/^\d*$/.test(input.value)) {
-                input.value = input.value.replace(/\D/g, '');
-            }
+            input.value = input.value.replace(/[^A-Za-z0-9_.@-]/g, '');
 
             if (input.value.length > STUDENT_ID.MAX_LENGTH) {
                 input.value = input.value.slice(0, STUDENT_ID.MAX_LENGTH);
@@ -698,7 +694,7 @@ if (isset($_FILES['file'])) {
             const $result = $('#searchResult');
 
             if (!STUDENT_ID.PATTERN.test(searchId)) {
-                $result.html('<div class="text-danger">Please enter a valid 9-digit student ID</div>');
+                $result.html('<div class="text-danger">Please enter a valid student ID</div>');
                 return;
             }
 

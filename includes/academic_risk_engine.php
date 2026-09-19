@@ -307,6 +307,37 @@ if (!function_exists('wuc_risk_assessment_metrics')) {
             }
         }
 
+        if ($courseCodes && wuc_risk_table_exists($db, 'short_course_assessment')) {
+            $placeholders = implode(',', array_fill(0, count($courseCodes), '?'));
+            $sql = "SELECT course_code, Total_CA, A1, A2, A3, T1, T2,
+                           COALESCE(updated_at, created_at) AS recorded_at
+                    FROM short_course_assessment
+                    WHERE student_id COLLATE utf8mb4_general_ci = ? AND course_code IN ($placeholders)
+                    ORDER BY COALESCE(updated_at, created_at) DESC, id DESC";
+            if ($stmt = $db->prepare($sql)) {
+                $params = array_merge([$studentId], $courseCodes);
+                wuc_risk_bind_values($stmt, 's' . str_repeat('s', count($courseCodes)), $params);
+                $stmt->execute();
+                $res = $stmt->get_result();
+                while ($row = $res->fetch_assoc()) {
+                    $code = trim((string)($row['course_code'] ?? ''));
+                    if ($code === '' || isset($marksByCourse[$code])) {
+                        continue;
+                    }
+                    if (!is_numeric($row['Total_CA'])) {
+                        continue;
+                    }
+                    $totalCa = (float)$row['Total_CA'];
+                    $scale = $totalCa <= 40 ? 40.0 : 100.0;
+                    $marksByCourse[$code] = [
+                        'mark' => round(min(100, ($totalCa / $scale) * 100), 2),
+                        'recorded_at' => (string)($row['recorded_at'] ?? ''),
+                    ];
+                }
+                $stmt->close();
+            }
+        }
+
         uasort($marksByCourse, static fn(array $a, array $b): int => strcmp($b['recorded_at'], $a['recorded_at']));
         $marks = array_map(static fn(array $row): float => (float)$row['mark'], array_values($marksByCourse));
         foreach (array_slice($marks, 0, 2) as $mark) {
@@ -483,6 +514,14 @@ if (!function_exists('wuc_risk_registration_metrics')) {
             'current_year_registered' => null,
             'active_course_registrations' => 0,
         ];
+
+        if (function_exists('isShortCourseStudent') && isShortCourseStudent($db, $studentId)) {
+            $metrics['has_semester_registration'] = true;
+            $metrics['latest_registration_year'] = date('Y');
+            $metrics['current_year_registered'] = true;
+            $metrics['active_course_registrations'] = count($courseCodes);
+            return $metrics;
+        }
 
         if (wuc_risk_table_exists($db, 'semester_registration')) {
             $sql = "SELECT MAX(academic_year) AS latest_year, COUNT(*) AS total

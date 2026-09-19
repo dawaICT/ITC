@@ -55,6 +55,44 @@ try {
     $visibleTypes = array_column($visible, 'alert_type');
     $ok(!in_array('context_test', $visibleTypes, true), 'expired alert is excluded');
     $ok(wuc_portal_alert_get_owned($db, 'ANOTHER-USER', 'student', (int)($row['id'] ?? 0)) === null, 'another user cannot open the alert');
+
+    // Regression: a dismissed synced alert stays dismissed (no duplication) until its
+    // content changes, then it re-surfaces as unread. Exercises wuc_portal_alert_upsert_current.
+    $dUser = 'EXH-NOTIF-DISMISS';
+    $cleanup2 = $db->prepare('DELETE FROM portal_alerts WHERE user_id = ?');
+    $cleanup2->bind_param('s', $dUser);
+    $cleanup2->execute();
+    try {
+        $payload = [
+            'user_id' => $dUser,
+            'user_role' => 'student',
+            'alert_type' => 'dismiss_test',
+            'title' => 'Pending task',
+            'message' => 'Please act on task A.',
+            'severity' => 'info',
+            'action_url' => '/wucportal/students/index.php',
+        ];
+        wuc_portal_alert_upsert_current($db, $payload);
+        $rowD = $db->query("SELECT id FROM portal_alerts WHERE user_id='$dUser'")->fetch_assoc();
+        $alertId = (int)($rowD['id'] ?? 0);
+        $db->query("UPDATE portal_alerts SET status='dismissed' WHERE id=$alertId AND user_id='$dUser'");
+
+        wuc_portal_alert_upsert_current($db, $payload);
+        $countU = (int)$db->query("SELECT COUNT(*) c FROM portal_alerts WHERE user_id='$dUser'")->fetch_assoc()['c'];
+        $statusU = $db->query("SELECT status FROM portal_alerts WHERE id=$alertId")->fetch_assoc()['status'];
+        $ok($countU === 1, 'unchanged dismissed alert is not duplicated');
+        $ok($statusU === 'dismissed', 'dismissed alert stays dismissed on sync');
+
+        $changed = $payload; $changed['message'] = 'Please act on task B now.';
+        wuc_portal_alert_upsert_current($db, $changed);
+        $countC = (int)$db->query("SELECT COUNT(*) c FROM portal_alerts WHERE user_id='$dUser'")->fetch_assoc()['c'];
+        $statusC = $db->query("SELECT status FROM portal_alerts WHERE id=$alertId")->fetch_assoc()['status'];
+        $ok($countC === 1, 'content change keeps a single alert row');
+        $ok($statusC === 'unread', 'content change re-surfaces the alert as unread');
+    } finally {
+        $cleanup2->execute();
+        $cleanup2->close();
+    }
 } finally {
     $cleanup->execute();
     $cleanup->close();

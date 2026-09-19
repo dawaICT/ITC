@@ -38,13 +38,33 @@ $studentProgramPortal = wuc_student_program_portal_profile($db, (string)$student
 $studentPortalProgramCode = (string)($studentProgramPortal['program_code'] ?? '');
 $isCertificateProgramPortal = (string)($studentProgramPortal['type'] ?? '') === 'certificate';
 
+// Dual-enrolled students (long programme + short course) may flip into the
+// Short Course Portal for the session via students/portal_view.php. The
+// override suppresses the long-programme record load below so the existing
+// short-course dashboard branch renders, and relaxes the sub-portal gate.
+$studentPortalViewOverride = (($_SESSION['student_portal_view'] ?? '') === 'short_course')
+    && function_exists('sc_student_has_long_program')
+    && sc_student_has_long_program($db, (string)$student_id)
+    && sc_student_enrolments($db, (string)$student_id) !== [];
+
 // The dedicated landing pages are guarded by the resolved live assignment.
 // A student cannot force a certificate/diploma/trade-test/short-course view by
-// typing another portal URL.
+// typing another portal URL. The session override above is the one legitimate
+// exception: a verified dual-enrolled student viewing the short-course portal.
 if (isset($expectedStudentProgramPortal)
-    && $expectedStudentProgramPortal !== (string)$studentProgramPortal['type']) {
+    && $expectedStudentProgramPortal !== (string)$studentProgramPortal['type']
+    && !($expectedStudentProgramPortal === 'short_course' && $studentPortalViewOverride)) {
     header('Location: ' . (string)$studentProgramPortal['route'], true, 302);
     exit();
+}
+
+// Present the short-course portal branding while the override is active.
+if ($studentPortalViewOverride && isset($expectedStudentProgramPortal) && $expectedStudentProgramPortal === 'short_course') {
+    $scPortalDefs = wuc_student_program_portal_definitions();
+    $studentProgramPortal = array_merge($studentProgramPortal, $scPortalDefs['short_course'], [
+        'type' => 'short_course',
+    ]);
+    $isCertificateProgramPortal = false;
 }
 
 $studentRec = null;
@@ -73,7 +93,9 @@ $query_1 = "SELECT s.SID, s.Fname, s.Lname, s.email, s.mobile, s.profile_image, 
             ORDER BY COUNT(pc.course_code) DESC, sp.id DESC
             LIMIT 1";
 
-$stmt_1 = $db->prepare($query_1);
+// Under the short-course portal view override the long-programme record must
+// not load — the short-course enrolment branch below builds the dashboard.
+$stmt_1 = $studentPortalViewOverride ? null : $db->prepare($query_1);
 if ($stmt_1) {
     $stmt_1->bind_param("sss", $student_id, $studentPortalProgramCode, $studentPortalProgramCode);
     $stmt_1->execute();
@@ -85,9 +107,13 @@ if ($stmt_1) {
     }
 }
 
-// Short-course portal students (no long programme): admit via short_course_enrollments
-// or short-flagged programme assignments — never mix short catalogue into long path.
-if (!$studentRec && function_exists('isShortCourseStudent') && isShortCourseStudent($db, (string)$student_id)) {
+// Short-course portal students (no long programme — or a dual-enrolled student
+// viewing the short-course portal via the session override): admit via
+// short_course_enrollments or short-flagged programme assignments — never mix
+// short catalogue into long path.
+if (!$studentRec
+    && (($studentPortalViewOverride && sc_student_enrolments($db, (string)$student_id) !== [])
+        || (function_exists('isShortCourseStudent') && isShortCourseStudent($db, (string)$student_id)))) {
     $scEnrolments = sc_student_enrolments($db, (string)$student_id);
 
     $stmt_sc = $db->prepare(
@@ -186,6 +212,20 @@ if ($annTableRes && $annTableRes->num_rows > 0) {
         }
         $stmt_announcements->close();
     }
+} else {
+    $elAnnRes = $db->query("SHOW TABLES LIKE 'elearning_announcements'");
+    if ($elAnnRes && $elAnnRes->num_rows > 0) {
+        $stmt_announcements = $db->prepare("SELECT title, content AS descript, created_at AS created FROM elearning_announcements WHERE is_active = 1 ORDER BY created_at DESC LIMIT 3");
+        if ($stmt_announcements) {
+            $stmt_announcements->execute();
+            $announcementResult = $stmt_announcements->get_result();
+            while ($row = $announcementResult->fetch_object()) {
+                $Records[] = $row;
+            }
+            $stmt_announcements->close();
+        }
+    }
+    if ($elAnnRes) { $elAnnRes->free(); }
 }
 if ($annTableRes) { $annTableRes->free(); }
 
@@ -222,16 +262,17 @@ function student_dashboard_column_exists(mysqli $db, string $table, string $colu
     return false;
 }
 
+$scEnrolmentsList = !empty($isShortCourseStudent) ? sc_student_enrolments($db, (string)$student_id) : [];
 $registeredCourseCodes = getStudentEnrolledCourses($db, $student_id);
 $registeredCourseCodes = array_values(array_unique(array_filter(array_map(static function ($code) {
     return trim((string)$code);
 }, is_array($registeredCourseCodes) ? $registeredCourseCodes : []))));
 
-$stats['courses'] = count($registeredCourseCodes);
+$stats['courses'] = !empty($isShortCourseStudent) ? count($scEnrolmentsList) : count($registeredCourseCodes);
 
 // Published results preview (own Sid only).
 $recentResults = [];
-if (!empty($isShortCourse)) {
+if (!empty($isShortCourseStudent)) {
     if (student_dashboard_table_exists($db, 'short_course_assessment')) {
         if ($resStmt = $db->prepare(
             "SELECT course_code, Total_CA, created_at AS published_at
@@ -776,6 +817,9 @@ $studentTestPeriod = (!$isShortCourseStudent && !$isCertificateProgramPortal)
             <a href="/wucportal/notifications.php" class="quicknav-item"><i class="fas fa-bell"></i><span>Notifications</span></a>
             <a href="continuousAssessment.php" class="quicknav-item"><i class="fas fa-chart-bar"></i><span>CA Results</span></a>
             <a href="campus_services.php" class="quicknav-item"><i class="fas fa-concierge-bell"></i><span>Campus Services</span></a>
+            <?php if (!empty($studentPortalViewOverride)): ?>
+            <a href="portal_view.php?view=academic" class="quicknav-item"><i class="fas fa-building-columns"></i><span>Academic Portal</span></a>
+            <?php endif; ?>
             <?php else: ?>
             <a href="myCourses.php" class="quicknav-item"><i class="fas fa-book-open"></i><span>My Courses</span></a>
             <a href="registration.php" class="quicknav-item"><i class="fas fa-user-check"></i><span>Registration</span></a>
@@ -1034,6 +1078,94 @@ $studentTestPeriod = (!$isShortCourseStudent && !$isCertificateProgramPortal)
 
         <!-- RIGHT: Campus schedule and announcements -->
         <section aria-label="Dashboard updates">
+
+            <?php if (!empty($isShortCourseStudent)): ?>
+            <!-- Assigned Short Courses -->
+            <article class="card card-collapsible mb-4">
+                <div class="card-hdr">
+                    <h3><i class="fas fa-graduation-cap"></i> Assigned Short Courses</h3>
+                    <div class="card-hdr-actions">
+                        <a href="short_courses.php" class="badge bg-primary text-decoration-none">Manage Courses</a>
+                        <button class="card-toggle"
+                                type="button"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#dashboardAssignedShortCourses"
+                                aria-expanded="true"
+                                aria-controls="dashboardAssignedShortCourses">
+                            <span class="card-toggle-label">Collapse</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                    </div>
+                </div>
+                <div id="dashboardAssignedShortCourses" class="collapse show">
+                    <div class="card-body">
+                        <?php if (!empty($scEnrolmentsList)): ?>
+                            <div class="row g-3">
+                                <?php foreach ($scEnrolmentsList as $scItem): ?>
+                                    <?php
+                                        $scCode = (string)($scItem['course_code'] ?? '');
+                                        $scName = (string)($scItem['course_name'] ?? '');
+                                        $scId = (int)($scItem['short_course_id'] ?? 0);
+                                        $scStatus = strtolower(trim((string)($scItem['status'] ?? 'enrolled')));
+                                        $scDurationVal = (int)($scItem['duration_value'] ?? 0);
+                                        $scDurationUnit = (string)($scItem['duration_unit'] ?? 'days');
+                                        $scDelivery = (string)($scItem['delivery_mode'] ?? 'full-time');
+                                        $scStatusBadge = match($scStatus) {
+                                            'active' => 'primary',
+                                            'completed' => 'success',
+                                            'withdrawn' => 'secondary',
+                                            default => 'info'
+                                        };
+                                        $scUrl = $scId > 0 ? "short_courses.php?id={$scId}" : "short_courses.php";
+                                    ?>
+                                    <div class="col-12">
+                                        <div class="p-3 border rounded-3 bg-white shadow-sm d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+                                            <div class="d-flex align-items-start gap-3">
+                                                <div class="rounded-circle bg-primary bg-opacity-10 text-primary p-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; min-width: 48px;">
+                                                    <i class="fas fa-award fa-lg"></i>
+                                                </div>
+                                                <div>
+                                                    <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                                                        <span class="badge bg-light text-dark border fw-bold"><?= htmlspecialchars($scCode) ?></span>
+                                                        <span class="badge bg-<?= $scStatusBadge ?>"><?= ucfirst(htmlspecialchars($scStatus)) ?></span>
+                                                        <?php if ($scDurationVal > 0): ?>
+                                                            <span class="badge bg-light text-secondary border"><i class="fas fa-clock me-1"></i><?= $scDurationVal ?> <?= htmlspecialchars(ucfirst($scDurationUnit)) ?></span>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                    <h4 class="h6 mb-1 text-dark fw-bold"><?= htmlspecialchars($scName) ?></h4>
+                                                    <div class="text-muted small">
+                                                        <i class="fas fa-chalkboard-user me-1"></i> Mode: <?= htmlspecialchars(ucfirst($scDelivery)) ?>
+                                                        <?php if (!empty($scItem['enrollment_date'])): ?>
+                                                            &bull; Enrolled: <?= htmlspecialchars(date('d M Y', strtotime((string)$scItem['enrollment_date']))) ?>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="d-flex flex-wrap gap-2 align-self-stretch align-self-md-center justify-content-md-end">
+                                                <a href="<?= htmlspecialchars($scUrl, ENT_QUOTES, 'UTF-8') ?>" class="btn btn-sm btn-primary">
+                                                    <i class="fas fa-book-open me-1"></i> Open Course
+                                                </a>
+                                                <a href="continuousAssessment.php" class="btn btn-sm btn-outline-secondary">
+                                                    <i class="fas fa-chart-bar me-1"></i> CA Results
+                                                </a>
+                                                <a href="registration.php" class="btn btn-sm btn-outline-info">
+                                                    <i class="fas fa-id-card me-1"></i> Enrolment Slip
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php else: ?>
+                            <div class="empty-state">
+                                <i class="fas fa-graduation-cap"></i>
+                                <p>No short courses currently assigned to your account. Please contact the admissions or registrar office.</p>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </article>
+            <?php endif; ?>
 
             <!-- Today's Classes -->
             <article class="card card-collapsible">

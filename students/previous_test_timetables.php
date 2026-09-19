@@ -36,6 +36,7 @@ require_once __DIR__ . '/includes/navbar.php';
 .tt-prev-page .list-card a:hover { background: #f8fafc; }
 </style>
 
+<main class="content-wrapper">
 <div class="container-fluid px-3 px-md-4 tt-prev-page">
     <div class="hero">
         <h1 class="h4 fw-bold mb-1"><i class="fas fa-history me-2 text-primary"></i>Previous Test Timetables</h1>
@@ -69,5 +70,6 @@ require_once __DIR__ . '/includes/navbar.php';
         </div>
     <?php endif; ?>
 </div>
+</main>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

@@ -36,7 +36,7 @@ if (!function_exists('sc_tables_present')) {
 
 if (!function_exists('sc_program_is_short_course')) {
     /**
-     * Whether a programs.program_code row is a short-course catalogue entry
+     * Whether a course/programme code represents a short-course entry
      * (should not drive long-term term/semester workflows).
      */
     function sc_program_is_short_course(mysqli $db, string $programCode): bool
@@ -50,58 +50,82 @@ if (!function_exists('sc_program_is_short_course')) {
             return $cache[$programCode];
         }
 
-        if (!sc_table_exists($db, 'programs')) {
-            return $cache[$programCode] = false;
+        // 1. Direct check in short_courses catalogue table
+        if (sc_table_exists($db, 'short_courses')) {
+            if ($stmtSc = @$db->prepare("SELECT 1 FROM short_courses WHERE course_code = ? LIMIT 1")) {
+                $stmtSc->bind_param('s', $programCode);
+                $stmtSc->execute();
+                $stmtSc->store_result();
+                $isSc = $stmtSc->num_rows > 0;
+                $stmtSc->close();
+                if ($isSc) {
+                    return $cache[$programCode] = true;
+                }
+            }
         }
 
-        $hasShortFlag = sc_has_column($db, 'programs', 'is_short_course');
-        $hasStructure = sc_has_column($db, 'programs', 'structure_type');
-        $hasAcademicStructure = sc_has_column($db, 'programs', 'academic_structure');
-        $hasType = sc_has_column($db, 'programs', 'program_type');
-        if (!$hasShortFlag && !$hasStructure && !$hasAcademicStructure && !$hasType) {
-            return $cache[$programCode] = false;
+        // 2. Check in courses table for course_type = 'short course'
+        if (sc_table_exists($db, 'courses')) {
+            if ($stmtC = @$db->prepare("SELECT 1 FROM courses WHERE course_code = ? AND (course_type = 'short course' OR LOWER(category) LIKE '%short%') LIMIT 1")) {
+                $stmtC->bind_param('s', $programCode);
+                $stmtC->execute();
+                $stmtC->store_result();
+                $isScC = $stmtC->num_rows > 0;
+                $stmtC->close();
+                if ($isScC) {
+                    return $cache[$programCode] = true;
+                }
+            }
         }
 
-        $select = [];
-        if ($hasShortFlag) {
-            $select[] = 'is_short_course';
-        }
-        if ($hasStructure) {
-            $select[] = 'structure_type';
-        }
-        if ($hasAcademicStructure) {
-            $select[] = 'academic_structure';
-        }
-        if ($hasType) {
-            $select[] = 'program_type';
-        }
-        $sql = 'SELECT ' . implode(', ', $select) . ' FROM programs WHERE program_code = ? LIMIT 1';
-        if (!$stmt = @$db->prepare($sql)) {
-            return $cache[$programCode] = false;
-        }
-        $stmt->bind_param('s', $programCode);
-        $stmt->execute();
-        $row = $stmt->get_result()->fetch_assoc() ?: null;
-        $stmt->close();
-        if (!$row) {
-            return $cache[$programCode] = false;
+        // 3. Check in programs table for short course flags
+        if (sc_table_exists($db, 'programs')) {
+            $hasShortFlag = sc_has_column($db, 'programs', 'is_short_course');
+            $hasStructure = sc_has_column($db, 'programs', 'structure_type');
+            $hasAcademicStructure = sc_has_column($db, 'programs', 'academic_structure');
+            $hasType = sc_has_column($db, 'programs', 'program_type');
+
+            if ($hasShortFlag || $hasStructure || $hasAcademicStructure || $hasType) {
+                $select = [];
+                if ($hasShortFlag) {
+                    $select[] = 'is_short_course';
+                }
+                if ($hasStructure) {
+                    $select[] = 'structure_type';
+                }
+                if ($hasAcademicStructure) {
+                    $select[] = 'academic_structure';
+                }
+                if ($hasType) {
+                    $select[] = 'program_type';
+                }
+                $sql = 'SELECT ' . implode(', ', $select) . ' FROM programs WHERE program_code = ? LIMIT 1';
+                if ($stmt = @$db->prepare($sql)) {
+                    $stmt->bind_param('s', $programCode);
+                    $stmt->execute();
+                    $row = $stmt->get_result()->fetch_assoc() ?: null;
+                    $stmt->close();
+                    if ($row) {
+                        if ($hasShortFlag && (int)($row['is_short_course'] ?? 0) === 1) {
+                            return $cache[$programCode] = true;
+                        }
+                        $structure = strtoupper(trim((string)($row['structure_type'] ?? '')));
+                        if ($structure === 'SHORT_COURSE') {
+                            return $cache[$programCode] = true;
+                        }
+                        $academicStructure = strtolower(trim((string)($row['academic_structure'] ?? '')));
+                        if ($academicStructure === 'short_course') {
+                            return $cache[$programCode] = true;
+                        }
+                        $ptype = strtolower(trim((string)($row['program_type'] ?? '')));
+                        if ($ptype !== '' && (str_contains($ptype, 'short course') || $ptype === 'short_course')) {
+                            return $cache[$programCode] = true;
+                        }
+                    }
+                }
+            }
         }
 
-        if ($hasShortFlag && (int)($row['is_short_course'] ?? 0) === 1) {
-            return $cache[$programCode] = true;
-        }
-        $structure = strtoupper(trim((string)($row['structure_type'] ?? '')));
-        if ($structure === 'SHORT_COURSE') {
-            return $cache[$programCode] = true;
-        }
-        $academicStructure = strtolower(trim((string)($row['academic_structure'] ?? '')));
-        if ($academicStructure === 'short_course') {
-            return $cache[$programCode] = true;
-        }
-        $ptype = strtolower(trim((string)($row['program_type'] ?? '')));
-        if ($ptype !== '' && (str_contains($ptype, 'short course') || $ptype === 'short_course')) {
-            return $cache[$programCode] = true;
-        }
         return $cache[$programCode] = false;
     }
 }
@@ -173,70 +197,157 @@ if (!function_exists('sc_student_has_long_program')) {
 
         if ($hasPrograms) {
             $longPred = sc_sql_programs_long_only_predicate($db, 'p');
-            $sql = "SELECT 1
+            $sql = "SELECT sp.program_code
                       FROM student_program sp
                       INNER JOIN programs p ON p.program_code = sp.program_code
                      WHERE sp.Sid = ? {$statusFilter}
                        AND ({$longPred})
                      LIMIT 1";
         } else {
-            $sql = "SELECT 1 FROM student_program sp WHERE sp.Sid = ? {$statusFilter} LIMIT 1";
+            $sql = "SELECT sp.program_code FROM student_program sp WHERE sp.Sid = ? {$statusFilter} LIMIT 1";
         }
 
         if (!$stmt = @$db->prepare($sql)) {
-            // Fallback: any program row counts as long if join fails.
-            return sc_student_has_program($db, $sid);
+            return false;
         }
         $stmt->bind_param('s', $sid);
         $stmt->execute();
-        $stmt->store_result();
-        $has = $stmt->num_rows > 0;
+        $res = $stmt->get_result();
+        $hasLong = false;
+        if ($res && ($row = $res->fetch_assoc())) {
+            $pCode = (string)($row['program_code'] ?? '');
+            if (!sc_program_is_short_course($db, $pCode)) {
+                $hasLong = true;
+            }
+        }
         $stmt->close();
-        return $has;
+        return $hasLong;
+    }
+}
+
+if (!function_exists('sc_resolve_course_meta')) {
+    /**
+     * Helper to look up short course title, duration, delivery mode, and fee
+     * across short_courses, courses, and programs tables.
+     * @return array{id:int,name:string,duration_value:int,duration_unit:string,delivery_mode:string,fee:float}
+     */
+    function sc_resolve_course_meta(mysqli $db, string $code): array
+    {
+        $res = [
+            'id' => 0,
+            'name' => $code,
+            'duration_value' => 0,
+            'duration_unit' => 'days',
+            'delivery_mode' => 'full-time',
+            'fee' => 0.0,
+        ];
+        if ($code === '') {
+            return $res;
+        }
+
+        if (sc_table_exists($db, 'short_courses')) {
+            if ($st = @$db->prepare("SELECT id, course_name, duration_value, duration_unit, delivery_mode, fee FROM short_courses WHERE course_code = ? LIMIT 1")) {
+                $st->bind_param('s', $code);
+                $st->execute();
+                if ($r = $st->get_result()->fetch_assoc()) {
+                    $res['id'] = (int)($r['id'] ?? 0);
+                    if (!empty($r['course_name'])) { $res['name'] = (string)$r['course_name']; }
+                    if (!empty($r['duration_value'])) { $res['duration_value'] = (int)$r['duration_value']; }
+                    if (!empty($r['duration_unit'])) { $res['duration_unit'] = (string)$r['duration_unit']; }
+                    if (!empty($r['delivery_mode'])) { $res['delivery_mode'] = (string)$r['delivery_mode']; }
+                    $res['fee'] = (float)($r['fee'] ?? 0);
+                    $st->close();
+                    return $res;
+                }
+                $st->close();
+            }
+        }
+
+        if (sc_table_exists($db, 'courses')) {
+            if ($stC = @$db->prepare("SELECT id, course_name, duration, duration_unit, course_fee FROM courses WHERE course_code = ? LIMIT 1")) {
+                $stC->bind_param('s', $code);
+                $stC->execute();
+                if ($rC = $stC->get_result()->fetch_assoc()) {
+                    if (!empty($rC['course_name'])) { $res['name'] = (string)$rC['course_name']; }
+                    if (!empty($rC['duration']) && is_numeric($rC['duration'])) {
+                        $res['duration_value'] = (int)$rC['duration'];
+                    }
+                    if (!empty($rC['duration_unit'])) { $res['duration_unit'] = (string)$rC['duration_unit']; }
+                    if (!empty($rC['course_fee'])) { $res['fee'] = (float)$rC['course_fee']; }
+                    $stC->close();
+                    return $res;
+                }
+                $stC->close();
+            }
+        }
+
+        if (sc_table_exists($db, 'programs')) {
+            if ($stP = @$db->prepare("SELECT program_name, duration_value, duration_unit FROM programs WHERE program_code = ? LIMIT 1")) {
+                $stP->bind_param('s', $code);
+                $stP->execute();
+                if ($rP = $stP->get_result()->fetch_assoc()) {
+                    if (!empty($rP['program_name'])) { $res['name'] = (string)$rP['program_name']; }
+                    if (!empty($rP['duration_value'])) { $res['duration_value'] = (int)$rP['duration_value']; }
+                    if (!empty($rP['duration_unit'])) { $res['duration_unit'] = (string)$rP['duration_unit']; }
+                }
+                $stP->close();
+            }
+        }
+
+        return $res;
     }
 }
 
 if (!function_exists('sc_student_enrolments')) {
     /**
      * Active short-course enrolments for a student, most recent first.
+     * Consolidates short_course_enrollments, student_program short-course assignments,
+     * students.program short-course assignments, and course_registration short-courses.
      * @return array<int,array<string,mixed>>
      */
     function sc_student_enrolments(mysqli $db, string $sid): array
     {
-        if ($sid === '' || !sc_tables_present($db)) {
+        $sid = trim($sid);
+        if ($sid === '') {
             return [];
         }
-        $sql = "SELECT sc.id AS short_course_id, sc.course_code, sc.course_name,
-                       sc.duration_value, sc.duration_unit, sc.delivery_mode,
-                       sc.fee, sc.start_date, sc.end_date, sc.status AS course_status,
-                       sce.status, sce.enrollment_date, sce.completion_date,
-                       sce.certificate_issued, sce.updated_at AS enrollment_updated_at
-                FROM short_course_enrollments sce
-                JOIN short_courses sc ON sce.short_course_id = sc.id
-                WHERE sce.student_id = ?
-                  AND sce.status IN ('enrolled','active','completed')
-                ORDER BY FIELD(sce.status, 'active', 'enrolled', 'completed'), sce.enrollment_date DESC, sce.id DESC";
-        $rows = [];
-        if ($stmt = @$db->prepare($sql)) {
-            $stmt->bind_param('s', $sid);
-            $stmt->execute();
-            if ($res = $stmt->get_result()) {
-                while ($r = $res->fetch_assoc()) {
-                    $rows[] = $r;
+
+        $enrolmentsByCode = [];
+
+        // 1. Canonical source: short_course_enrollments JOIN short_courses
+        if (sc_tables_present($db)) {
+            $sql = "SELECT sc.id AS short_course_id, sc.course_code, sc.course_name,
+                           sc.duration_value, sc.duration_unit, sc.delivery_mode,
+                           sc.fee, sc.start_date, sc.end_date, sc.status AS course_status,
+                           sce.status, sce.enrollment_date, sce.completion_date,
+                           sce.certificate_issued, sce.updated_at AS enrollment_updated_at
+                    FROM short_course_enrollments sce
+                    JOIN short_courses sc ON sce.short_course_id = sc.id
+                    WHERE sce.student_id = ?
+                      AND sce.status IN ('enrolled','active','completed')
+                    ORDER BY FIELD(sce.status, 'active', 'enrolled', 'completed'), sce.enrollment_date DESC, sce.id DESC";
+            if ($stmt = @$db->prepare($sql)) {
+                $stmt->bind_param('s', $sid);
+                $stmt->execute();
+                if ($res = $stmt->get_result()) {
+                    while ($r = $res->fetch_assoc()) {
+                        $codeKey = strtoupper(trim((string)$r['course_code']));
+                        if ($codeKey !== '') {
+                            $enrolmentsByCode[$codeKey] = $r;
+                        }
+                    }
                 }
+                $stmt->close();
             }
-            $stmt->close();
         }
 
-        // Also check if assigned via student_program for short courses
-        if ($rows === [] && sc_table_exists($db, 'student_program') && sc_table_exists($db, 'programs')) {
+        // 2. Fallback / supplementary source: student_program table
+        if (sc_table_exists($db, 'student_program')) {
             $statusFilter = sc_has_column($db, 'student_program', 'status')
                 ? "AND (sp.status IS NULL OR sp.status = '' OR LOWER(sp.status) = 'active')"
                 : '';
-            $sqlSp = "SELECT sp.program_code, sp.id AS sp_id, p.program_name, p.duration_value, p.duration_unit,
-                             p.program_duration, p.is_short_course, p.program_type
+            $sqlSp = "SELECT sp.program_code, sp.id AS sp_id, sp.registration_date, sp.created_at
                       FROM student_program sp
-                      INNER JOIN programs p ON p.program_code = sp.program_code
                       WHERE sp.Sid = ? {$statusFilter}
                       ORDER BY sp.id DESC";
             if ($stSp = @$db->prepare($sqlSp)) {
@@ -244,53 +355,107 @@ if (!function_exists('sc_student_enrolments')) {
                 $stSp->execute();
                 $resSp = $stSp->get_result();
                 while ($spRow = $resSp->fetch_assoc()) {
-                    $progCode = (string)$spRow['program_code'];
-                    if (sc_program_is_short_course($db, $progCode)) {
-                        $scId = 0;
-                        $fee = 0.0;
-                        $deliveryMode = 'full-time';
-                        $courseName = (string)$spRow['program_name'];
-                        $durationVal = (int)($spRow['duration_value'] ?? 0);
-                        $durationUnit = (string)($spRow['duration_unit'] ?? 'months');
-                        if (sc_table_exists($db, 'short_courses')) {
-                            $chkSc = @$db->prepare("SELECT id, course_name, duration_value, duration_unit, delivery_mode, fee FROM short_courses WHERE course_code = ? LIMIT 1");
-                            if ($chkSc) {
-                                $chkSc->bind_param('s', $progCode);
-                                $chkSc->execute();
-                                if ($scInfo = $chkSc->get_result()->fetch_assoc()) {
-                                    $scId = (int)$scInfo['id'];
-                                    $courseName = (string)$scInfo['course_name'];
-                                    if (!empty($scInfo['duration_value'])) { $durationVal = (int)$scInfo['duration_value']; }
-                                    if (!empty($scInfo['duration_unit'])) { $durationUnit = (string)$scInfo['duration_unit']; }
-                                    if (!empty($scInfo['delivery_mode'])) { $deliveryMode = (string)$scInfo['delivery_mode']; }
-                                    $fee = (float)($scInfo['fee'] ?? 0);
-                                }
-                                $chkSc->close();
-                            }
-                        }
-                        $rows[] = [
-                            'short_course_id' => $scId,
+                    $progCode = trim((string)$spRow['program_code']);
+                    $codeKey = strtoupper($progCode);
+                    if ($progCode !== '' && !isset($enrolmentsByCode[$codeKey]) && sc_program_is_short_course($db, $progCode)) {
+                        $meta = sc_resolve_course_meta($db, $progCode);
+                        $enrolDate = !empty($spRow['registration_date']) ? (string)$spRow['registration_date'] : (!empty($spRow['created_at']) ? (string)$spRow['created_at'] : date('Y-m-d H:i:s'));
+                        $enrolmentsByCode[$codeKey] = [
+                            'short_course_id' => $meta['id'],
                             'course_code' => $progCode,
-                            'course_name' => $courseName,
-                            'duration_value' => $durationVal,
-                            'duration_unit' => $durationUnit,
-                            'delivery_mode' => $deliveryMode,
-                            'fee' => $fee,
+                            'course_name' => $meta['name'],
+                            'duration_value' => $meta['duration_value'],
+                            'duration_unit' => $meta['duration_unit'],
+                            'delivery_mode' => $meta['delivery_mode'],
+                            'fee' => $meta['fee'],
                             'start_date' => null,
                             'end_date' => null,
                             'course_status' => 'active',
                             'status' => 'enrolled',
-                            'enrollment_date' => date('Y-m-d H:i:s'),
+                            'enrollment_date' => $enrolDate,
                             'completion_date' => null,
                             'certificate_issued' => 0,
-                            'enrollment_updated_at' => date('Y-m-d H:i:s'),
+                            'enrollment_updated_at' => $enrolDate,
                         ];
                     }
                 }
                 $stSp->close();
             }
         }
-        return $rows;
+
+        // 3. Fallback / supplementary source: students.program column
+        if (sc_table_exists($db, 'students')) {
+            $sqlStu = "SELECT s.program, s.dte_adm, s.created_at FROM students s WHERE s.SID = ? LIMIT 1";
+            if ($stStu = @$db->prepare($sqlStu)) {
+                $stStu->bind_param('s', $sid);
+                $stStu->execute();
+                $resStu = $stStu->get_result();
+                if ($stuRow = $resStu->fetch_assoc()) {
+                    $stuProg = trim((string)($stuRow['program'] ?? ''));
+                    $codeKey = strtoupper($stuProg);
+                    if ($stuProg !== '' && !isset($enrolmentsByCode[$codeKey]) && sc_program_is_short_course($db, $stuProg)) {
+                        $meta = sc_resolve_course_meta($db, $stuProg);
+                        $enrolDate = !empty($stuRow['dte_adm']) ? (string)$stuRow['dte_adm'] : (!empty($stuRow['created_at']) ? (string)$stuRow['created_at'] : date('Y-m-d H:i:s'));
+                        $enrolmentsByCode[$codeKey] = [
+                            'short_course_id' => $meta['id'],
+                            'course_code' => $stuProg,
+                            'course_name' => $meta['name'],
+                            'duration_value' => $meta['duration_value'],
+                            'duration_unit' => $meta['duration_unit'],
+                            'delivery_mode' => $meta['delivery_mode'],
+                            'fee' => $meta['fee'],
+                            'start_date' => null,
+                            'end_date' => null,
+                            'course_status' => 'active',
+                            'status' => 'enrolled',
+                            'enrollment_date' => $enrolDate,
+                            'completion_date' => null,
+                            'certificate_issued' => 0,
+                            'enrollment_updated_at' => $enrolDate,
+                        ];
+                    }
+                }
+                $stStu->close();
+            }
+        }
+
+        // 4. Fallback / supplementary source: course_registration
+        if (sc_table_exists($db, 'course_registration')) {
+            $sqlCr = "SELECT course_code, registration_date, created_at FROM course_registration WHERE Sid = ? AND COALESCE(is_active, 1) = 1 ORDER BY id DESC";
+            if ($stCr = @$db->prepare($sqlCr)) {
+                $stCr->bind_param('s', $sid);
+                $stCr->execute();
+                $resCr = $stCr->get_result();
+                while ($crRow = $resCr->fetch_assoc()) {
+                    $crCode = trim((string)($crRow['course_code'] ?? ''));
+                    $codeKey = strtoupper($crCode);
+                    if ($crCode !== '' && !isset($enrolmentsByCode[$codeKey]) && sc_program_is_short_course($db, $crCode)) {
+                        $meta = sc_resolve_course_meta($db, $crCode);
+                        $enrolDate = !empty($crRow['registration_date']) ? (string)$crRow['registration_date'] : (!empty($crRow['created_at']) ? (string)$crRow['created_at'] : date('Y-m-d H:i:s'));
+                        $enrolmentsByCode[$codeKey] = [
+                            'short_course_id' => $meta['id'],
+                            'course_code' => $crCode,
+                            'course_name' => $meta['name'],
+                            'duration_value' => $meta['duration_value'],
+                            'duration_unit' => $meta['duration_unit'],
+                            'delivery_mode' => $meta['delivery_mode'],
+                            'fee' => $meta['fee'],
+                            'start_date' => null,
+                            'end_date' => null,
+                            'course_status' => 'active',
+                            'status' => 'enrolled',
+                            'enrollment_date' => $enrolDate,
+                            'completion_date' => null,
+                            'certificate_issued' => 0,
+                            'enrollment_updated_at' => $enrolDate,
+                        ];
+                    }
+                }
+                $stCr->close();
+            }
+        }
+
+        return array_values($enrolmentsByCode);
     }
 }
 

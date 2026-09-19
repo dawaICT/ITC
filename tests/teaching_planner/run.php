@@ -114,6 +114,20 @@ tp_test('sample Word export repeats schedule rows and resolves all placeholders'
     tp_assert(substr_count($xml,'Approved Test Topic')>=1,'Repeated plan row is missing.'); tp_assert(!preg_match('/\{\{[^}]+\}\}/',strip_tags($xml)),'Sample export has unresolved placeholders.');
 });
 
+tp_test('live provisioning seed makes the lecturer page usable', function () use ($db): void {
+    $service = new TeachingPlannerService($db);
+    $assignments = $service->lecturerAssignments('EXH-LEC-001');
+    tp_assert($assignments !== [], 'No lecturer_course_assignments for EXH-LEC-001. Run: C:\\xampp\\php\\php.exe scripts\\seed_teaching_planner_live.php');
+    $codes = array_column($assignments, 'course_code');
+    tp_assert(in_array('DCSE-101', $codes, true), 'EXH-LEC-001 is not assigned to DCSE-101 after the seed.');
+    $syllabi = $service->approvedSyllabi('ICT-001', 'DCSE-101');
+    tp_assert($syllabi !== [], 'No approved syllabus for ICT-001/DCSE-101. Run: C:\\xampp\\php\\php.exe scripts\\seed_teaching_planner_live.php');
+    $templates = $service->activeTemplates('scheme_of_work', null, null, 'term');
+    tp_assert($templates !== [], 'No active term scheme_of_work template. Run: C:\\xampp\\php\\php.exe scripts\\seed_teaching_planner_live.php');
+    $r = $db->query("SELECT COUNT(*) c FROM teaching_plans WHERE lecturer_staff_id = 'EXH-LEC-001' AND status <> 'archived'");
+    tp_assert($r && (int)$r->fetch_assoc()['c'] >= 1, 'No saved plan exists for EXH-LEC-001.');
+});
+
 foreach (glob($tmp . '/*') ?: [] as $file) @unlink($file); @rmdir($tmp);
 echo "\n{$passes} passed, " . count($failures) . " failed.\n";
 if ($failures) exit(1);

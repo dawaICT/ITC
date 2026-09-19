@@ -380,8 +380,19 @@ function getStudentEnrolledCourses($db, $studentId) {
             }
         }
     }
-    
-    return array_unique($courses);
+
+    // 3. Short course enrolments
+    if (function_exists('sc_student_enrolments')) {
+        $scList = sc_student_enrolments($db, (string)$studentId);
+        foreach ($scList as $sc) {
+            $cCode = trim((string)($sc['course_code'] ?? ''));
+            if ($cCode !== '') {
+                $courses[] = $cCode;
+            }
+        }
+    }
+
+    return array_values(array_unique(array_filter($courses)));
 }
 
 /**

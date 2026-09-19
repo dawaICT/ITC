@@ -21,9 +21,44 @@ $student = student_ca_fetch_student_profile($db, $sid);
 if (!is_array($student)) {
     $student = [];
 }
-$isShortCourse = isShortCourseStudent($db, $sid);
-$programStructure = getStudentProgramPeriodMode($db, $sid);
-$periodLabel = wuc_period_label_from_structure($programStructure);
+
+// Check short-course status, dual-enrolment status, and portal view context
+$isShortCourseStudentOnly = isShortCourseStudent($db, $sid);
+$scEnrolments = function_exists('sc_student_enrolments') ? sc_student_enrolments($db, $sid) : [];
+$hasShortCourseEnrolments = ($scEnrolments !== []);
+$hasLongProgram = function_exists('sc_student_has_long_program') ? sc_student_has_long_program($db, $sid) : false;
+$isDualEnrolled = $hasLongProgram && $hasShortCourseEnrolments;
+$portalViewShort = (($_SESSION['student_portal_view'] ?? '') === 'short_course') && $hasShortCourseEnrolments;
+
+$requestedView = strtolower(trim((string)($_GET['view'] ?? ($_GET['type'] ?? ''))));
+if ($requestedView === 'short_course' || $requestedView === 'short') {
+    $isShortCourse = $hasShortCourseEnrolments || $isShortCourseStudentOnly;
+} elseif ($requestedView === 'academic' || $requestedView === 'long' || $requestedView === 'certificate') {
+    $isShortCourse = false;
+} elseif ($portalViewShort) {
+    $isShortCourse = true;
+} else {
+    $isShortCourse = $isShortCourseStudentOnly;
+}
+
+// Build short course program label if in short-course mode
+$shortCourseProgramLabel = 'Short Course Programme';
+if ($hasShortCourseEnrolments) {
+    $scLabels = [];
+    foreach ($scEnrolments as $scE) {
+        $cCode = trim((string)($scE['course_code'] ?? ''));
+        $cName = trim((string)($scE['course_name'] ?? ''));
+        if ($cCode !== '') {
+            $scLabels[] = $cName !== '' ? "{$cCode} - {$cName}" : $cCode;
+        }
+    }
+    if ($scLabels !== []) {
+        $shortCourseProgramLabel = implode(', ', $scLabels);
+    }
+}
+
+$programStructure = $isShortCourse ? 'short_course' : getStudentProgramPeriodMode($db, $sid);
+$periodLabel = $isShortCourse ? 'Duration' : wuc_period_label_from_structure($programStructure);
 
 $currentAcademicYearSetting = '';
 $currentSemesterSetting = '1';
@@ -69,48 +104,50 @@ $currentSemester = $currentSemesterSetting;
 $latestRegistration = student_ca_latest_registration($db, $sid, $selectedAcademicYear);
 $termContext = null;
 
-if ($latestRegistration) {
-    $currentSemester = (string)($latestRegistration['period'] ?? $currentSemesterSetting);
-    $selectedYearOfStudy = trim((string)($latestRegistration['year_of_study'] ?? '1')) ?: '1';
-    $termContext = [
-        'semester' => (int)$currentSemester,
-        'year_of_study' => (int)$selectedYearOfStudy,
-        'academic_year' => trim((string)($latestRegistration['academic_year'] ?? $selectedAcademicYear)),
-        'program_code' => trim((string)($latestRegistration['program_code'] ?? '')),
-        'period_type' => trim((string)($latestRegistration['period_type'] ?? '')),
-    ];
-} else {
-    $termContext = $regDataService->resolveRegistrationTermContext(
-        $sid,
-        null,
-        $selectedAcademicYear,
-        null,
-        null,
-        true
-    );
-    if ($termContext) {
-        $currentSemester = (string)($termContext['semester'] ?? $currentSemesterSetting);
-        $selectedYearOfStudy = trim((string)($termContext['year_of_study'] ?? '1')) ?: '1';
+if (!$isShortCourse) {
+    if ($latestRegistration) {
+        $currentSemester = (string)($latestRegistration['period'] ?? $currentSemesterSetting);
+        $selectedYearOfStudy = trim((string)($latestRegistration['year_of_study'] ?? '1')) ?: '1';
+        $termContext = [
+            'semester' => (int)$currentSemester,
+            'year_of_study' => (int)$selectedYearOfStudy,
+            'academic_year' => trim((string)($latestRegistration['academic_year'] ?? $selectedAcademicYear)),
+            'program_code' => trim((string)($latestRegistration['program_code'] ?? '')),
+            'period_type' => trim((string)($latestRegistration['period_type'] ?? '')),
+        ];
+    } else {
+        $termContext = $regDataService->resolveRegistrationTermContext(
+            $sid,
+            null,
+            $selectedAcademicYear,
+            null,
+            null,
+            true
+        );
+        if ($termContext) {
+            $currentSemester = (string)($termContext['semester'] ?? $currentSemesterSetting);
+            $selectedYearOfStudy = trim((string)($termContext['year_of_study'] ?? '1')) ?: '1';
+        }
     }
-}
 
-if ($termContext) {
-    $registrationPeriodType = normalizeProgramPeriodMode((string)($termContext['period_type'] ?? ''));
-    if (in_array($registrationPeriodType, ['semester', 'term'], true)) {
-        $programStructure = $registrationPeriodType;
-        $periodLabel = wuc_period_label_from_structure($programStructure);
-    }
-    $resolvedProgramCode = trim((string)($termContext['program_code'] ?? ''));
-    if ($resolvedProgramCode !== '' && is_array($student)) {
-        $student['program_code'] = $resolvedProgramCode;
-        if ($stmt = $db->prepare('SELECT program_name FROM programs WHERE program_code = ? LIMIT 1')) {
-            $stmt->bind_param('s', $resolvedProgramCode);
-            $stmt->execute();
-            $programRow = $stmt->get_result()->fetch_assoc();
-            if ($programRow && trim((string)($programRow['program_name'] ?? '')) !== '') {
-                $student['program_name'] = (string)$programRow['program_name'];
+    if ($termContext) {
+        $registrationPeriodType = normalizeProgramPeriodMode((string)($termContext['period_type'] ?? ''));
+        if (in_array($registrationPeriodType, ['semester', 'term'], true)) {
+            $programStructure = $registrationPeriodType;
+            $periodLabel = wuc_period_label_from_structure($programStructure);
+        }
+        $resolvedProgramCode = trim((string)($termContext['program_code'] ?? ''));
+        if ($resolvedProgramCode !== '' && is_array($student)) {
+            $student['program_code'] = $resolvedProgramCode;
+            if ($stmt = $db->prepare('SELECT program_name FROM programs WHERE program_code = ? LIMIT 1')) {
+                $stmt->bind_param('s', $resolvedProgramCode);
+                $stmt->execute();
+                $programRow = $stmt->get_result()->fetch_assoc();
+                if ($programRow && trim((string)($programRow['program_name'] ?? '')) !== '') {
+                    $student['program_name'] = (string)$programRow['program_name'];
+                }
+                $stmt->close();
             }
-            $stmt->close();
         }
     }
 }
@@ -120,8 +157,10 @@ $programCodeForStructure = trim((string)($student['program_code'] ?? ''));
 $periodConfig = student_ca_period_columns($db, $programCodeForStructure, $programStructure);
 $periodNumbers = $periodConfig['periods'];
 $periodHeaders = $periodConfig['headers'];
-$periodLabel = $periodConfig['period_label'];
-$programStructure = $periodConfig['period_mode'];
+if (!$isShortCourse) {
+    $periodLabel = $periodConfig['period_label'];
+    $programStructure = $periodConfig['period_mode'];
+}
 $caPeriodComponents = student_ca_period_component_labels($periodNumbers, $programStructure);
 
 $programCode = trim((string)($student['program_code'] ?? ''));
@@ -156,9 +195,39 @@ if (!$isShortCourse) {
         }
     }
 
+    // An explicit drop is not a registration mismatch: courses the student
+    // dropped/withdrawn from must not reappear via the marks safety-net below.
+    $droppedCodes = [];
+    $crCols = student_ca_table_columns($db, 'course_registration');
+    $crCodeCol = student_ca_pick_column($crCols, ['course_code', 'Course_Code'], 'course_code');
+    $crStatusCol = student_ca_pick_column($crCols, ['status'], 'status');
+    $crYearCol = student_ca_pick_column($crCols, ['Year', 'year_of_study'], 'Year');
+    $crAcYearCol = student_ca_pick_column($crCols, ['academic_year'], 'academic_year');
+    if ($crCols !== [] && $crStatusCol !== '') {
+        $acYearInt = (int)preg_replace('/\D.*/', '', $selectedAcademicYear);
+        $dropSql = "SELECT UPPER(TRIM(`{$crCodeCol}`)) AS code
+                    FROM course_registration
+                    WHERE Sid COLLATE utf8mb4_general_ci = ?
+                      AND (`{$crYearCol}` = ? OR CAST(`{$crAcYearCol}` AS CHAR) = ? OR `{$crAcYearCol}` = ?)
+                      AND LOWER(COALESCE(`{$crStatusCol}`, '')) IN ('dropped','withdrawn','cancelled','inactive')";
+        if ($dropStmt = $db->prepare($dropSql)) {
+            $acYearStr = (string)$acYearInt;
+            $dropStmt->bind_param('sssi', $sid, $selectedYearOfStudy, $acYearStr, $acYearInt);
+            $dropStmt->execute();
+            $dropRes = $dropStmt->get_result();
+            while ($dropRow = $dropRes->fetch_assoc()) {
+                $code = strtoupper(trim((string)($dropRow['code'] ?? '')));
+                if ($code !== '') {
+                    $droppedCodes[$code] = true;
+                }
+            }
+            $dropStmt->close();
+        }
+    }
+
     foreach (array_keys($componentsMap) as $compCode) {
         $normCode = strtoupper(trim((string)$compCode));
-        if ($normCode !== '' && !isset($existingCodes[$normCode])) {
+        if ($normCode !== '' && !isset($existingCodes[$normCode]) && !isset($droppedCodes[$normCode])) {
             $cName = $compCode;
             if ($cStmt = $db->prepare('SELECT course_name FROM courses WHERE UPPER(course_code) = ? LIMIT 1')) {
                 $cStmt->bind_param('s', $normCode);
@@ -190,15 +259,16 @@ if (!$isShortCourse) {
 }
 
 // Keep short-course CA out of the long-programme report (and vice versa).
-// Dual-enrolled long students manage short courses on short_courses.php only.
 $shortCourseRecords = $isShortCourse
     ? student_ca_load_short_course_records($db, $sid)
     : [];
+
 if ($isShortCourse) {
     // Annual term/semester CA is for long programmes only.
     $records = [];
     $pendingPublicationCount = 0;
 }
+
 $summary = student_ca_compute_annual_summary($records, $periodNumbers);
 if ($isShortCourse && $shortCourseRecords !== []) {
     $scPublished = 0;
@@ -217,6 +287,7 @@ if ($isShortCourse && $shortCourseRecords !== []) {
         'average_total' => $scTotals !== [] ? round(array_sum($scTotals) / count($scTotals), 1) : null,
     ];
 }
+
 $hasAnyResults = $records !== [] || $shortCourseRecords !== [];
 $studentFullName = trim(
     (string)($student['Fname'] ?? '') . ' ' . (string)($student['Lname'] ?? '')
@@ -225,7 +296,7 @@ $studentName = $studentFullName;
 $institutionName = 'Industrial Training Centre';
 $reportTitle = $isShortCourse ? 'Short Course Continuous Assessment Report' : 'Continuous Assessment Report';
 $programName = $isShortCourse
-    ? 'Short Course Programme'
+    ? $shortCourseProgramLabel
     : trim((string)($student['program_name'] ?? ''));
 if ($hasNoProgram) {
     $programName = 'Not assigned';
@@ -273,6 +344,29 @@ $studentPeriodLabel = $isShortCourse ? $selectedAcademicYear : $periodLabelFull;
             </div>
         </div>
     </div>
+
+    <?php if ($isDualEnrolled): ?>
+    <!-- Dual-Enrolled Programme Switcher -->
+    <div class="card border-0 shadow-sm mb-4 no-print" style="border-radius: 12px; background: #fff;">
+        <div class="card-body p-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <i class="fas fa-layer-group text-primary fs-5"></i>
+                <div>
+                    <strong class="d-block text-dark small">Multiple Enrolments Detected</strong>
+                    <span class="text-muted small">Switch between your long-term academic programme and short course results.</span>
+                </div>
+            </div>
+            <div class="btn-group btn-group-sm" role="group" aria-label="CA view switcher">
+                <a href="continuousAssessment.php?view=academic" class="btn <?= !$isShortCourse ? 'btn-primary' : 'btn-outline-primary' ?>">
+                    <i class="fas fa-graduation-cap me-1"></i> Academic / Certificate CA
+                </a>
+                <a href="continuousAssessment.php?view=short_course" class="btn <?= $isShortCourse ? 'btn-primary' : 'btn-outline-primary' ?>">
+                    <i class="fas fa-certificate me-1"></i> Short Course CA
+                </a>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
 
     <?php if (!empty($_SESSION['student_notice'])): ?>
     <div class="alert alert-info alert-dismissible fade show no-print ca-alert-compact py-2 mb-3" role="alert">
@@ -329,6 +423,9 @@ $studentPeriodLabel = $isShortCourse ? $selectedAcademicYear : $periodLabelFull;
                 </div>
             </div>
             <form method="get" class="ca-toolbar-filters" id="caFilterForm">
+                <?php if ($isDualEnrolled || $requestedView !== ''): ?>
+                <input type="hidden" name="view" value="<?= $isShortCourse ? 'short_course' : 'academic' ?>">
+                <?php endif; ?>
                 <label class="form-label-inline" for="academicYearFilter">Academic year</label>
                 <select class="form-select form-select-sm" id="academicYearFilter" name="academic_year" aria-label="Academic year">
                     <?php foreach ($academicYearOptions as $yearOption): ?>
@@ -409,11 +506,9 @@ $studentPeriodLabel = $isShortCourse ? $selectedAcademicYear : $periodLabelFull;
                 ?>
             <?php endif; ?>
 
-
-
             <?php if ($isShortCourse && $shortCourseRecords === []): ?>
             <div class="ca-empty">
-                <i class="fas fa-certificate fa-2x mb-2 d-block" aria-hidden="true"></i>
+                <i class="fas fa-certificate fa-2x mb-2 d-block text-purple" aria-hidden="true"></i>
                 <p class="mb-0">No CA results have been posted for your short course yet.</p>
             </div>
             <?php endif; ?>
@@ -491,17 +586,18 @@ $studentPeriodLabel = $isShortCourse ? $selectedAcademicYear : $periodLabelFull;
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-(function () {
-    var form = document.getElementById('caFilterForm');
-    if (!form) {
-        return;
-    }
-    form.querySelectorAll('select').forEach(function (el) {
-        el.addEventListener('change', function () {
-            form.submit();
+document.addEventListener('DOMContentLoaded', function() {
+    const filterSelect = document.getElementById('academicYearFilter');
+    if (filterSelect) {
+        filterSelect.addEventListener('change', function() {
+            document.getElementById('caFilterForm').submit();
         });
-    });
-})();
+    }
+});
+
+function wucPrintSinglePage() {
+    window.print();
+}
 </script>
 </body>
 </html>

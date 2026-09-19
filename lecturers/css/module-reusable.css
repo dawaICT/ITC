@@ -962,3 +962,73 @@
         width: 100%;
     }
 }
+
+/* ─── CA Results page ─── */
+
+/* GRADE-SHEET: restore real table layout at 768-1199.98px where the
+   portal-wide stacked-card rule (≤1199.98px) hides the two-row header and
+   collapses the official grade sheet into a vertical list. Keep the phone
+   stacked layout (<768px) intact. */
+@media (min-width: 768px) {
+    .ca-results-page .official-sheet.table-mobile-stack {
+        overflow: auto !important;
+    }
+    .ca-results-page .official-sheet.table-mobile-stack table,
+    .ca-results-page .official-sheet.table-mobile-stack thead,
+    .ca-results-page .official-sheet.table-mobile-stack tbody,
+    .ca-results-page .official-sheet.table-mobile-stack tr,
+    .ca-results-page .official-sheet.table-mobile-stack th,
+    .ca-results-page .official-sheet.table-mobile-stack td {
+        display: revert;
+        width: revert !important;
+    }
+    .ca-results-page .official-sheet.table-mobile-stack thead {
+        display: revert;
+    }
+    .ca-results-page .official-sheet.table-mobile-stack tr {
+        border: revert;
+        border-radius: revert;
+        padding: revert;
+        margin-bottom: revert;
+        background: revert;
+    }
+    .ca-results-page .official-sheet.table-mobile-stack td {
+        display: revert;
+        justify-content: revert;
+        gap: revert;
+        padding: revert !important;
+        border: revert !important;
+        text-align: revert;
+        overflow-wrap: revert;
+    }
+    .ca-results-page .official-sheet.table-mobile-stack td::before {
+        content: none;
+    }
+}
+
+/* Purple portal accent overrides (follow the .ai-question-bank-page precedent).
+   The teal assignment tokens clash with the rest of the portal. */
+.ca-results-page .assignment-command-bar .command-link.active {
+    background: #6f42c1;
+    color: #ffffff;
+}
+
+.ca-results-page .assignment-command-bar .command-link:hover:not(.active),
+.ca-results-page .assignment-command-bar .command-link:focus:not(.active) {
+    background: #f3eeff;
+    color: #4a2b9c;
+}
+
+.ca-results-page .lecturer-section {
+    border-left-color: #6f42c1 !important;
+}
+
+.ca-results-page .workflow-stat-value {
+    color: #6f42c1;
+}
+
+.ca-results-page .form-control:focus,
+.ca-results-page .form-select:focus {
+    border-color: #6f42c1;
+    box-shadow: 0 0 0 0.2rem rgba(111, 66, 193, 0.25);
+}

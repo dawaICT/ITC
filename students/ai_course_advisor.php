@@ -115,6 +115,7 @@ function student_ai_build_context(mysqli $db, string $sid): array
         'period_label_full' => $periodLabelFull,
         'student'      => $profile,
         'registration' => [
+            'has_semester_registration'  => $hasPeriodReg,
             'period_registration_status' => $hasPeriodReg  ? 'registered for current period' : 'not yet registered for current period',
             'course_registration_status' => $hasCourseReg  ? 'courses have been selected'    : 'no courses selected yet',
             'course_registration_window' => $canAddCourses ? 'open — student may add or drop courses' : 'closed — contact the registrar to make changes',

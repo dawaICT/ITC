@@ -3,6 +3,7 @@ require_once __DIR__ . '/includes/admin.php';
 require_once dirname(__DIR__) . '/includes/role_helpers.php';
 require_once dirname(__DIR__) . '/includes/helpers/academic_structure_helpers.php';
 require_once dirname(__DIR__) . '/includes/cse_progression.php';
+require_once dirname(__DIR__) . '/includes/short_course_student.php';
 
 // Enable mysqli error reporting
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
@@ -309,6 +310,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_student'])) {
                         );
                         $stmt->execute();
                         $stmt->close();
+                    }
+                }
+
+                // If the assigned program is a short course, sync into short_course_enrollments
+                if (function_exists('sc_program_is_short_course') && sc_program_is_short_course($db, (string)$_POST['program'])) {
+                    $scProgCode = (string)$_POST['program'];
+                    $scId = 0;
+                    if ($scFind = $db->prepare("SELECT id FROM short_courses WHERE course_code = ? LIMIT 1")) {
+                        $scFind->bind_param("s", $scProgCode);
+                        $scFind->execute();
+                        if ($scRow = $scFind->get_result()->fetch_assoc()) {
+                            $scId = (int)$scRow['id'];
+                        }
+                        $scFind->close();
+                    }
+                    if ($scId > 0 && sc_table_exists($db, 'short_course_enrollments')) {
+                        $chkEnrol = $db->prepare("SELECT id FROM short_course_enrollments WHERE short_course_id = ? AND student_id = ? LIMIT 1");
+                        $chkEnrol->bind_param("is", $scId, $student_id);
+                        $chkEnrol->execute();
+                        $hasEnrol = $chkEnrol->get_result()->fetch_assoc();
+                        $chkEnrol->close();
+                        if (!$hasEnrol) {
+                            $insEnrol = $db->prepare("INSERT INTO short_course_enrollments (short_course_id, student_id, enrollment_date, status) VALUES (?, ?, NOW(), 'enrolled')");
+                            $insEnrol->bind_param("is", $scId, $student_id);
+                            $insEnrol->execute();
+                            $insEnrol->close();
+                        }
                     }
                 }
             }

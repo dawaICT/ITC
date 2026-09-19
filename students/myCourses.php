@@ -187,49 +187,6 @@ if ($debugMode) {
               addDebug('TERM', 'WARNING: No registration context found for student');
           }
       }
-      if (false && !empty($_SESSION['Sid'])) {
-          $cols__ = [];
-          if ($m__ = $db->query("SHOW COLUMNS FROM semester_registration")) {
-              while ($c__ = $m__->fetch_assoc()) { $cols__[strtolower((string)$c__['Field'])] = (string)$c__['Field']; }
-              $m__->free();
-          }
-          $srSidCol__  = $cols__['sid'] ?? ($cols__['student_id'] ?? ($cols__['student'] ?? 'Sid'));
-          $srSemCol__  = $cols__['semester'] ?? ($cols__['semester_term'] ?? ($cols__['term'] ?? ($cols__['sem'] ?? 'semester')));
-          $srYearCol__ = $cols__['year_of_study'] ?? ($cols__['year'] ?? 'Year');
-          $srAcadYearCol__ = $cols__['academic_year'] ?? 'academic_year';
-          
-          $q__ = "SELECT `{$srSemCol__}` AS semester, `{$srYearCol__}` AS Year, `{$srAcadYearCol__}` AS AcademicYear FROM semester_registration WHERE `{$srSidCol__}`='".$db->real_escape_string((string)($_SESSION['Sid'] ?? ''))."' ORDER BY id DESC LIMIT 1";
-          addDebug('TERM', 'Student term query', ['sql' => $q__]);
-          if ($r__ = $db->query($q__)) { 
-              if ($row__ = $r__->fetch_assoc()) { 
-                  $currentSemester = (string)$row__['semester']; 
-                  $currentYear = (string)$row__['Year']; 
-                  $currentAcadYear = (string)$row__['AcademicYear'];
-                  addDebug('TERM', 'Student current registration', [
-                      'semester' => $currentSemester,
-                      'year_of_study' => $currentYear,
-                      'academic_year' => $currentAcadYear
-                  ]);
-              } else {
-                  addDebug('TERM', 'WARNING: No registration found for student in header query');
-              }
-              $r__->free(); 
-          }
-          
-          // Compare student's term with system term
-          if ($systemSemester && $currentSemester && $systemSemester != $currentSemester) {
-              addDebug('TERM', 'MISMATCH: Student semester differs from system', [
-                  'student_semester' => $currentSemester,
-                  'system_semester' => $systemSemester
-              ]);
-          }
-          if ($systemAcademicYear && $currentAcadYear && $systemAcademicYear != $currentAcadYear) {
-              addDebug('TERM', 'MISMATCH: Student academic year differs from system', [
-                  'student_academic_year' => $currentAcadYear,
-                  'system_academic_year' => $systemAcademicYear
-              ]);
-          }
-      }
     ?>
     <div class="content-wrapper">
         <div class="container">
@@ -297,34 +254,38 @@ if ($debugMode) {
                             </div>
                             <?php
                             // Show all student's semester registrations
-                            $allRegsQ = "SELECT * FROM semester_registration WHERE student_id = '" . $db->real_escape_string($_SESSION['Sid'] ?? '') . "' ORDER BY id DESC LIMIT 5";
-                            if ($allRegsRes = $db->query($allRegsQ)) {
-                                if ($allRegsRes->num_rows > 0) {
-                                    echo '<hr class="my-2"><h6 class="text-secondary mb-2">Recent Semester Registrations (Last 5)</h6>';
-                                    echo '<div class="table-responsive"><table class="table table-hover align-middle mb-0 fs-sm">';
-                                    echo '<thead class="table-light"><tr>';
-                                    $firstRow = $allRegsRes->fetch_assoc();
-                                    foreach (array_keys($firstRow) as $col) {
-                                        echo '<th>' . htmlspecialchars($col) . '</th>';
-                                    }
-                                    echo '</tr></thead><tbody>';
-                                    // Output first row
-                                    echo '<tr>';
-                                    foreach ($firstRow as $val) {
-                                        echo '<td>' . htmlspecialchars((string)$val) . '</td>';
-                                    }
-                                    echo '</tr>';
-                                    // Output remaining rows
-                                    while ($regRow = $allRegsRes->fetch_assoc()) {
+                            $sessSid = (string)($_SESSION['Sid'] ?? '');
+                            if ($sessSid !== '' && ($allStmt = $db->prepare("SELECT * FROM semester_registration WHERE student_id = ? ORDER BY id DESC LIMIT 5"))) {
+                                $allStmt->bind_param('s', $sessSid);
+                                $allStmt->execute();
+                                if ($allRegsRes = $allStmt->get_result()) {
+                                    if ($allRegsRes->num_rows > 0) {
+                                        echo '<hr class="my-2"><h6 class="text-secondary mb-2">Recent Semester Registrations (Last 5)</h6>';
+                                        echo '<div class="table-responsive"><table class="table table-hover align-middle mb-0 fs-sm">';
+                                        echo '<thead class="table-light"><tr>';
+                                        $firstRow = $allRegsRes->fetch_assoc();
+                                        foreach (array_keys($firstRow) as $col) {
+                                            echo '<th>' . htmlspecialchars($col) . '</th>';
+                                        }
+                                        echo '</tr></thead><tbody>';
+                                        // Output first row
                                         echo '<tr>';
-                                        foreach ($regRow as $val) {
+                                        foreach ($firstRow as $val) {
                                             echo '<td>' . htmlspecialchars((string)$val) . '</td>';
                                         }
                                         echo '</tr>';
+                                        // Output remaining rows
+                                        while ($regRow = $allRegsRes->fetch_assoc()) {
+                                            echo '<tr>';
+                                            foreach ($regRow as $val) {
+                                                echo '<td>' . htmlspecialchars((string)$val) . '</td>';
+                                            }
+                                            echo '</tr>';
+                                        }
+                                        echo '</tbody></table></div>';
                                     }
-                                    echo '</tbody></table></div>';
                                 }
-                                $allRegsRes->free();
+                                $allStmt->close();
                             }
                             ?>
                         </div>
@@ -398,14 +359,17 @@ if ($debugMode) {
                                 // Get the latest semester registration for this student (current term only)
                                 $order = $srIdCol ? "ORDER BY `{$srIdCol}` DESC" : "ORDER BY `{$srYearCol}` DESC, `{$srSemCol}` DESC";
                                 $srIdSelect = $srIdCol ? "`{$srIdCol}` AS id," : "";
-                                $sqlCurrent = "SELECT {$srIdSelect} `{$srYearCol}` AS Year, `{$srSemCol}` AS semester, `{$srAcadYearCol}` AS AcademicYear, program_code FROM semester_registration WHERE `{$srSidCol}`='".$db->real_escape_string($sid)."' $order LIMIT 1";
+                                $sqlCurrent = "SELECT {$srIdSelect} `{$srYearCol}` AS Year, `{$srSemCol}` AS semester, `{$srAcadYearCol}` AS AcademicYear, program_code FROM semester_registration WHERE `{$srSidCol}`=? $order LIMIT 1";
                                 $program = '';
                                 $semesterRegId = null;
                                 addDebug('QUERY', 'Semester registration query', ['sql' => $sqlCurrent]);
                                 error_log('myCourses.php DEBUG: Semester registration query: ' . $sqlCurrent);
                                 
-                                if ($rs = $db->query($sqlCurrent)) {
-                                    if ($row = $rs->fetch_assoc()) {
+                                if ($stmtCurrent = $db->prepare($sqlCurrent)) {
+                                    $stmtCurrent->bind_param('s', $sid);
+                                    $stmtCurrent->execute();
+                                    $rs = $stmtCurrent->get_result();
+                                    if ($rs && ($row = $rs->fetch_assoc())) {
                                         $semesterRegId = isset($row['id']) ? (int)$row['id'] : null;
                                         $selectedYear = (string)($row['Year'] ?? '');
                                         $selectedSemester = (string)($row['semester'] ?? '');
@@ -423,7 +387,7 @@ if ($debugMode) {
                                         addDebug('RESULT', 'WARNING: No semester registration found for student', ['sid' => $sid]);
                                         error_log('myCourses.php WARNING: No semester registration row found for student: ' . $sid);
                                     }
-                                    $rs->free();
+                                    $stmtCurrent->close();
                                 } else {
                                     addDebug('ERROR', 'Semester registration query failed', ['error' => $db->error]);
                                     error_log('myCourses.php ERROR: Semester registration query failed: ' . $db->error);

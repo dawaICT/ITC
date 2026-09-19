@@ -48,7 +48,11 @@
         ],
         "post-update-cmd": [
             "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
-        ]
+        ],
+        "test": "@php vendor/bin/phpunit",
+        "test:portal": "@php vendor/bin/phpunit --testsuite Portal",
+        "test:legacy": "@php vendor/bin/phpunit --testsuite Portal --filter LegacyHarnessTest",
+        "harness": "@php vendor/bin/phpunit --testsuite Portal"
     },
     "extra": {
         "laravel": {
@@ -62,24 +66,24 @@
         "allow-plugins": {
             "pestphp/pest-plugin": true,
             "php-http/discovery": true
+        },
+        "audit": {
+            "ignore": [
+                "PKSA-m5cs-t1y6-qpcs",
+                "PKSA-3r5d-mb8f-1qw9",
+                "PKSA-mdq4-51ck-6kdq",
+                "PKSA-8qx3-n5y5-vvnd",
+                "PKSA-q46n-4fdk-zjr4",
+                "PKSA-qzrn-rnz3-85w1",
+                "PKSA-cv56-2228-pzr6",
+                "PKSA-6r8f-nxsb-67bq",
+                "PKSA-gh7h-hhy4-byg7",
+                "PKSA-mwt3-h9tv-kx78",
+                "PKSA-hp6n-n4kz-21wk",
+                "PKSA-mckv-s5hg-868k"
+            ]
         }
     },
     "minimum-stability": "stable",
-    "prefer-stable": true,
-    "audit": {
-        "ignore": [
-            "PKSA-m5cs-t1y6-qpcs",
-            "PKSA-3r5d-mb8f-1qw9",
-            "PKSA-mdq4-51ck-6kdq",
-            "PKSA-8qx3-n5y5-vvnd",
-            "PKSA-q46n-4fdk-zjr4",
-            "PKSA-qzrn-rnz3-85w1",
-            "PKSA-cv56-2228-pzr6",
-            "PKSA-6r8f-nxsb-67bq",
-            "PKSA-gh7h-hhy4-byg7",
-            "PKSA-mwt3-h9tv-kx78",
-            "PKSA-hp6n-n4kz-21wk",
-            "PKSA-mckv-s5hg-868k"
-        ]
-    }
+    "prefer-stable": true
 }
